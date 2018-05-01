@@ -88,6 +88,9 @@ def start(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
         else:
             libR.Rf_initialize_R(argn, argv)
             setup_callbacks_posix(libR)
+
+        libR.Rf_mainloop()
+
     else:
 
         libR.Rf_initEmbeddedR(argn, argv)

@@ -66,5 +66,5 @@ def init(arguments=["rapi", "--quiet", "--no-save"]):
     global rhome, libR
     rhome = get_rhome()
     libR = get_libR(rhome)
-    embedded.start(libR)
-    bootstrap(libR, arguments, rversion=get_rversion(rhome))
+    embedded.start(libR, arguments)
+    bootstrap(libR, rversion=get_rversion(rhome))
