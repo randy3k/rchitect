@@ -79,10 +79,11 @@ def start(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
 
     if sys.platform.startswith("win"):
         setup_win32(libR)
+        libR.R_set_command_line_arguments(argn, argv)
     else:
         setup_posix(libR)
+        libR.Rf_initialize_R(argn, argv)
 
-    libR.Rf_initialize_R(argn, argv)
     libR.setup_Rmainloop()
     bootstrap(libR, rversion=None)
     if repl:
@@ -176,6 +177,7 @@ class RStart(Structure):
 
 
 def setup_win32(libR):
+    libR.R_setStartTime()
     rstart = RStart()
     libR.R_DefParams(pointer(rstart))
     rstart.rhome = ccall("get_R_HOME", libR, POINTER(c_char), [])
