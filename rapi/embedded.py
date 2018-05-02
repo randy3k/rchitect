@@ -1,11 +1,12 @@
 from __future__ import unicode_literals
 
 import sys
+
 from ctypes import c_int, c_size_t, c_char, c_char_p, c_void_p, cast, pointer
 from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
 
 from .types import SEXP
-from .utils import ccall
+from .utils import ccall, rversion
 from .bootstrap import bootstrap
 
 
@@ -85,7 +86,7 @@ def start(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
 
     libR.setup_Rmainloop()
 
-    bootstrap(libR, rversion=None)
+    bootstrap(libR, rversion=rversion(libR))
     if repl:
         libR.run_Rmainloop()
 

@@ -18,6 +18,11 @@ def rconsole2str(buf, encoding):
     return ret
 
 
+def set_encoding(encoding):
+    global ENCODING
+    ENCODING = encoding
+
+
 def R_ShowMessage(buf):
     buf = rconsole2str(buf, ENCODING)
     sys.stdout.write(buf)

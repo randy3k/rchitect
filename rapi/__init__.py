@@ -2,10 +2,8 @@ from __future__ import unicode_literals
 
 import os
 import sys
-import re
 import subprocess
 from ctypes import PyDLL
-from distutils.version import LooseVersion
 
 from .utils import read_registry
 from . import embedded, defaults
@@ -50,18 +48,6 @@ def get_libR(rhome):
         raise RuntimeError("Cannot locate R share library.")
 
     return PyDLL(str(libRpath))
-
-
-def get_rversion(rhome):
-    try:
-        output = subprocess.check_output(
-            [os.path.join(rhome, "bin", "R"), "--version"],
-            stderr=subprocess.STDOUT).decode("utf-8").strip()
-        m = re.match(r"R version ([0-9]+\.[0-9]+\.[0-9]+)", output)
-        rversion = LooseVersion(m.group(1))
-    except Exception as e:
-        rversion = LooseVersion("1000.0.0")
-    return rversion
 
 
 def init(arguments=["rapi", "--quiet", "--no-save"], repl=False):
