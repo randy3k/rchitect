@@ -84,6 +84,7 @@ def start(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
         libR.Rf_initialize_R(argn, argv)
 
     libR.setup_Rmainloop()
+
     bootstrap(libR, rversion=None)
     if repl:
         libR.run_Rmainloop()

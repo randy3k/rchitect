@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from ctypes import c_char, c_char_p, c_double, c_int, c_ubyte, c_void_p, c_size_t
-from ctypes import POINTER, CFUNCTYPE, cast
+from ctypes import POINTER, CFUNCTYPE
 from collections import namedtuple
 
 from .types import SEXP, SEXPTYPE, Rcomplex, R_len_t, R_xlen_t
@@ -13,8 +13,12 @@ _globals = {}
 _signatures = {}
 
 
+def noop(*args):
+    raise RuntimeError("method not loaded")
+
+
 def _make_closure(name, sign):
-    _f = [None]
+    _f = [noop]
 
     def setter(g):
         _f[0] = g
@@ -565,7 +569,7 @@ _register("R_alloc", c_void_p, [c_size_t, c_int])
 _register("R_allocLD", c_void_p, [c_size_t])
 
 
-def bootstrap(libR, rversion, warnings=True):
+def bootstrap(libR, rversion, warnings=False):
     for name, (sign, setter) in _signatures.items():
         try:
             setter(cfunction(sign.cname, libR, sign.restype, sign.argtypes))
