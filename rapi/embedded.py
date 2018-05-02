@@ -91,7 +91,10 @@ def start(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
 
 
 def get_cb_ptr(name):
-    return cb_sign[name](callback[name])
+    if callback[name]:
+        return cb_sign[name](callback[name])
+    else:
+        return cast(None, cb_sign[name])
 
 
 def set_posix_cb_ptr(libR, ptrname, name):
@@ -184,7 +187,7 @@ def setup_win32(libR):
     rstart.home = ccall("getRUser", libR, POINTER(c_char), [])
     rstart.CharacterMode = 0
     rstart.ReadConsole = get_cb_ptr("R_ReadConsole")
-    rstart.WriteConsole = None
+    rstart.WriteConsole = get_cb_ptr("R_WriteConsole")
     rstart.WriteConsoleEx = get_cb_ptr("R_WriteConsoleEx")
     rstart.CallBack = get_cb_ptr("R_PolledEvents")
     rstart.ShowMessage = get_cb_ptr("R_ShowMessage")
