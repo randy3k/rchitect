@@ -4,7 +4,9 @@ import sys
 from ctypes import c_int, c_size_t, c_char, c_char_p, c_void_p, cast, pointer
 from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
 
+from .types import SEXP
 from .utils import ccall
+from .bootstrap import bootstrap
 from . import defaults
 
 
@@ -12,7 +14,7 @@ callback = {
     "R_Suicide": None,
     "R_ShowMessage": defaults.R_ShowMessage,
     "R_ReadConsole": defaults.R_ReadConsole,
-    # "R_WriteConsole":  None,
+    "R_WriteConsole":  None,
     "R_WriteConsoleEx": defaults.R_WriteConsoleEx,
     "R_ResetConsole": None,
     "R_FlushConsole": None,
@@ -34,10 +36,38 @@ callback = {
     "YesNoCancel": defaults.YesNoCancel  # windows only
 }
 
+cb_sign = {
+    "R_Suicide": CFUNCTYPE(None, c_char_p),
+    "R_ShowMessage": CFUNCTYPE(None, c_char_p),
+    "R_ReadConsole": CFUNCTYPE(c_int, c_char_p, POINTER(c_char), c_int, c_int),
+    "R_WriteConsole":  CFUNCTYPE(None, c_char_p, c_int),
+    "R_WriteConsoleEx": CFUNCTYPE(None, c_char_p, c_int, c_int),
+    "R_ResetConsole": CFUNCTYPE(None),
+    "R_FlushConsole": CFUNCTYPE(None),
+    "R_ClearerrConsole": CFUNCTYPE(None),
+    "R_Busy": CFUNCTYPE(None, c_int),
+    "R_CleanUp": CFUNCTYPE(None, c_int, c_int, c_int),
+    "R_ShowFiles": CFUNCTYPE(c_int, c_int, POINTER(c_char_p), POINTER(c_char_p), c_char_p, c_int, c_char_p),
+    "R_ChooseFile": CFUNCTYPE(c_int, c_int, POINTER(c_char), c_int),
+    "R_EditFile": CFUNCTYPE(c_int, c_char_p),
+    "R_loadhistory": CFUNCTYPE(None, SEXP, SEXP, SEXP, SEXP),
+    "R_savehistory": CFUNCTYPE(None, SEXP, SEXP, SEXP, SEXP),
+    "R_addhistory": CFUNCTYPE(None, SEXP, SEXP, SEXP, SEXP),
+    "R_EditFiles": CFUNCTYPE(c_int, POINTER(c_char_p), POINTER(c_char_p), POINTER(c_char_p)),
+    "do_selectlist": CFUNCTYPE(SEXP, SEXP, SEXP, SEXP, SEXP),
+    "do_dataentry": CFUNCTYPE(None, SEXP, SEXP, SEXP, SEXP),
+    "do_dataviewer": CFUNCTYPE(None, SEXP, SEXP, SEXP, SEXP),
+    "R_ProcessEvents": CFUNCTYPE(None),
+    "R_PolledEvents": CFUNCTYPE(None),
+    "YesNoCancel": CFUNCTYPE(c_int, c_char_p)  # windows only
+}
+
 callbackptr = []
 
 
 def set_callback(name, func):
+    if name not in callback:
+        raise ValueError("method not found")
     callback["name"] = func
 
 
@@ -47,91 +77,72 @@ def start(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
     for i, a in enumerate(arguments):
         argv[i] = c_char_p(a.encode('utf-8'))
 
-    if repl:
-        if sys.platform.startswith("win"):
-            libR.R_setStartTime()
-            setup_win32(libR)
-            libR.R_set_command_line_arguments(argn, argv)
-        else:
-            setup_posix(libR)
-            libR.Rf_initialize_R(argn, argv)
-
-        libR.Rf_mainloop()
-
+    if sys.platform.startswith("win"):
+        setup_win32(libR)
     else:
+        setup_posix(libR)
 
-        if sys.platform.startswith("win"):
-            setup_win32(libR)
-        else:
-            setup_posix(libR)
+    libR.Rf_initialize_R(argn, argv)
+    libR.setup_Rmainloop()
+    bootstrap(libR, rversion=None)
+    if repl:
+        libR.run_Rmainloop()
 
-        libR.Rf_initEmbeddedR(argn, argv)
+
+def get_cb_ptr(name):
+    return cb_sign[name](callback[name])
+
+
+def set_posix_cb_ptr(libR, ptrname, name):
+    if callback[name]:
+        ptr_show_message = get_cb_ptr(name)
+        # prevent gc
+        callbackptr.append(ptr_show_message)
+        c_void_p.in_dll(libR, ptrname).value = cast(ptr_show_message, c_void_p).value
 
 
 def setup_posix(libR):
 
-    # ptr_R_Suicide
-
-    if callback["R_ShowMessage"]:
-        ptr_show_message = CFUNCTYPE(None, c_char_p)(callback["R_ShowMessage"])
-        callbackptr.append(ptr_show_message)
-        c_void_p.in_dll(libR, 'ptr_R_ShowMessage').value = cast(ptr_show_message, c_void_p).value
-
-    if callback["R_ReadConsole"]:
-        # make sure it is not gc'ed
-        ptr_read_console = \
-            CFUNCTYPE(c_int, c_char_p, POINTER(c_char), c_int, c_int)(callback["R_ReadConsole"])
-        callbackptr.append(ptr_read_console)
-        c_void_p.in_dll(libR, 'ptr_R_ReadConsole').value = cast(ptr_read_console, c_void_p).value
+    set_posix_cb_ptr(libR, "ptr_R_Suicide", "R_Suicide")
+    set_posix_cb_ptr(libR, "ptr_R_ShowMessage", "R_ShowMessage")
+    set_posix_cb_ptr(libR, "ptr_R_ReadConsole", "R_ReadConsole")
+    set_posix_cb_ptr(libR, "ptr_R_ReadConsole", "R_ReadConsole")
+    set_posix_cb_ptr(libR, "ptr_R_WriteConsole", "R_WriteConsole")
 
     if callback["R_WriteConsoleEx"]:
         c_void_p.in_dll(libR, 'ptr_R_WriteConsole').value = None
-        ptr_write_console_ex = CFUNCTYPE(None, c_char_p, c_int, c_int)(callback["R_WriteConsoleEx"])
-        callbackptr.append(ptr_write_console_ex)
-        c_void_p.in_dll(libR, 'ptr_R_WriteConsoleEx').value = \
-            cast(ptr_write_console_ex, c_void_p).value
+    set_posix_cb_ptr(libR, "ptr_R_WriteConsoleEx", "R_WriteConsoleEx")
 
-    # ptr_R_ResetConsole
-    # ptr_R_FlushConsole
-    # ptr_R_ClearerrConsole
-
-    if callback["R_Busy"]:
-        ptr_r_busy = CFUNCTYPE(None, c_int)(callback["R_Busy"])
-        callbackptr.append(ptr_r_busy)
-        c_void_p.in_dll(libR, 'ptr_R_Busy').value = cast(ptr_r_busy, c_void_p).value
+    set_posix_cb_ptr(libR, "ptr_R_ResetConsole", "R_ResetConsole")
+    set_posix_cb_ptr(libR, "ptr_R_FlushConsole", "R_FlushConsole")
+    set_posix_cb_ptr(libR, "ptr_R_ClearerrConsole", "R_ClearerrConsole")
+    set_posix_cb_ptr(libR, "ptr_R_Busy", "R_Busy")
 
     if callback["R_CleanUp"]:
-        ptr = c_void_p.in_dll(libR, 'ptr_R_CleanUp')
-        orig_cleanup = PYFUNCTYPE(None, c_int, c_int, c_int)(ptr.value)
+        ptr_R_CleanUp = c_void_p.in_dll(libR, 'ptr_R_CleanUp')
+        orig_cleanup = PYFUNCTYPE(None, c_int, c_int, c_int)(ptr_R_CleanUp.value)
 
         def _handler(save_type, status, runlast):
             callback["R_CleanUp"](save_type, status, runlast)
             orig_cleanup(save_type, status, runlast)
 
-        ptr_r_clean_up = PYFUNCTYPE(None, c_int, c_int, c_int)(_handler)
-        callbackptr.append(ptr_r_clean_up)
-        ptr.value = cast(ptr_r_clean_up, c_void_p).value
+        ptr_new_R_CleanUp = PYFUNCTYPE(None, c_int, c_int, c_int)(_handler)
+        callbackptr.append(ptr_new_R_CleanUp)
+        ptr_R_CleanUp.value = cast(ptr_new_R_CleanUp, c_void_p).value
 
-    # ptr_R_ShowFiles
-    # ptr_R_ChooseFile
-    # ptr_R_EditFile
-    # ptr_R_loadhistory
-    # ptr_R_savehistory
-    # ptr_R_addhistory
-    # ptr_R_EditFiles
-    # ptr_do_selectlist
-    # ptr_do_dataentry
-    # ptr_do_dataviewer
-
-    if callback["R_ProcessEvents"]:
-        ptr_process_event = CFUNCTYPE(None)(callback["R_ProcessEvents"])
-        callbackptr.append(ptr_process_event)
-        c_void_p.in_dll(libR, 'ptr_R_ProcessEvents').value = cast(ptr_process_event, c_void_p).value
-
-    if callback["R_PolledEvents"]:
-        ptr_polled_events = CFUNCTYPE(None)(callback["R_PolledEvents"])
-        callbackptr.append(ptr_polled_events)
-        c_void_p.in_dll(libR, 'R_PolledEvents').value = cast(ptr_polled_events, c_void_p).value
+    set_posix_cb_ptr(libR, "ptr_R_ShowFiles", "R_ShowFiles")
+    set_posix_cb_ptr(libR, "ptr_R_ChooseFile", "R_ChooseFile")
+    set_posix_cb_ptr(libR, "ptr_R_EditFile", "R_EditFile")
+    set_posix_cb_ptr(libR, "ptr_R_loadhistory", "R_loadhistory")
+    set_posix_cb_ptr(libR, "ptr_R_savehistory", "R_savehistory")
+    set_posix_cb_ptr(libR, "ptr_R_addhistory", "R_addhistory")
+    set_posix_cb_ptr(libR, "ptr_R_EditFiles", "R_EditFiles")
+    set_posix_cb_ptr(libR, "ptr_do_selectlist", "do_selectlist")
+    set_posix_cb_ptr(libR, "ptr_do_dataentry", "do_dataentry")
+    set_posix_cb_ptr(libR, "ptr_do_dataviewer", "do_dataviewer")
+    set_posix_cb_ptr(libR, "ptr_R_ProcessEvents", "R_ProcessEvents")
+    set_posix_cb_ptr(libR, "ptr_do_dataviewer", "do_dataviewer")
+    set_posix_cb_ptr(libR, "R_PolledEvents", "R_PolledEvents")
 
 
 class RStart(Structure):
@@ -153,14 +164,14 @@ class RStart(Structure):
         ('NoRenviron', c_int),
         ('rhome', POINTER(c_char)),
         ('home', POINTER(c_char)),
-        ('ReadConsole', c_void_p),
-        ('WriteConsole', c_void_p),
-        ('CallBack', c_void_p),
-        ('ShowMessage', c_void_p),
-        ('YesNoCancel', c_void_p),
-        ('Busy', c_void_p),
+        ('ReadConsole', cb_sign["R_ReadConsole"]),
+        ('WriteConsole', cb_sign["R_WriteConsole"]),
+        ('CallBack', cb_sign["R_PolledEvents"]),
+        ('ShowMessage', cb_sign["R_ShowMessage"]),
+        ('YesNoCancel', cb_sign["YesNoCancel"]),
+        ('Busy', cb_sign["R_Busy"]),
         ('CharacterMode', c_int),
-        ('WriteConsoleEx', c_void_p)
+        ('WriteConsoleEx', cb_sign["R_WriteConsoleEx"])
     ]
 
 
@@ -170,17 +181,13 @@ def setup_win32(libR):
     rstart.rhome = ccall("get_R_HOME", libR, POINTER(c_char), [])
     rstart.home = ccall("getRUser", libR, POINTER(c_char), [])
     rstart.CharacterMode = 0
-    rstart.ReadConsole = cast(
-        CFUNCTYPE(c_int, c_char_p, POINTER(c_char), c_int, c_int)(callback["R_ReadConsole"]),
-        c_void_p)
+    rstart.ReadConsole = get_cb_ptr("R_ReadConsole")
     rstart.WriteConsole = None
-    rstart.WriteConsoleEx = cast(
-        CFUNCTYPE(None, c_char_p, c_int, c_int)(callback["R_WriteConsoleEx"]),
-        c_void_p)
-    rstart.CallBack = cast(CFUNCTYPE(None)(callback["R_PolledEvents"]), c_void_p)
-    rstart.ShowMessage = cast(CFUNCTYPE(None, c_char_p)(callback["R_ShowMessage"]), c_void_p)
-    rstart.YesNoCancel = cast(CFUNCTYPE(c_int, c_char_p)(callback["YesNoCancel"]), c_void_p)
-    rstart.Busy = cast(CFUNCTYPE(None, c_int)(callback["R_Busy"]), c_void_p)
+    rstart.WriteConsoleEx = get_cb_ptr("R_WriteConsoleEx")
+    rstart.CallBack = get_cb_ptr("R_PolledEvents")
+    rstart.ShowMessage = get_cb_ptr("R_ShowMessage")
+    rstart.YesNoCancel = get_cb_ptr("YesNoCancel")
+    rstart.Busy = get_cb_ptr("R_Busy")
 
     rstart.R_Quiet = 1
     rstart.R_Interactive = 1

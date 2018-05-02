@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from ctypes import c_char, c_char_p, c_double, c_int, c_ubyte, c_void_p, c_size_t
-from ctypes import POINTER, CFUNCTYPE
+from ctypes import POINTER, CFUNCTYPE, cast
 from collections import namedtuple
 
 from .types import SEXP, SEXPTYPE, Rcomplex, R_len_t, R_xlen_t
@@ -575,4 +575,4 @@ def bootstrap(libR, rversion, warnings=True):
             pass
 
     for name, var in _globals.items():
-        var.value = cglobal(name, libR, SEXP).value
+        var.value = cglobal(name, libR, c_void_p).value

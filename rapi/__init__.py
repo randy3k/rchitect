@@ -7,12 +7,14 @@ import subprocess
 from ctypes import PyDLL
 from distutils.version import LooseVersion
 
-from .bootstrap import bootstrap
 from .utils import read_registry
 from . import embedded
 
 
 __version__ = '0.0.1.dev0'
+
+rhome = None
+libR = None
 
 
 def get_rhome():
@@ -66,5 +68,4 @@ def init(arguments=["rapi", "--quiet", "--no-save"], repl=False):
     global rhome, libR
     rhome = get_rhome()
     libR = get_libR(rhome)
-    bootstrap(libR, rversion=get_rversion(rhome))
     embedded.start(libR, arguments=arguments, repl=repl)
