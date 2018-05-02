@@ -62,9 +62,9 @@ def get_rversion(rhome):
     return rversion
 
 
-def init(arguments=["rapi", "--quiet", "--no-save"]):
+def init(arguments=["rapi", "--quiet", "--no-save"], repl=False):
     global rhome, libR
     rhome = get_rhome()
     libR = get_libR(rhome)
-    embedded.start(libR, arguments)
     bootstrap(libR, rversion=get_rversion(rhome))
+    embedded.start(libR, arguments=arguments, repl=repl)

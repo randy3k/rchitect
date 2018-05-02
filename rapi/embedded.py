@@ -53,8 +53,8 @@ def start(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
             setup_win32(libR)
             libR.R_set_command_line_arguments(argn, argv)
         else:
-            libR.Rf_initialize_R(argn, argv)
             setup_posix(libR)
+            libR.Rf_initialize_R(argn, argv)
 
         libR.Rf_mainloop()
 
