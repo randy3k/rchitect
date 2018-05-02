@@ -7,19 +7,18 @@ from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
 from .types import SEXP
 from .utils import ccall
 from .bootstrap import bootstrap
-from . import defaults
 
 
 callback = {
     "R_Suicide": None,
-    "R_ShowMessage": defaults.R_ShowMessage,
-    "R_ReadConsole": defaults.R_ReadConsole,
+    "R_ShowMessage": None,
+    "R_ReadConsole": None,
     "R_WriteConsole":  None,
-    "R_WriteConsoleEx": defaults.R_WriteConsoleEx,
+    "R_WriteConsoleEx": None,
     "R_ResetConsole": None,
     "R_FlushConsole": None,
     "R_ClearerrConsole": None,
-    "R_Busy": defaults.R_Busy,
+    "R_Busy": None,
     "R_CleanUp": None,
     "R_ShowFiles": None,
     "R_ChooseFile": None,
@@ -32,8 +31,8 @@ callback = {
     "do_dataentry": None,
     "do_dataviewer": None,
     "R_ProcessEvents": None,
-    "R_PolledEvents": defaults.R_PolledEvents,
-    "YesNoCancel": defaults.YesNoCancel  # windows only
+    "R_PolledEvents": None,
+    "YesNoCancel": None  # windows only
 }
 
 cb_sign = {
@@ -112,11 +111,7 @@ def setup_posix(libR):
     set_posix_cb_ptr(libR, "ptr_R_ReadConsole", "R_ReadConsole")
     set_posix_cb_ptr(libR, "ptr_R_ReadConsole", "R_ReadConsole")
     set_posix_cb_ptr(libR, "ptr_R_WriteConsole", "R_WriteConsole")
-
-    if callback["R_WriteConsoleEx"]:
-        c_void_p.in_dll(libR, 'ptr_R_WriteConsole').value = None
     set_posix_cb_ptr(libR, "ptr_R_WriteConsoleEx", "R_WriteConsoleEx")
-
     set_posix_cb_ptr(libR, "ptr_R_ResetConsole", "R_ResetConsole")
     set_posix_cb_ptr(libR, "ptr_R_FlushConsole", "R_FlushConsole")
     set_posix_cb_ptr(libR, "ptr_R_ClearerrConsole", "R_ClearerrConsole")

@@ -27,3 +27,6 @@ S4SXP = 25
 NEWSXP = 30
 FREESXP = 31
 FUNSXP = 99
+
+
+# more methods are injected from bootstrap

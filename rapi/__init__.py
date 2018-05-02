@@ -8,7 +8,7 @@ from ctypes import PyDLL
 from distutils.version import LooseVersion
 
 from .utils import read_registry
-from . import embedded
+from . import embedded, defaults
 
 
 __version__ = '0.0.1.dev0'
@@ -68,4 +68,12 @@ def init(arguments=["rapi", "--quiet", "--no-save"], repl=False):
     global rhome, libR
     rhome = get_rhome()
     libR = get_libR(rhome)
+
+    embedded.set_callback("R_ShowMessage", defaults.R_ShowMessage)
+    embedded.set_callback("R_ReadConsole", defaults.R_ReadConsole)
+    embedded.set_callback("R_WriteConsoleEx", defaults.R_WriteConsoleEx)
+    embedded.set_callback("R_Busy", defaults.R_Busy)
+    embedded.set_callback("R_PolledEvents", defaults.R_PolledEvents)
+    embedded.set_callback("YesNoCancel", defaults.YesNoCancel)
+
     embedded.start(libR, arguments=arguments, repl=repl)
