@@ -22,6 +22,7 @@ def get_version(package):
 setup(
     name='rapi',
     author='Randy Lai',
+    author_email="randy.cs.lai@gmail.com",
     version=get_version("rapi"),
     url='https://github.com/randy3k/rapi',
     description='A minial R API for Python',
