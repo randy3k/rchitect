@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from ctypes import c_void_p, c_char_p, cast
+from ctypes import PyDLL, c_void_p, c_char_p, cast, cdll
 import os
 import sys
 import re
@@ -45,6 +45,41 @@ def read_registry(key, valueex):
     return QueryValueEx(reg_key, valueex)
 
 
+def get_rhome():
+    if 'R_HOME' not in os.environ:
+        try:
+            rhome = subprocess.check_output(["R", "RHOME"]).decode("utf-8").strip()
+        except Exception:
+            rhome = ""
+        try:
+            if sys.platform.startswith("win") and not rhome:
+                rhome = read_registry("Software\\R-Core\\R", "InstallPath")[0]
+        except Exception:
+            rhome = ""
+
+        if rhome:
+            os.environ['R_HOME'] = rhome
+    else:
+        rhome = os.environ['R_HOME']
+
+    return rhome
+
+
+def get_libR(rhome):
+    if sys.platform.startswith("win"):
+        libRdir = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386")
+        libRpath = os.path.join(libRdir, "R.dll")
+    elif sys.platform == "darwin":
+        libRpath = os.path.join(rhome, "lib", "libR.dylib")
+    elif sys.platform.startswith("linux"):
+        libRpath = os.path.join(rhome, "lib", "libR.so")
+
+    if not os.path.exists(libRpath):
+        raise RuntimeError("Cannot locate R share library.")
+
+    return PyDLL(str(libRpath))
+
+
 def rversion(libR):
     """
     Only work after initialization
@@ -77,3 +112,19 @@ def rversion2(rhome):
     except Exception as e:
         version = LooseVersion("1000.0.0")
     return version
+
+
+def ensure_path(rhome):
+    if sys.platform.startswith("win"):
+        libR_dir = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386")
+
+        # make sure Rblas.dll can be reached
+        try:
+            msvcrt = cdll.msvcrt
+            msvcrt.getenv.restype = c_char_p
+            path = msvcrt.getenv("PATH".encode("utf-8")).decode("utf-8")
+            if libR_dir not in path:
+                path = libR_dir + ";" + path
+                msvcrt._putenv("PATH={}".format(path).encode("utf-8"))
+        except Exception:
+            pass
