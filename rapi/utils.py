@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from ctypes import c_void_p
+from ctypes import c_void_p, c_char_p, cast
 import sys
 
 if sys.platform.startswith('win'):
@@ -18,6 +18,17 @@ def cfunction(fname, lib, restype, argtypes):
 
 def cglobal(vname, lib, vtype=c_void_p):
     return vtype.in_dll(lib, vname)
+
+
+def ccall(fname, lib, restype, argtypes, *args):
+    f = getattr(lib, fname)
+    f.restype = restype
+    f.argtypes = argtypes
+    res = f(*args)
+    if restype == c_void_p or restype == c_char_p:
+        return cast(res, restype)
+    else:
+        return res
 
 
 def is_ascii(s):
