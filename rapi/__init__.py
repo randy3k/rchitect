@@ -52,9 +52,9 @@ def get_libR(rhome):
 
 def get_rversion(rhome):
     try:
-        output = subprocess.check_output([
-                os.path.join(rhome, "bin", "R"), "--version"
-            ]).decode("utf-8").strip()
+        output = subprocess.check_output(
+            [os.path.join(rhome, "bin", "R"), "--version"],
+            stderr=subprocess.STDOUT).decode("utf-8").strip()
         m = re.match(r"R version ([0-9]+\.[0-9]+\.[0-9]+)", output)
         rversion = LooseVersion(m.group(1))
     except Exception as e:
