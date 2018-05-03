@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 
 from .utils import get_rhome, get_libR, ensure_path
 from . import embedded, defaults
+from .rexec import rexec
 
+__all__ = ["init", "rexec"]
 
 __version__ = '0.0.1.dev0'
 
