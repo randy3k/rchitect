@@ -18,12 +18,13 @@ def protectedEval(pdata_t):
     pdata.ret = py_object(pdata.func(*data))
 
 
+protectedEval_t = CFUNCTYPE(None, c_void_p)(protectedEval)
+
+
 def rexec(func, *data):
     pdata = ProtectedEvalData()
     pdata.func = py_object(func)
     pdata.data = py_object(data)
     pdata.ret = None
-    R_ToplevelExec(
-        CFUNCTYPE(None, c_void_p)(protectedEval),
-        pointer(pdata))
+    R_ToplevelExec(protectedEval_t, pointer(pdata))
     return pdata.ret
