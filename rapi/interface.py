@@ -1,14 +1,31 @@
 from ctypes import py_object, pointer, cast, c_void_p, c_int
 from ctypes import CFUNCTYPE, Structure, POINTER
+from collections import OrderedDict
 
 from .internals import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalEnv
 from .internals import R_ToplevelExec
-from .internals import Rf_mkString, R_ParseVector, R_tryEval
-from .internals import LENGTH, VECTOR_ELT
+from .internals import R_ParseVector, R_tryEval
 from .internals import Rf_PrintValue
-from .internals import Rf_allocVector, LANGSXP, SETCAR, CDR, SET_TAG, Rf_install
+from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install, Rf_mkString
+from .internals import LENGTH, TYPEOF, LANGSXP
+from .internals import INTSXP, LGLSXP, REALSXP, CHARSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
+from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
+
 
 from .types import SEXP
+
+
+__all__ = [
+    "rexec",
+    "rparse",
+    "reval",
+    "rprint",
+    "rlang",
+    "rcall",
+    "rsym",
+    "rstring",
+    "rcopy"
+]
 
 
 class ProtectedEvalData(Structure):
@@ -105,3 +122,66 @@ def rstring(s):
 
 def rprint(s):
     rexec(Rf_PrintValue, s)
+
+
+def rcopy(s, simplify=False):
+    Rf_protect(s)
+    ret = None
+    typ = TYPEOF(s)
+    if typ == VECSXP:
+        names = rcopy(rcall(rsym("names"), s))
+        if names:
+            ret = OrderedDict()
+            for i in range(LENGTH(s)):
+                ret[names[i]] = rcopy(VECTOR_ELT(s, i), simplify=simplify)
+        else:
+            ret = []
+            for i in range(LENGTH(s)):
+                ret.append(rcopy(VECTOR_ELT(s, i), simplify=simplify))
+
+    elif typ == STRSXP:
+        ret = []
+        for i in range(LENGTH(s)):
+            ret.append(CHAR(STRING_ELT(s, i)).decode())
+        if simplify and len(ret) == 1:
+            ret = ret[0]
+    elif typ == LGLSXP:
+        ret = []
+        sp = LOGICAL(s)
+        for i in range(LENGTH(s)):
+            ret.append(bool(sp[i]))
+        if simplify and len(ret) == 1:
+            ret = ret[0]
+    elif typ == INTSXP:
+        ret = []
+        sp = INTEGER(s)
+        for i in range(LENGTH(s)):
+            ret.append(int(sp[i]))
+        if simplify and len(ret) == 1:
+            ret = ret[0]
+    elif typ == REALSXP:
+        ret = []
+        sp = REAL(s)
+        for i in range(LENGTH(s)):
+            ret.append(sp[i])
+        if simplify and len(ret) == 1:
+            ret = ret[0]
+    elif typ == CHARSXP:
+        ret = CHAR(s).decode()
+    elif typ == RAWSXP:
+        ret = []
+        sp = RAW(s)
+        for i in range(LENGTH(s)):
+            ret.append(int(sp[i]))
+        if simplify and len(ret) == 1:
+            ret = ret[0]
+    elif typ == CPLXSXP:
+        ret = []
+        sp = COMPLEX(s)
+        for i in range(LENGTH(s)):
+            z = sp[i]
+            ret.append(complex(z.r, z.i))
+        if simplify and len(ret) == 1:
+            ret = ret[0]
+    Rf_unprotect(1)
+    return ret

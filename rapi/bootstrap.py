@@ -7,6 +7,7 @@ from .types import SEXP, SEXPTYPE, Rcomplex, R_len_t, R_xlen_t
 from .utils import cfunction, cglobal
 from . import internals
 
+
 Signature = namedtuple("Signature", ["cname", "restype", "argtypes"])
 
 _globals = {}
@@ -598,5 +599,3 @@ def bootstrap(libR, rversion, warnings=False):
 
     for name, var in _globals.items():
         var.value = cglobal(name, libR, c_void_p).value
-
-    global _Rf_error, _Rf_warning

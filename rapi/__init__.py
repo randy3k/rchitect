@@ -2,9 +2,6 @@ from __future__ import unicode_literals
 
 from .utils import get_rhome, get_libR, ensure_path
 from . import embedded, defaults
-from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring
-
-__all__ = ["init", "rexec", "rparse", "reval", "rprint", "rlang", "rcall", "rsym", "rstring"]
 
 __version__ = '0.0.1.dev0'
 

@@ -27,5 +27,8 @@ setup(
     url='https://github.com/randy3k/rapi',
     description='A minial R API for Python',
     long_description=long_description,
-    packages=find_packages('.')
+    packages=find_packages('.'),
+    install_requires=[
+        'enum34;python_version<"3.4"',
+    ]
 )
