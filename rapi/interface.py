@@ -1,6 +1,7 @@
 from ctypes import py_object, byref, cast, c_void_p, c_int
 from ctypes import CFUNCTYPE, Structure, POINTER
 from collections import OrderedDict
+from six import text_type
 
 from .internals import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalEnv
 from .internals import R_ToplevelExec
@@ -10,8 +11,7 @@ from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install, Rf_mkSt
 from .internals import LENGTH, TYPEOF, LANGSXP
 from .internals import INTSXP, LGLSXP, REALSXP, CHARSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
 from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
-
-from .types import SEXP
+from .internals import Rf_GetOption1, Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal
 
 
 __all__ = [
@@ -107,8 +107,11 @@ def rcall(*args, **kwargs):
     return val
 
 
-def rsym(s):
-    return Rf_install(s.encode())
+def rsym(s, t=None):
+    if t:
+        return rlang(rsym("::"), rsym(s), rsym(t))
+    else:
+        return Rf_install(s.encode())
 
 
 def rstring(s):
@@ -119,47 +122,47 @@ def rprint(s):
     rexec(Rf_PrintValue, s)
 
 
-def rcopy(s, simplify=False):
+def rcopy(s, auto_unbox=True):
     Rf_protect(s)
     ret = None
     typ = TYPEOF(s)
     if typ == VECSXP:
-        names = rcopy(rcall(rsym("names"), s))
+        names = rcopy(rcall(rsym("base", "names"), s))
         if names:
             ret = OrderedDict()
             for i in range(LENGTH(s)):
-                ret[names[i]] = rcopy(VECTOR_ELT(s, i), simplify=simplify)
+                ret[names[i]] = rcopy(VECTOR_ELT(s, i), auto_unbox=auto_unbox)
         else:
             ret = []
             for i in range(LENGTH(s)):
-                ret.append(rcopy(VECTOR_ELT(s, i), simplify=simplify))
+                ret.append(rcopy(VECTOR_ELT(s, i), auto_unbox=auto_unbox))
 
     elif typ == STRSXP:
         ret = []
         for i in range(LENGTH(s)):
             ret.append(CHAR(STRING_ELT(s, i)).decode())
-        if simplify and len(ret) == 1:
+        if auto_unbox and len(ret) == 1:
             ret = ret[0]
     elif typ == LGLSXP:
         ret = []
         sp = LOGICAL(s)
         for i in range(LENGTH(s)):
             ret.append(bool(sp[i]))
-        if simplify and len(ret) == 1:
+        if auto_unbox and len(ret) == 1:
             ret = ret[0]
     elif typ == INTSXP:
         ret = []
         sp = INTEGER(s)
         for i in range(LENGTH(s)):
             ret.append(int(sp[i]))
-        if simplify and len(ret) == 1:
+        if auto_unbox and len(ret) == 1:
             ret = ret[0]
     elif typ == REALSXP:
         ret = []
         sp = REAL(s)
         for i in range(LENGTH(s)):
             ret.append(sp[i])
-        if simplify and len(ret) == 1:
+        if auto_unbox and len(ret) == 1:
             ret = ret[0]
     elif typ == CHARSXP:
         ret = CHAR(s).decode()
@@ -168,7 +171,7 @@ def rcopy(s, simplify=False):
         sp = RAW(s)
         for i in range(LENGTH(s)):
             ret.append(int(sp[i]))
-        if simplify and len(ret) == 1:
+        if auto_unbox and len(ret) == 1:
             ret = ret[0]
     elif typ == CPLXSXP:
         ret = []
@@ -176,7 +179,31 @@ def rcopy(s, simplify=False):
         for i in range(LENGTH(s)):
             z = sp[i]
             ret.append(complex(z.r, z.i))
-        if simplify and len(ret) == 1:
+        if auto_unbox and len(ret) == 1:
             ret = ret[0]
     Rf_unprotect(1)
     return ret
+
+
+def get_option(key, default=None):
+    ret = rcopy(Rf_GetOption1(Rf_install(key.encode())), auto_unbox=True)
+    if ret is None:
+        return default
+    else:
+        return ret
+
+
+def set_option(key, value):
+    kwargs = {}
+    if isinstance(value, text_type):
+        kwargs[key] = Rf_mkString(value)
+    elif isinstance(value, bool):
+        kwargs[key] = Rf_ScalarLogical(int(value))
+    elif isinstance(value, int):
+        kwargs[key] = Rf_ScalarInteger(value)
+    elif isinstance(value, float):
+        kwargs[key] = Rf_ScalarReal(value)
+    else:
+        TypeError("value type is not supported")
+
+    rcall(rsym("base", "options"), **kwargs)
