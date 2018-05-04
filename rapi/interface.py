@@ -1,4 +1,4 @@
-from ctypes import py_object, pointer, cast, c_void_p, c_int
+from ctypes import py_object, byref, cast, c_void_p, c_int
 from ctypes import CFUNCTYPE, Structure, POINTER
 from collections import OrderedDict
 
@@ -10,7 +10,6 @@ from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install, Rf_mkSt
 from .internals import LENGTH, TYPEOF, LANGSXP
 from .internals import INTSXP, LGLSXP, REALSXP, CHARSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
 from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
-
 
 from .types import SEXP
 
@@ -38,13 +37,10 @@ class ProtectedEvalData(Structure):
 
 def protectedEval(pdata_t):
     pdata = cast(pdata_t, POINTER(ProtectedEvalData)).contents
+    func = pdata.func
     data = pdata.data
     try:
-        ret = pdata.func(*data)
-        if isinstance(ret, SEXP):
-            # not sure why, it is neccessary for py_object(ret)
-            ret.value = cast(ret, c_void_p).value
-        pdata.ret = py_object(ret)
+        pdata.ret[0] = func(*data)
     except Exception as e:
         Rf_error(("{}: {}".format(type(e).__name__, str(e))).encode())
 
@@ -53,13 +49,11 @@ protectedEval_t = CFUNCTYPE(None, c_void_p)(protectedEval)
 
 
 def rexec(func, *data):
-    pdata = ProtectedEvalData()
-    pdata.func = py_object(func)
-    pdata.data = py_object(data)
-    pdata.ret = None
-    if R_ToplevelExec(protectedEval_t, pointer(pdata)) == 0:
+    ret = [None]
+    pdata = ProtectedEvalData(py_object(func), py_object(data), py_object(ret))
+    if R_ToplevelExec(protectedEval_t, byref(pdata)) == 0:
         raise RuntimeError("rexec encountered an error")
-    return pdata.ret
+    return pdata.ret[0]
 
 
 def rparse(string):
@@ -78,6 +72,7 @@ def rparse(string):
 def reval(string, env=R_GlobalEnv):
     status = c_int()
     expressions = Rf_protect(rparse(string))
+    ret = R_NilValue
     try:
         for i in range(0, LENGTH(expressions)):
             ret = R_tryEval(VECTOR_ELT(expressions, i), env, status)
