@@ -17,7 +17,8 @@ if sys.platform.startswith('win'):
 def cfunction(fname, lib, restype, argtypes):
     f = getattr(lib, fname)
     f.restype = restype
-    f.argtypes = argtypes
+    if argtypes is not None:
+        f.argtypes = argtypes
     return f
 
 

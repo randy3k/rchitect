@@ -90,7 +90,10 @@ _register("INTEGER", POINTER(c_int), [SEXP])
 _register("RAW", POINTER(c_ubyte), [SEXP])
 _register("COMPLEX", POINTER(Rcomplex), [SEXP])
 _register("REAL", POINTER(c_double), [SEXP])
-_register("VECTOR_ELT", POINTER(SEXP), [SEXP])
+_register("STRING_ELT", SEXP, [SEXP, R_xlen_t])
+_register("SET_STRING_ELT", None, [SEXP, R_xlen_t, SEXP])
+_register("VECTOR_ELT", SEXP, [SEXP, R_xlen_t])
+_register("SET_VECTOR_ELT", None, [SEXP, R_xlen_t, SEXP])
 
 
 # List Access Macros
@@ -463,6 +466,12 @@ _register("R_check_class_and_super", c_int, [SEXP, c_char_p, SEXP])
 _register("R_check_class_etc", c_int, [SEXP, c_char_p])
 
 
+# preserve objects across GCs
+
+_register("R_PreserveObject", None, [SEXP])
+_register("R_ReleaseObject", None, [SEXP])
+
+
 # Shutdown actions
 
 _register("R_dot_Last", None, [])
@@ -571,6 +580,13 @@ _register("R_alloc", c_void_p, [c_size_t, c_int])
 _register("R_allocLD", c_void_p, [c_size_t])
 
 
+# Error.h
+
+
+_register("Rf_error", None, None)
+_register("Rf_warning", None, None)
+
+
 def bootstrap(libR, rversion, warnings=False):
     for name, (sign, setter) in _signatures.items():
         try:
@@ -582,3 +598,5 @@ def bootstrap(libR, rversion, warnings=False):
 
     for name, var in _globals.items():
         var.value = cglobal(name, libR, c_void_p).value
+
+    global _Rf_error, _Rf_warning
