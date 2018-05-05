@@ -32,7 +32,7 @@ callback = {
     "do_dataviewer": None,
     "R_ProcessEvents": None,
     "R_PolledEvents": None,
-    "YesNoCancel": None  # windows only
+    "R_YesNoCancel": None  # windows only
 }
 
 cb_sign = {
@@ -58,7 +58,7 @@ cb_sign = {
     "do_dataviewer": CFUNCTYPE(None, SEXP, SEXP, SEXP, SEXP),
     "R_ProcessEvents": CFUNCTYPE(None),
     "R_PolledEvents": CFUNCTYPE(None),
-    "YesNoCancel": CFUNCTYPE(c_int, c_char_p)  # windows only
+    "R_YesNoCancel": CFUNCTYPE(c_int, c_char_p)  # windows only
 }
 
 callbackptr = []
@@ -168,7 +168,7 @@ class RStart(Structure):
         ('WriteConsole', cb_sign["R_WriteConsole"]),
         ('CallBack', cb_sign["R_PolledEvents"]),
         ('ShowMessage', cb_sign["R_ShowMessage"]),
-        ('YesNoCancel', cb_sign["YesNoCancel"]),
+        ('YesNoCancel', cb_sign["R_YesNoCancel"]),
         ('Busy', cb_sign["R_Busy"]),
         ('CharacterMode', c_int),
         ('WriteConsoleEx', cb_sign["R_WriteConsoleEx"])
@@ -187,7 +187,7 @@ def setup_win32(libR):
     rstart.WriteConsoleEx = get_cb_ptr("R_WriteConsoleEx")
     rstart.CallBack = get_cb_ptr("R_PolledEvents")
     rstart.ShowMessage = get_cb_ptr("R_ShowMessage")
-    rstart.YesNoCancel = get_cb_ptr("YesNoCancel")
+    rstart.YesNoCancel = get_cb_ptr("R_YesNoCancel")
     rstart.Busy = get_cb_ptr("R_Busy")
 
     rstart.R_Quiet = 1

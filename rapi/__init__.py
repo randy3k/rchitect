@@ -36,7 +36,7 @@ def start(arguments=["rapi", "--quiet", "--no-save"], repl=False, verbose=True):
     embedded.set_callback("R_WriteConsoleEx", defaults.R_WriteConsoleEx)
     embedded.set_callback("R_Busy", defaults.R_Busy)
     embedded.set_callback("R_PolledEvents", defaults.R_PolledEvents)
-    embedded.set_callback("YesNoCancel", defaults.YesNoCancel)
+    embedded.set_callback("R_YesNoCancel", defaults.R_YesNoCancel)
 
     embedded.initialize(libR, arguments=arguments)
 

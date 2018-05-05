@@ -64,7 +64,7 @@ def R_PolledEvents():
     pass
 
 
-def YesNoCancel(string):
+def R_YesNoCancel(string):
     while True:
         try:
             result = str(input("{} [y/n/c]: ".format(string.decode(ENCODING))))

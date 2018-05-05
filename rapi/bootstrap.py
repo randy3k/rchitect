@@ -59,6 +59,24 @@ def _register_global(name):
     _globals[name] = s
 
 
+# TODO: use pycparser to parse Rinternals.h
+
+# CHAR
+_register("CHAR", c_char_p, [SEXP], cname="R_CHAR")
+
+
+# Various tests with macro versions in the second USE_RINTERNALS section
+_register("Rf_isNull", c_int, [SEXP])
+_register("Rf_isSymbol", c_int, [SEXP])
+_register("Rf_isLogical", c_int, [SEXP])
+_register("Rf_isReal", c_int, [SEXP])
+_register("Rf_isComplex", c_int, [SEXP])
+_register("Rf_isExpression", c_int, [SEXP])
+_register("Rf_isEnvironment", c_int, [SEXP])
+_register("Rf_isString", c_int, [SEXP])
+_register("Rf_isObject", c_int, [SEXP])
+
+
 # General Cons Cell Attributes
 _register("ATTRIB", SEXP, [SEXP])
 _register("OBJECT", c_int, [SEXP])
@@ -79,7 +97,26 @@ _register("SETTER_CLEAR_NAMED", None, [SEXP])
 _register("RAISE_NAMED", None, [SEXP, c_int])
 
 
-# Vector Access Macros
+# S4 object testing
+_register("IS_S4_OBJECT", c_int, [SEXP])
+_register("SET_S4_OBJECT", None, [SEXP])
+_register("UNSET_S4_OBJECT", None, [SEXP])
+
+
+# JIT optimization support
+_register("NOJIT", c_int, [SEXP])
+_register("MAYBEJIT", c_int, [SEXP])
+_register("SET_NOJIT", None, [SEXP])
+_register("SET_MAYBEJIT", None, [SEXP])
+_register("UNSET_MAYBEJIT", None, [SEXP])
+
+
+# Growable vector support
+_register("IS_GROWABLE", c_int, [SEXP])
+_register("SET_GROWABLE_BIT", None, [SEXP])
+
+
+# Vector Access Functions
 _register("LENGTH", c_int, [SEXP])
 _register("XLENGTH", R_xlen_t, [SEXP])
 _register("TRUELENGTH", R_xlen_t, [SEXP])
@@ -89,19 +126,21 @@ _register("IS_LONG_VEC", c_int, [SEXP])
 _register("LEVELS", c_int, [SEXP])
 _register("SETLEVELS", c_int, [SEXP, c_int])
 
-_register("CHAR", c_char_p, [SEXP], cname="R_CHAR")
 _register("LOGICAL", POINTER(c_int), [SEXP])
 _register("INTEGER", POINTER(c_int), [SEXP])
 _register("RAW", POINTER(c_ubyte), [SEXP])
-_register("COMPLEX", POINTER(Rcomplex), [SEXP])
 _register("REAL", POINTER(c_double), [SEXP])
+_register("COMPLEX", POINTER(Rcomplex), [SEXP])
 _register("STRING_ELT", SEXP, [SEXP, R_xlen_t])
-_register("SET_STRING_ELT", None, [SEXP, R_xlen_t, SEXP])
 _register("VECTOR_ELT", SEXP, [SEXP, R_xlen_t])
+_register("SET_STRING_ELT", None, [SEXP, R_xlen_t, SEXP])
 _register("SET_VECTOR_ELT", None, [SEXP, R_xlen_t, SEXP])
 
 
-# List Access Macros
+# TODO: ALTREP support
+
+
+# List Access Functions
 _register("CONS", SEXP, [SEXP], cname="Rf_cons")
 _register("LCONS", SEXP, [SEXP], cname="Rf_lcons")
 for f in ["TAG", "CAR", "CDR", "CAAR", "CDAR", "CADR", "CDDR", "CDDDR", "CADDR",
@@ -115,7 +154,7 @@ for f in ["SETCAR", "SETCDR", "SETCADR", "SETCADDR", "SETCADDDR", "SETCAD4R", "C
     _register(f, SEXP, [SEXP, SEXP])
 
 
-# Closure Access Macros
+# Closure Access Functions
 for f in ["FORMALS", "BODY", "CLOENV"]:
     _register(f, SEXP, [SEXP])
 for f in ["RDEBUG", "RSTEP", "RTRACE"]:
@@ -173,10 +212,8 @@ _register("SET_PRCODE", None, [SEXP, SEXP])
 # Pointer Protection and Unprotection
 
 _register("PROTECT", SEXP, [SEXP], cname="Rf_protect")
-_register("UNPROTECT", SEXP, [SEXP], cname="Rf_unprotect")
-_register("Rf_protect", SEXP, [SEXP])
-_register("Rf_unprotect", SEXP, [SEXP])
-_register("UNPROTECT_PTR", SEXP, [SEXP], cname="Rf_unprotect_ptr")
+_register("UNPROTECT", None, [SEXP], cname="Rf_unprotect")
+_register("UNPROTECT_PTR", None, [SEXP], cname="Rf_unprotect_ptr")
 _register("PROTECT_WITH_INDEX", SEXP, [SEXP, POINTER(c_int)], cname="R_ProtectWithIndex")
 _register("REPROTECT", SEXP, [SEXP, c_int], cname="R_Reprotect")
 
@@ -325,7 +362,11 @@ _register("Rf_installChar", SEXP, [SEXP])
 _register("Rf_installNoTrChar", SEXP, [SEXP])
 _register("Rf_installDDVAL", SEXP, [c_int])
 _register("Rf_installS3Signature", SEXP, [c_char_p, c_char_p])
+_register("Rf_isFree", c_int, [SEXP])
+_register("Rf_isOrdered", c_int, [SEXP])
 _register("Rf_isUnmodifiedSpecSym", c_int, [SEXP, SEXP])
+_register("Rf_isUnordered", c_int, [SEXP])
+_register("Rf_isUnsorted", c_int, [SEXP])
 _register("Rf_lengthgets", SEXP, [SEXP, R_len_t])
 _register("Rf_xlengthgets", SEXP, [SEXP, R_xlen_t])
 _register("R_lsInternal", SEXP, [SEXP, c_int])
@@ -348,7 +389,7 @@ _register("Rf_pmatch", c_int, [SEXP, SEXP, c_int])
 _register("Rf_psmatch", c_int, [c_char_p, c_char_p, c_int])
 _register("R_ParseEvalString", SEXP, [c_char_p, SEXP])
 _register("Rf_PrintValue", None, [SEXP])
-
+_register("Rf_protect", SEXP, [SEXP])
 _register("Rf_readS3VarsFromFrame", None, [SEXP, POINTER(SEXP), POINTER(SEXP), POINTER(SEXP), POINTER(SEXP), POINTER(SEXP), POINTER(SEXP)])
 _register("Rf_setAttrib", SEXP, [SEXP, SEXP, SEXP])
 _register("Rf_setSVector", None, [POINTER(SEXP), c_int, SEXP])
@@ -365,15 +406,22 @@ _register("Rf_type2char", c_char_p, [SEXPTYPE])
 _register("Rf_type2rstr", SEXP, [SEXPTYPE])
 _register("Rf_type2str", SEXP, [SEXPTYPE])
 _register("Rf_type2str_nowarn", SEXP, [SEXPTYPE])
+_register("Rf_unprotect", None, [SEXP])
+_register("Rf_unprotect_ptr", None, [SEXP])
+
 
 # _register("R_signal_protect_error", None, [None], cname="R_signal_protect_error")
 # _register("R_signal_unprotect_error", None, [None], cname="R_signal_unprotect_error")
 # _register("R_signal_reprotect_error", None, [c_int], cname="R_signal_reprotect_error")
 
+_register("R_ProtectWithIndex", SEXP, [SEXP, POINTER(c_int)])
+_register("R_Reprotect", SEXP, [SEXP, c_int])
+
 _register("R_tryEval", SEXP, [SEXP, SEXP, POINTER(c_int)])
 _register("R_tryEvalSilent", SEXP, [SEXP, SEXP, POINTER(c_int)])
 _register("R_curErrorBuf", c_char_p, [])
 
+_register("Rf_isS4", c_int, [SEXP])
 _register("Rf_asS4", SEXP, [SEXP, c_int, c_int])
 _register("Rf_S3Class", SEXP, [SEXP])
 _register("Rf_isBasicClass", c_int, [c_char_p])
@@ -503,19 +551,31 @@ _register("R_orderVector1", None, [c_int, c_int, SEXP, c_int, c_int])
 
 # inlinable functions
 
-for f in ["isArray", "isComplex", "isEnvironment", "isExpression", "isFactor",
-          "isFrame", "isFree", "isFunction", "isInteger", "isLanguage", "isList",
-          "isLogical", "isSymbol", "isMatrix", "isNewList", "isNull", "isNumeric",
-          "isNumber", "isObject", "isOrdered", "isPairList", "isPrimitive", "isReal",
-          "isS4", "isString", "isTs", "isUnordered", "isUnsorted", "isUserBinop",
-          "isValidString", "isValidStringF", "isVector", "isVectorAtomic",
-          "isVectorizable", "isVectorList"]:
-    _register("Rf_" + f, c_int, [SEXP])
-
 
 _register("Rf_conformable", c_int, [SEXP, SEXP])
 _register("Rf_elt", SEXP, [SEXP, c_int])
 _register("Rf_inherits", c_int, [SEXP, c_char_p])
+_register("Rf_isArray", c_int, [SEXP])
+_register("Rf_isFactor", c_int, [SEXP])
+_register("Rf_isFrame", c_int, [SEXP])
+_register("Rf_isFunction", c_int, [SEXP])
+_register("Rf_isInteger", c_int, [SEXP])
+_register("Rf_isLanguage", c_int, [SEXP])
+_register("Rf_isList", c_int, [SEXP])
+_register("Rf_isMatrix", c_int, [SEXP])
+_register("Rf_isNewList", c_int, [SEXP])
+_register("Rf_isNumeric", c_int, [SEXP])
+_register("Rf_isNumber", c_int, [SEXP])
+_register("Rf_isPairList", c_int, [SEXP])
+_register("Rf_isPrimitive", c_int, [SEXP])
+_register("Rf_isTs", c_int, [SEXP])
+_register("Rf_isUserBinop", c_int, [SEXP])
+_register("Rf_isValidString", c_int, [SEXP])
+_register("Rf_isValidStringF", c_int, [SEXP])
+_register("Rf_isVector", c_int, [SEXP])
+_register("Rf_isVectorAtomic", c_int, [SEXP])
+_register("Rf_isVectorList", c_int, [SEXP])
+_register("Rf_isVectorizable", c_int, [SEXP])
 _register("Rf_lang1", SEXP, [SEXP])
 _register("Rf_lang2", SEXP, [SEXP, SEXP])
 _register("Rf_lang3", SEXP, [SEXP, SEXP, SEXP])
