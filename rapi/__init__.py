@@ -18,7 +18,7 @@ __all__ = [
     "rcopy"
 ]
 
-__version__ = '0.0.1.dev0'
+__version__ = '0.0.1'
 
 rhome = None
 libR = None
