@@ -3,6 +3,7 @@ from ctypes import c_char, c_char_p, c_double, c_int, c_ubyte, c_void_p, c_size_
 from ctypes import POINTER, CFUNCTYPE
 from collections import namedtuple
 
+from . import types
 from .types import SEXP, SEXPTYPE, Rcomplex, R_len_t, R_xlen_t
 from .utils import cglobal
 from . import internals
@@ -667,3 +668,6 @@ def bootstrap(libR, rversion, verbose=True):
 
     for name, var in _globals.items():
         var.value = cglobal(name, libR, c_void_p).value
+
+    types.R_PreserveObject = internals.R_PreserveObject
+    types.R_ReleaseObject = internals.R_ReleaseObject

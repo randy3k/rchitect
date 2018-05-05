@@ -9,6 +9,21 @@ class SEXP(c_void_p):
     pass
 
 
+R_PreserveObject = None
+R_ReleaseObject = None
+
+
+class RObject(SEXP):
+    def __init__(self, p):
+        if not isinstance(p, SEXP):
+            raise Exception("expect a SEXP")
+        self.value = p.value
+        R_PreserveObject(p.value)
+
+    def __del__(self):
+        R_ReleaseObject(self.value)
+
+
 SEXPTYPE = c_uint
 
 
