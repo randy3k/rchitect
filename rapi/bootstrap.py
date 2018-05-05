@@ -595,7 +595,7 @@ _register("Rf_warning", None, None)
 def bootstrap(libR, rversion, verbose=True):
     for name, (sign, setter) in _signatures.items():
         try:
-            f = getattr(libR, name)
+            f = getattr(libR, sign.cname)
             f.restype = sign.restype
             if sign.argtypes is not None:
                 f.argtypes = sign.argtypes
