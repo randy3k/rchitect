@@ -4,6 +4,16 @@ from ctypes import Structure
 from ctypes import sizeof
 
 
+__all__ = [
+    "SEXP",
+    "RObject",
+    "SEXPTYPE",
+    "Rcomplex",
+    "R_len_t",
+    "R_xlen_t"
+]
+
+
 class SEXP(c_void_p):
 
     pass
