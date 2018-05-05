@@ -5,7 +5,7 @@ from six import text_type
 
 from .internals import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalEnv
 from .internals import R_ToplevelExec
-from .internals import R_ParseVector, R_tryEval
+from .internals import R_ParseVector, Rf_eval
 from .internals import Rf_PrintValue
 from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install, Rf_mkString
 from .internals import LENGTH, TYPEOF, LANGSXP
@@ -13,7 +13,7 @@ from .internals import INTSXP, LGLSXP, REALSXP, CHARSXP, CPLXSXP, RAWSXP, STRSXP
 from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
 from .internals import Rf_GetOption1, Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal
 
-from .types import RObject
+from .types import SEXP, RObject
 
 
 __all__ = [
@@ -59,7 +59,10 @@ def rexec_p(func, *data):
 
 
 def rexec(*args, **kwargs):
-    return RObject(rexec_p(*args, **kwargs))
+    ret = rexec_p(*args, **kwargs)
+    if type(ret) is SEXP:
+        ret = RObject(ret)
+    return ret
 
 
 def rparse_p(string):
@@ -67,7 +70,7 @@ def rparse_p(string):
     status = c_int()
     s = Rf_protect(Rf_mkString(buf))
     try:
-        ret = rexec(R_ParseVector, s, -1, status, R_NilValue)
+        ret = rexec_p(R_ParseVector, s, -1, status, R_NilValue)
     finally:
         Rf_unprotect(1)
     if status.value != 1:
@@ -80,14 +83,11 @@ def rparse(*args, **kwargs):
 
 
 def reval_p(string, env=R_GlobalEnv):
-    status = c_int()
     expressions = Rf_protect(rparse_p(string))
     ret = R_NilValue
     try:
         for i in range(0, LENGTH(expressions)):
-            ret = R_tryEval(VECTOR_ELT(expressions, i), env, status)
-            if status.value != 0:
-                raise RuntimeError("reval error")
+            ret = rexec_p(Rf_eval, VECTOR_ELT(expressions, i), env)
     finally:
         Rf_unprotect(1)
     return ret
@@ -118,11 +118,7 @@ def rlang(*args, **kwargs):
 
 
 def rcall_p(*args, **kwargs):
-    status = c_int()
-    val = R_tryEval(rlang_p(*args, **kwargs), R_GlobalEnv, status)
-    if status.value != 0:
-        raise RuntimeError("rcall error.")
-    return val
+    return rexec_p(Rf_eval, rlang_p(*args, **kwargs), R_GlobalEnv)
 
 
 def rcall(*args, **kwargs):
@@ -147,7 +143,7 @@ def rstring(*args, **kwargs):
 def rprint(s):
     Rf_protect(s)
     try:
-        rexec(Rf_PrintValue, s)
+        rexec_p(Rf_PrintValue, s)
     finally:
         Rf_unprotect(1)
 

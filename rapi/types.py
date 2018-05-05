@@ -27,7 +27,7 @@ interface = None
 class RObject(SEXP):
     def __init__(self, p):
         if not isinstance(p, SEXP):
-            raise Exception("expect a SEXP")
+            raise Exception("expect a SEXP, got {}".format(str(type(p))))
         self.value = p.value
         internals.R_PreserveObject(p.value)
 
