@@ -19,8 +19,9 @@ class SEXP(c_void_p):
     pass
 
 
-R_PreserveObject = None
-R_ReleaseObject = None
+# to be injected by bootstrap
+internals = None
+interface = None
 
 
 class RObject(SEXP):
@@ -28,10 +29,10 @@ class RObject(SEXP):
         if not isinstance(p, SEXP):
             raise Exception("expect a SEXP")
         self.value = p.value
-        R_PreserveObject(p.value)
+        internals.R_PreserveObject(p.value)
 
     def __del__(self):
-        R_ReleaseObject(self.value)
+        internals.R_ReleaseObject(self.value)
 
 
 SEXPTYPE = c_uint

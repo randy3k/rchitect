@@ -13,6 +13,8 @@ from .internals import INTSXP, LGLSXP, REALSXP, CHARSXP, CPLXSXP, RAWSXP, STRSXP
 from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
 from .internals import Rf_GetOption1, Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal
 
+from .types import RObject
+
 
 __all__ = [
     "rexec",
@@ -48,7 +50,7 @@ def protectedEval(pdata_t):
 protectedEval_t = CFUNCTYPE(None, c_void_p)(protectedEval)
 
 
-def rexec(func, *data):
+def rexec_p(func, *data):
     ret = [None]
     pdata = ProtectedEvalData(py_object(func), py_object(data), py_object(ret))
     if R_ToplevelExec(protectedEval_t, byref(pdata)) == 0:
@@ -56,7 +58,11 @@ def rexec(func, *data):
     return pdata.ret[0]
 
 
-def rparse(string):
+def rexec(*args, **kwargs):
+    return RObject(rexec_p(*args, **kwargs))
+
+
+def rparse_p(string):
     buf = string.encode()
     status = c_int()
     s = Rf_protect(Rf_mkString(buf))
@@ -69,9 +75,13 @@ def rparse(string):
     return ret
 
 
-def reval(string, env=R_GlobalEnv):
+def rparse(*args, **kwargs):
+    return RObject(rparse_p(*args, **kwargs))
+
+
+def reval_p(string, env=R_GlobalEnv):
     status = c_int()
-    expressions = Rf_protect(rparse(string))
+    expressions = Rf_protect(rparse_p(string))
     ret = R_NilValue
     try:
         for i in range(0, LENGTH(expressions)):
@@ -83,7 +93,11 @@ def reval(string, env=R_GlobalEnv):
     return ret
 
 
-def rlang(*args, **kwargs):
+def reval(*args, **kwargs):
+    return RObject(reval_p(*args, **kwargs))
+
+
+def rlang_p(*args, **kwargs):
     nargs = len(args) + len(kwargs)
     t = Rf_protect(Rf_allocVector(LANGSXP, nargs))
     s = t
@@ -99,27 +113,43 @@ def rlang(*args, **kwargs):
     return t
 
 
-def rcall(*args, **kwargs):
+def rlang(*args, **kwargs):
+    return RObject(rlang_p(*args, **kwargs))
+
+
+def rcall_p(*args, **kwargs):
     status = c_int()
-    val = R_tryEval(rlang(*args, **kwargs), R_GlobalEnv, status)
+    val = R_tryEval(rlang_p(*args, **kwargs), R_GlobalEnv, status)
     if status.value != 0:
         raise RuntimeError("rcall error.")
     return val
 
 
+def rcall(*args, **kwargs):
+    return RObject(rcall_p(*args, **kwargs))
+
+
 def rsym(s, t=None):
     if t:
-        return rlang(rsym("::"), rsym(s), rsym(t))
+        return rlang_p(rsym("::"), rsym(s), rsym(t))
     else:
         return Rf_install(s.encode())
 
 
-def rstring(s):
+def rstring_p(s):
     return Rf_mkString(s.encode())
 
 
+def rstring(*args, **kwargs):
+    return RObject(rstring_p(*args, **kwargs))
+
+
 def rprint(s):
-    rexec(Rf_PrintValue, s)
+    Rf_protect(s)
+    try:
+        rexec(Rf_PrintValue, s)
+    finally:
+        Rf_unprotect(1)
 
 
 def rcopy(s, auto_unbox=True):
@@ -127,7 +157,7 @@ def rcopy(s, auto_unbox=True):
     ret = None
     typ = TYPEOF(s)
     if typ == VECSXP:
-        names = rcopy(rcall(rsym("base", "names"), s))
+        names = rcopy(rcall_p(rsym("base", "names"), s))
         if names:
             ret = OrderedDict()
             for i in range(LENGTH(s)):
@@ -206,4 +236,4 @@ def set_option(key, value):
     else:
         TypeError("value type is not supported")
 
-    rcall(rsym("base", "options"), **kwargs)
+    rcall_p(rsym("base", "options"), **kwargs)
