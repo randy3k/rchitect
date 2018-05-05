@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 
-from .utils import get_rhome, get_libR, ensure_path
+from .utils import get_rhome, get_libR, ensure_path, rversion
 from . import embedded, defaults
+from .bootstrap import bootstrap
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy
 
 
@@ -23,7 +24,7 @@ rhome = None
 libR = None
 
 
-def init(arguments=["rapi", "--quiet", "--no-save"], repl=False):
+def start(arguments=["rapi", "--quiet", "--no-save"], repl=False):
     global rhome, libR
     rhome = get_rhome()
     libR = get_libR(rhome)
@@ -37,4 +38,9 @@ def init(arguments=["rapi", "--quiet", "--no-save"], repl=False):
     embedded.set_callback("R_PolledEvents", defaults.R_PolledEvents)
     embedded.set_callback("YesNoCancel", defaults.YesNoCancel)
 
-    embedded.start(libR, arguments=arguments, repl=repl)
+    embedded.initialize(libR, arguments=arguments)
+
+    bootstrap(libR, rversion=rversion(libR))
+
+    if repl:
+        embedded.run_loop(libR)

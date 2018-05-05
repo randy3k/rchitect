@@ -6,8 +6,7 @@ from ctypes import c_int, c_size_t, c_char, c_char_p, c_void_p, cast, pointer
 from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
 
 from .types import SEXP
-from .utils import ccall, rversion
-from .bootstrap import bootstrap
+from .utils import ccall
 
 
 callback = {
@@ -71,7 +70,7 @@ def set_callback(name, func):
     callback["name"] = func
 
 
-def start(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
+def initialize(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
     argn = len(arguments)
     argv = (c_char_p * argn)()
     for i, a in enumerate(arguments):
@@ -86,9 +85,9 @@ def start(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
 
     libR.setup_Rmainloop()
 
-    bootstrap(libR, rversion=rversion(libR))
-    if repl:
-        libR.run_Rmainloop()
+
+def run_loop(libR):
+    libR.run_Rmainloop()
 
 
 def get_cb_ptr(name):

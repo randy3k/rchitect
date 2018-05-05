@@ -4,7 +4,7 @@ from ctypes import POINTER, CFUNCTYPE
 from collections import namedtuple
 
 from .types import SEXP, SEXPTYPE, Rcomplex, R_len_t, R_xlen_t
-from .utils import cfunction, cglobal
+from .utils import cglobal
 from . import internals
 
 
@@ -591,11 +591,14 @@ _register("Rf_warning", None, None)
 def bootstrap(libR, rversion, warnings=False):
     for name, (sign, setter) in _signatures.items():
         try:
-            setter(cfunction(sign.cname, libR, sign.restype, sign.argtypes))
+            f = getattr(libR, name)
+            f.restype = sign.restype
+            if sign.argtypes is not None:
+                f.argtypes = sign.argtypes
+            setter(f)
         except Exception:
             if warnings:
                 print("warning: cannot import {}".format(name))
-            pass
 
     for name, var in _globals.items():
         var.value = cglobal(name, libR, c_void_p).value

@@ -14,14 +14,6 @@ if sys.platform.startswith('win'):
         from _winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, KEY_READ
 
 
-def cfunction(fname, lib, restype, argtypes):
-    f = getattr(lib, fname)
-    f.restype = restype
-    if argtypes is not None:
-        f.argtypes = argtypes
-    return f
-
-
 def cglobal(vname, lib, vtype=c_void_p):
     return vtype.in_dll(lib, vname)
 
