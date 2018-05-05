@@ -15,7 +15,11 @@ _signatures = {}
 
 
 def noop(*args):
-    raise RuntimeError("method not loaded")
+    raise RuntimeError("rapi not yet ready")
+
+
+def notavaiable(*args):
+    raise NotImplementedError("method not avaiable")
 
 
 def _make_closure(name, sign):
@@ -588,7 +592,7 @@ _register("Rf_error", None, None)
 _register("Rf_warning", None, None)
 
 
-def bootstrap(libR, rversion, warnings=False):
+def bootstrap(libR, rversion, verbose=True):
     for name, (sign, setter) in _signatures.items():
         try:
             f = getattr(libR, name)
@@ -597,7 +601,8 @@ def bootstrap(libR, rversion, warnings=False):
                 f.argtypes = sign.argtypes
             setter(f)
         except Exception:
-            if warnings:
+            setter(notavaiable)
+            if verbose:
                 print("warning: cannot import {}".format(name))
 
     for name, var in _globals.items():

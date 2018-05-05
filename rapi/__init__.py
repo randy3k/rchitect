@@ -24,7 +24,7 @@ rhome = None
 libR = None
 
 
-def start(arguments=["rapi", "--quiet", "--no-save"], repl=False):
+def start(arguments=["rapi", "--quiet", "--no-save"], repl=False, verbose=True):
     global rhome, libR
     rhome = get_rhome()
     libR = get_libR(rhome)
@@ -40,7 +40,7 @@ def start(arguments=["rapi", "--quiet", "--no-save"], repl=False):
 
     embedded.initialize(libR, arguments=arguments)
 
-    bootstrap(libR, rversion=rversion(libR))
+    bootstrap(libR, rversion=rversion(libR), verbose=verbose)
 
     if repl:
         embedded.run_loop(libR)
