@@ -29,6 +29,7 @@ setup(
     long_description=long_description,
     packages=find_packages('.'),
     install_requires=[
+        "multipledispatch",
         'enum34;python_version<"3.4"',
     ]
 )

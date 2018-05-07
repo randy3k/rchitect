@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
-from ctypes import c_char, c_char_p, c_double, c_int, c_ubyte, c_void_p, c_size_t
+from ctypes import c_char, c_char_p, c_double, c_int, c_uint, c_void_p, c_size_t
 from ctypes import POINTER, CFUNCTYPE
 from collections import namedtuple
 
-from . import types, internals
-from .types import SEXP, SEXPTYPE, Rcomplex, R_len_t, R_xlen_t
+from . import internals
+from . import types
+from .types import SEXP, Rcomplex, R_len_t, R_xlen_t
 from .utils import cglobal
 
 
@@ -128,7 +129,7 @@ _register("SETLEVELS", c_int, [SEXP, c_int])
 
 _register("LOGICAL", POINTER(c_int), [SEXP])
 _register("INTEGER", POINTER(c_int), [SEXP])
-_register("RAW", POINTER(c_ubyte), [SEXP])
+_register("RAW", c_char_p, [SEXP])
 _register("REAL", POINTER(c_double), [SEXP])
 _register("COMPLEX", POINTER(Rcomplex), [SEXP])
 _register("STRING_ELT", SEXP, [SEXP, R_xlen_t])
@@ -306,19 +307,19 @@ _register("Rf_asComplex", Rcomplex, [SEXP])
 
 _register("Rf_acopy_string", c_char_p, [c_char_p],)
 _register("Rf_addMissingVarsToNewEnv", SEXP, [SEXP, SEXP])
-_register("Rf_alloc3DArray", SEXP, [SEXPTYPE, c_int, c_int, c_int])
-_register("Rf_allocArray", SEXP, [SEXPTYPE, SEXP])
+_register("Rf_alloc3DArray", SEXP, [c_uint, c_int, c_int, c_int])
+_register("Rf_allocArray", SEXP, [c_uint, SEXP])
 _register("Rf_allocFormalsList2", SEXP, [SEXP, SEXP])
 _register("Rf_allocFormalsList3", SEXP, [SEXP, SEXP, SEXP])
 _register("Rf_allocFormalsList4", SEXP, [SEXP, SEXP, SEXP, SEXP])
 _register("Rf_allocFormalsList5", SEXP, [SEXP, SEXP, SEXP, SEXP, SEXP])
 _register("Rf_allocFormalsList6", SEXP, [SEXP, SEXP, SEXP, SEXP, SEXP, SEXP])
 _register("Rf_allocList", SEXP, [c_int])
-_register("Rf_allocMatrix", SEXP, [SEXPTYPE, c_int, c_int])
+_register("Rf_allocMatrix", SEXP, [c_uint, c_int, c_int])
 _register("Rf_allocS4Object", SEXP, [])
-_register("Rf_allocSExp", SEXP, [SEXPTYPE])
-_register("Rf_allocVector", SEXP, [SEXPTYPE, R_xlen_t])
-_register("Rf_allocVector3", SEXP, [SEXPTYPE, R_xlen_t, c_void_p])
+_register("Rf_allocSExp", SEXP, [c_uint])
+_register("Rf_allocVector", SEXP, [c_uint, R_xlen_t])
+_register("Rf_allocVector3", SEXP, [c_uint, R_xlen_t, c_void_p])
 _register("Rf_any_duplicated", R_xlen_t, [SEXP, c_int])
 _register("Rf_any_duplicated3", R_xlen_t, [SEXP, SEXP, c_int])
 _register("Rf_applyClosure", SEXP, [SEXP, SEXP, SEXP, SEXP, SEXP])
@@ -395,17 +396,17 @@ _register("Rf_setAttrib", SEXP, [SEXP, SEXP, SEXP])
 _register("Rf_setSVector", None, [POINTER(SEXP), c_int, SEXP])
 _register("Rf_setVar", SEXP, [SEXP, SEXP, SEXP])
 _register("Rf_stringSuffix", SEXP, [SEXP, c_int])
-_register("Rf_str2type", SEXPTYPE, [c_char_p])
+_register("Rf_str2type", c_uint, [c_char_p])
 _register("Rf_StringBlank", c_int, [SEXP])
 _register("Rf_substitute", SEXP, [SEXP, SEXP])
 _register("Rf_topenv", SEXP, [SEXP, SEXP])
 _register("Rf_translateChar", c_char_p, [SEXP])
 _register("Rf_translateChar0", c_char_p, [SEXP])
 _register("Rf_translateCharUTF8", c_char_p, [SEXP])
-_register("Rf_type2char", c_char_p, [SEXPTYPE])
-_register("Rf_type2rstr", SEXP, [SEXPTYPE])
-_register("Rf_type2str", SEXP, [SEXPTYPE])
-_register("Rf_type2str_nowarn", SEXP, [SEXPTYPE])
+_register("Rf_type2char", c_char_p, [c_uint])
+_register("Rf_type2rstr", SEXP, [c_uint])
+_register("Rf_type2str", SEXP, [c_uint])
+_register("Rf_type2str_nowarn", SEXP, [c_uint])
 _register("Rf_unprotect", None, [SEXP])
 _register("Rf_unprotect_ptr", None, [SEXP])
 
@@ -592,14 +593,14 @@ _register("Rf_list4", SEXP, [SEXP, SEXP, SEXP, SEXP])
 _register("Rf_list5", SEXP, [SEXP, SEXP, SEXP, SEXP, SEXP])
 _register("Rf_list6", SEXP, [SEXP, SEXP, SEXP, SEXP, SEXP, SEXP])
 _register("Rf_listAppend", SEXP, [SEXP, SEXP])
-_register("Rf_mkNamed", SEXP, [SEXPTYPE, c_char_p])
+_register("Rf_mkNamed", SEXP, [c_uint, c_char_p])
 _register("Rf_mkString", SEXP, [c_char_p])
 _register("Rf_nlevels", c_int, [SEXP])
 _register("Rf_stringPositionTr", c_int, [SEXP, c_char_p])
 _register("Rf_ScalarComplex", SEXP, [Rcomplex])
 _register("Rf_ScalarInteger", SEXP, [c_int])
 _register("Rf_ScalarLogical", SEXP, [c_int])
-_register("Rf_ScalarRaw", SEXP, [c_ubyte])
+_register("Rf_ScalarRaw", SEXP, [c_char])
 _register("Rf_ScalarReal", SEXP, [c_double])
 _register("Rf_ScalarString", SEXP, [SEXP])
 _register("Rf_xlength", R_xlen_t, [SEXP])
@@ -622,7 +623,7 @@ _register("R_finite", c_int, [c_double])
 
 # Print.h
 
-_register("Rf_formatRaw", None, [POINTER(c_ubyte), R_xlen_t, POINTER(c_int)])
+_register("Rf_formatRaw", None, [c_char_p, R_xlen_t, POINTER(c_int)])
 _register("Rf_formatString", None, [POINTER(SEXP), R_xlen_t, POINTER(c_int), c_int])
 _register("Rf_EncodeElement", c_char_p, [SEXP, c_int, c_int, c_char])
 _register("Rf_EncodeElement0", c_char_p, [SEXP, c_int, c_int, c_char_p])

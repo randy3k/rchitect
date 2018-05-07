@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+# mimic R.internals.h
 
 NILSXP = 0
 SYMSXP = 1

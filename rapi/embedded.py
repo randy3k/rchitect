@@ -70,7 +70,7 @@ def set_callback(name, func):
     callback["name"] = func
 
 
-def initialize(libR, arguments=["rapi", "--quiet", "--no-save"], repl=False):
+def initialize(libR, arguments=["rapi", "--quiet", "--no-save"]):
     argn = len(arguments)
     argv = (c_char_p * argn)()
     for i, a in enumerate(arguments):
