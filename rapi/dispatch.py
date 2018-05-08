@@ -2,22 +2,24 @@ from multipledispatch.dispatcher import Dispatcher, str_signature, MDNotImplemen
 
 
 class Type(type):
-    instances = {}
+    _instances = {}
 
     def __new__(cls, t):
-        if t != object and type(t) == type:
-            if t in cls.instances:
-                return cls.instances[t]
+        if isinstance(t, type) and t is not object:
+            if t in cls._instances:
+                return cls._instances[t]
             else:
-                T = super(Type, cls).__new__(cls, "Type({})".format(t.__name__), (type,), {})
-                cls.instances[t] = T
+                T = super(Type, cls).__new__(
+                    cls, "Type({})".format(t.__name__),
+                    (type,),
+                    {"__new__": lambda cls: t})
+                cls._instances[t] = T
             return T
         else:
             return type(t)
 
     def __init__(self, t):
         self.t = t
-        super(Type, self).__init__("Type({})".format(t.__name__), (type, ), {})
 
     def __instancecheck__(self, instance):
         return self.t == instance

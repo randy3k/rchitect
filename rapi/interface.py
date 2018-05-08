@@ -13,6 +13,8 @@ from .internals import LENGTH, TYPEOF, LANGSXP
 from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
 from .internals import Rf_GetOption1, Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal
 from .internals import R_data_class
+from .internals import R_NamesSymbol, Rf_getAttrib, Rf_isNull
+
 
 from .types import SEXP, RObject, SEXPTYPE, SEXPCLASS
 from .dispatch import dispatch, Type
@@ -27,6 +29,8 @@ __all__ = [
     "rcall",
     "rsym",
     "rstring",
+    "rclass",
+    "rname",
     "rcopy"
 ]
 
@@ -157,8 +161,20 @@ def rprint(s):
         Rf_unprotect(1)
 
 
+def rclass_p(s, singleString=0):
+    return sexp(R_data_class(s, singleString))
+
+
 def rclass(s, singleString=0):
-    return R_data_class(s, singleString)
+    return RObject(rclass_p(s, singleString))
+
+
+def rname_p(s):
+    return sexp(Rf_getAttrib(s, R_NamesSymbol))
+
+
+def rname(s):
+    return RObject(rname_p(s))
 
 
 @dispatch(Type(int), SEXPCLASS(SEXPTYPE.INTSXP))
@@ -166,14 +182,19 @@ def rcopy(_, s):
     return INTEGER(s)[0]
 
 
+@dispatch(Type(list), SEXPCLASS(SEXPTYPE.INTSXP))
+def rcopy(_, s):
+    return [INTEGER(s)[i] for i in range(LENGTH(s))]
+
+
 @dispatch(Type(bool), SEXPCLASS(SEXPTYPE.LGLSXP))
 def rcopy(_, s):
     return bool(LOGICAL(s)[0])
 
 
-@dispatch(Type(int), SEXPCLASS(SEXPTYPE.LGLSXP))
+@dispatch(Type(list), SEXPCLASS(SEXPTYPE.LGLSXP))
 def rcopy(_, s):
-    return int(LOGICAL(s)[0])
+    return [bool(LOGICAL(s)[i]) for i in range(LENGTH(s))]
 
 
 @dispatch(Type(float), SEXPCLASS(SEXPTYPE.REALSXP))
@@ -181,10 +202,20 @@ def rcopy(_, s):
     return REAL(s)[0]
 
 
+@dispatch(Type(list), SEXPCLASS(SEXPTYPE.REALSXP))
+def rcopy(_, s):
+    return [REAL(s)[i] for i in range(LENGTH(s))]
+
+
 @dispatch(Type(complex), SEXPCLASS(SEXPTYPE.CPLXSXP))
 def rcopy(_, s):
     z = COMPLEX(s)[0]
     return complex(z.r, z.i)
+
+
+@dispatch(Type(list), SEXPCLASS(SEXPTYPE.CPLXSXP))
+def rcopy(_, s):
+    return [complex(COMPLEX(s)[i].r, COMPLEX(s)[i].i) for i in range(LENGTH(s))]
 
 
 @dispatch(Type(bytes), SEXPCLASS(SEXPTYPE.RAWSXP))
@@ -197,26 +228,50 @@ def rcopy(_, s):
     return CHAR(STRING_ELT(s, 0)).decode()
 
 
+@dispatch(Type(list), SEXPCLASS(SEXPTYPE.STRSXP))
+def rcopy(_, s):
+    return [CHAR(STRING_ELT(s, i)).decode() for i in range(LENGTH(s))]
+
+
+@dispatch(Type(list), SEXPCLASS(SEXPTYPE.VECSXP))
+def rcopy(_, s):
+    return [rcopy(VECTOR_ELT(s, i)) for i in range(LENGTH(s))]
+
+
+@dispatch(Type(OrderedDict), SEXPCLASS(SEXPTYPE.VECSXP))
+def rcopy(_, s):
+    ret = OrderedDict()
+    names = rcopy(list, rname_p(s))
+    for i in range(LENGTH(s)):
+        ret[names[i]] = rcopy(VECTOR_ELT(s, i))
+    return ret
+
+
+@dispatch(object, SEXP)
+def rcopy(_, s):
+    return s
+
+
 # default conversion
 
 @dispatch(object, SEXPCLASS(SEXPTYPE.INTSXP))
 def rcopytype(_, s):
-    return int
+    return int if LENGTH(s) == 1 else list
 
 
 @dispatch(object, SEXPCLASS(SEXPTYPE.LGLSXP))
 def rcopytype(_, s):
-    return bool
+    return bool if LENGTH(s) == 1 else list
 
 
 @dispatch(object, SEXPCLASS(SEXPTYPE.REALSXP))
 def rcopytype(_, s):
-    return float
+    return float if LENGTH(s) == 1 else list
 
 
 @dispatch(object, SEXPCLASS(SEXPTYPE.CPLXSXP))
 def rcopytype(_, s):
-    return complex
+    return complex if LENGTH(s) == 1 else list
 
 
 @dispatch(object, SEXPCLASS(SEXPTYPE.RAWSXP))
@@ -226,100 +281,59 @@ def rcopytype(_, s):
 
 @dispatch(object, SEXPCLASS(SEXPTYPE.STRSXP))
 def rcopytype(_, s):
-    return text_type
+    return text_type if LENGTH(s) == 1 else list
+
+
+@dispatch(object, SEXPCLASS(SEXPTYPE.VECSXP))
+def rcopytype(_, s):
+    return list if Rf_isNull(rname_p(s)) else OrderedDict
+
+
+@dispatch(object, SEXP)
+def rcopytype(_, s):
+    return object
 
 
 # Generic behavior
 
+class RClass(object):
+    _instances = {}
+
+    def __new__(cls, rcls):
+        if rcls in cls._instances:
+            return cls._instances[rcls]
+        else:
+            T = type(
+                "RClass(\'{}\')".format(rcls),
+                (type,),
+                {"__new__": lambda cls: None})
+            cls._instances[rcls] = T
+        return T
+
+
+
 @dispatch(SEXP)
 def rcopy(s):
     s = sexp(s)
-    T = rcopytype(object, s)
+    T = rcopytype(RClass(rcopy(text_type, rclass_p(s, 1))), s)
     return rcopy(T, s)
 
 
 @dispatch(object, RObject)
 def rcopy(t, r):
-    ret = rcopy(t, sexp(r))
-    if isinstance(ret, SEXP):
-        ret = RObject(ret)
-    return ret
+    return rcopy(t, sexp(r))
 
 
 @dispatch(RObject)
 def rcopy(r):
-    ret = rcopy(sexp(r))
-    if isinstance(ret, SEXP):
-        ret = RObject(ret)
-    return ret
+    r = sexp(r)
+    T = rcopytype(RClass(rcopy(text_type, rclass_p(r, 1))), r)
+    return rcopy(T, r)
 
 
 @dispatch(object)
 def rcopy(r):
     return r
-
-
-# def rcopy(s, auto_unbox=True):
-#     Rf_protect(s)
-#     ret = None
-#     typ = TYPEOF(s)
-#     if typ == VECSXP:
-#         names = rcopy(rcall_p(rsym("base", "names"), s))
-#         if names:
-#             ret = OrderedDict()
-#             for i in range(LENGTH(s)):
-#                 ret[names[i]] = rcopy(VECTOR_ELT(s, i), auto_unbox=auto_unbox)
-#         else:
-#             ret = []
-#             for i in range(LENGTH(s)):
-#                 ret.append(rcopy(VECTOR_ELT(s, i), auto_unbox=auto_unbox))
-
-#     elif typ == STRSXP:
-#         ret = []
-#         for i in range(LENGTH(s)):
-#             ret.append(CHAR(STRING_ELT(s, i)).decode())
-#         if auto_unbox and len(ret) == 1:
-#             ret = ret[0]
-#     elif typ == LGLSXP:
-#         ret = []
-#         sp = LOGICAL(s)
-#         for i in range(LENGTH(s)):
-#             ret.append(bool(sp[i]))
-#         if auto_unbox and len(ret) == 1:
-#             ret = ret[0]
-#     elif typ == INTSXP:
-#         ret = []
-#         sp = INTEGER(s)
-#         for i in range(LENGTH(s)):
-#             ret.append(int(sp[i]))
-#         if auto_unbox and len(ret) == 1:
-#             ret = ret[0]
-#     elif typ == REALSXP:
-#         ret = []
-#         sp = REAL(s)
-#         for i in range(LENGTH(s)):
-#             ret.append(sp[i])
-#         if auto_unbox and len(ret) == 1:
-#             ret = ret[0]
-#     elif typ == CHARSXP:
-#         ret = CHAR(s).decode()
-#     elif typ == RAWSXP:
-#         ret = []
-#         sp = RAW(s)
-#         for i in range(LENGTH(s)):
-#             ret.append(int(sp[i]))
-#         if auto_unbox and len(ret) == 1:
-#             ret = ret[0]
-#     elif typ == CPLXSXP:
-#         ret = []
-#         sp = COMPLEX(s)
-#         for i in range(LENGTH(s)):
-#             z = sp[i]
-#             ret.append(complex(z.r, z.i))
-#         if auto_unbox and len(ret) == 1:
-#             ret = ret[0]
-#     Rf_unprotect(1)
-#     return ret
 
 
 @dispatch(SEXP)
