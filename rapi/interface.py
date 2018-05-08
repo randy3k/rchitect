@@ -177,6 +177,13 @@ def rname(s):
     return RObject(rname_p(s))
 
 
+# conversion dispatches
+
+@dispatch(object, SEXPCLASS(SEXPTYPE.NILSXP))
+def rcopy(_, s):
+    return None
+
+
 @dispatch(Type(int), SEXPCLASS(SEXPTYPE.INTSXP))
 def rcopy(_, s):
     return INTEGER(s)[0]
