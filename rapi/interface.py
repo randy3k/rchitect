@@ -166,6 +166,11 @@ def rcopy(_, s):
     return bool(LOGICAL(s)[0])
 
 
+@dispatch(Type(int), SEXPCLASS(SEXPTYPE.LGLSXP))
+def rcopy(_, s):
+    return int(LOGICAL(s)[0])
+
+
 @dispatch(Type(float), SEXPCLASS(SEXPTYPE.REALSXP))
 def rcopy(_, s):
     return REAL(s)[0]

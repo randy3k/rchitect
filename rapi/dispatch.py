@@ -1,32 +1,65 @@
-from multipledispatch import dispatch as md_dispatch
-from multipledispatch.dispatcher import Dispatcher
+from multipledispatch.dispatcher import Dispatcher, str_signature, MDNotImplementedError
 
 
 class Type(type):
+    instances = {}
+
+    def __new__(cls, t):
+        if type(t) == type:
+            if t in cls.instances:
+                return cls.instances[t]
+            else:
+                T = super(Type, cls).__new__(cls, "Type({})".format(t.__name__), (type,), {})
+                cls.instances[t] = T
+            return T
+        else:
+            return type(t)
+
     def __init__(self, t):
         self.t = t
+        super(Type, self).__init__("Type({})".format(t.__name__), (type, ), {})
+
+    def __instancecheck__(self, instance):
+        return self.t == instance
+
+    def __subclasscheck__(self, subclass):
+        return isinstance(subclass, Type) and self.t == subclass.t
 
 
 namespace = dict()
 
-@md_dispatch(object, Type, namespace=namespace)
-def _issubclass(a, b):
-    return a == b.t
-
-
-@md_dispatch(object, object, namespace=namespace)
-def _issubclass(a, b):
-    return issubclass(a, b)
-
 
 class TypeDispatcher(Dispatcher):
 
-    def dispatch_iter(self, *types):
-        n = len(types)
-        for signature in self.ordering:
-            if len(signature) == n and all(map(_issubclass, types, signature)):
-                result = self.funcs[signature]
-                yield result
+    def __call__(self, *args, **kwargs):
+        types = tuple([Type(arg) for arg in args])
+        try:
+            func = self._cache[types]
+        except KeyError:
+            func = self.dispatch(*types)
+            if not func:
+                raise NotImplementedError(
+                    'Could not find signature for %s: <%s>' %
+                    (self.name, str_signature(types)))
+            self._cache[types] = func
+        try:
+            return func(*args, **kwargs)
+
+        except MDNotImplementedError:
+            funcs = self.dispatch_iter(*types)
+            next(funcs)  # burn first
+            for func in funcs:
+                try:
+                    return func(*args, **kwargs)
+                except MDNotImplementedError:
+                    pass
+
+            raise NotImplementedError(
+                "Matching functions for "
+                "%s: <%s> found, but none completed successfully" % (
+                    self.name, str_signature(types),
+                ),
+            )
 
 
 def dispatch(*types):
