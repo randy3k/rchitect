@@ -5,7 +5,7 @@ class Type(type):
     instances = {}
 
     def __new__(cls, t):
-        if type(t) == type:
+        if t != object and type(t) == type:
             if t in cls.instances:
                 return cls.instances[t]
             else:

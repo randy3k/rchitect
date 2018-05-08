@@ -653,6 +653,11 @@ _register("Rf_error", None, None)
 _register("Rf_warning", None, None)
 
 
+# Defn.h
+
+_register("R_data_class", SEXP, [SEXP, c_int])
+
+
 def bootstrap(libR, rversion, verbose=True):
     for name, (sign, setter) in _signatures.items():
         try:

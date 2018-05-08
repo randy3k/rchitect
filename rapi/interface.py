@@ -12,6 +12,7 @@ from .internals import LENGTH, TYPEOF, LANGSXP
 # from .internals import INTSXP, LGLSXP, REALSXP, CHARSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
 from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
 from .internals import Rf_GetOption1, Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal
+from .internals import R_data_class
 
 from .types import SEXP, RObject, SEXPTYPE, SEXPCLASS
 from .dispatch import dispatch, Type
@@ -156,6 +157,10 @@ def rprint(s):
         Rf_unprotect(1)
 
 
+def rclass(s, singleString=0):
+    return R_data_class(s, singleString)
+
+
 @dispatch(Type(int), SEXPCLASS(SEXPTYPE.INTSXP))
 def rcopy(_, s):
     return INTEGER(s)[0]
@@ -192,41 +197,48 @@ def rcopy(_, s):
     return CHAR(STRING_ELT(s, 0)).decode()
 
 
-# default
+# default conversion
 
-@dispatch(SEXPCLASS(SEXPTYPE.INTSXP))
+@dispatch(object, SEXPCLASS(SEXPTYPE.INTSXP))
+def rcopytype(_, s):
+    return int
+
+
+@dispatch(object, SEXPCLASS(SEXPTYPE.LGLSXP))
+def rcopytype(_, s):
+    return bool
+
+
+@dispatch(object, SEXPCLASS(SEXPTYPE.REALSXP))
+def rcopytype(_, s):
+    return float
+
+
+@dispatch(object, SEXPCLASS(SEXPTYPE.CPLXSXP))
+def rcopytype(_, s):
+    return complex
+
+
+@dispatch(object, SEXPCLASS(SEXPTYPE.RAWSXP))
+def rcopytype(_, s):
+    return bytes
+
+
+@dispatch(object, SEXPCLASS(SEXPTYPE.STRSXP))
+def rcopytype(_, s):
+    return text_type
+
+
+# Generic behavior
+
+@dispatch(SEXP)
 def rcopy(s):
-    return rcopy(int, s)
+    s = sexp(s)
+    T = rcopytype(object, s)
+    return rcopy(T, s)
 
 
-@dispatch(SEXPCLASS(SEXPTYPE.LGLSXP))
-def rcopy(s):
-    return rcopy(bool, s)
-
-
-@dispatch(SEXPCLASS(SEXPTYPE.REALSXP))
-def rcopy(s):
-    return rcopy(float, s)
-
-
-@dispatch(SEXPCLASS(SEXPTYPE.CPLXSXP))
-def rcopy(s):
-    return rcopy(complex, s)
-
-
-@dispatch(SEXPCLASS(SEXPTYPE.RAWSXP))
-def rcopy(s):
-    return rcopy(bytes, s)
-
-
-@dispatch(SEXPCLASS(SEXPTYPE.STRSXP))
-def rcopy(s):
-    return rcopy(text_type, s)
-
-
-# RObject behavior
-
-@dispatch(type, RObject)
+@dispatch(object, RObject)
 def rcopy(t, r):
     ret = rcopy(t, sexp(r))
     if isinstance(ret, SEXP):
