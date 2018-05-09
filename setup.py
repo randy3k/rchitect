@@ -25,7 +25,7 @@ setup(
     author_email="randy.cs.lai@gmail.com",
     version=get_version("rapi"),
     url='https://github.com/randy3k/rapi',
-    description='A minial R API for Python',
+    description='A minimal R API for Python',
     long_description=long_description,
     packages=find_packages('.'),
     install_requires=[
