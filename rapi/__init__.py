@@ -27,9 +27,9 @@ libR = None
 def start(arguments=["rapi", "--quiet", "--no-save"], repl=False, verbose=True):
     global rhome, libR
     rhome = get_rhome()
-    libR = get_libR(rhome)
-
     ensure_path(rhome)
+
+    libR = get_libR(rhome)
 
     embedded.set_callback("R_ShowMessage", defaults.R_ShowMessage)
     embedded.set_callback("R_ReadConsole", defaults.R_ReadConsole)
