@@ -390,13 +390,13 @@ def get_option(key, default=None):
 def set_option(key, value):
     kwargs = {}
     if isinstance(value, text_type):
-        kwargs[key] = Rf_mkString(value)
+        kwargs[key] = rstring(value)
     elif isinstance(value, bool):
-        kwargs[key] = Rf_ScalarLogical(int(value))
+        kwargs[key] = rlogical(int(value))
     elif isinstance(value, int):
-        kwargs[key] = Rf_ScalarInteger(value)
+        kwargs[key] = rint(value)
     elif isinstance(value, float):
-        kwargs[key] = Rf_ScalarReal(value)
+        kwargs[key] = rdouble(value)
     else:
         TypeError("value type is not supported")
 
