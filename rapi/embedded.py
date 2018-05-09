@@ -77,7 +77,7 @@ def initialize(libR, arguments):
         argv[i] = c_char_p(a.encode('utf-8'))
 
     if sys.platform.startswith("win"):
-        setup_win32(libR)
+        setup_win32(libR, arguments)
         libR.R_set_command_line_arguments(argn, argv)
     else:
         libR.Rf_initialize_R(argn, argv)
@@ -174,15 +174,36 @@ class RStart(Structure):
     ]
 
 
-def setup_win32(libR):
+def setup_win32(libR, args):
+    SA_NORESTORE = 0
+    SA_RESTORE = 1
+    # SA_DEFAULT = 2
+    SA_NOSAVE = 3
+    SA_SAVE = 4
+    SA_SAVEASK = 5
+    # SA_SUICIDE = 6
+
     libR.R_setStartTime()
     rstart = RStart()
     libR.R_DefParams(pointer(rstart))
 
-    rstart.R_Quiet = 1
-    rstart.R_Interactive = 1
-    rstart.RestoreAction = 0  # SA_NORESTORE
-    rstart.SaveAction = 3  # SA_NOSAVE
+    rstart.R_Quiet = "--quiet" in args
+    rstart.R_Slave = "--slave" in args
+    rstart.R_Interactive = "--interactive" in args
+    rstart.R_Verbose = "--verbose" in args
+    rstart.LoadSiteFile = "--no-site-file" not in args
+    rstart.LoadInitFile = "--no-init-file" not in args
+    if "--no-restore" in args:
+        rstart.RestoreAction = SA_NORESTORE
+    else:
+        rstart.RestoreAction = SA_RESTORE
+    if "--no-save" in args:
+        rstart.SaveAction = SA_NOSAVE
+    elif "--save" in args:
+        rstart.SaveAction = SA_SAVE
+    else:
+        rstart.SaveAction = SA_SAVEASK
+    rstart.NoRenviron = "--no-environ" in args
     rstart.rhome = ccall("get_R_HOME", libR, POINTER(c_char), [])
     rstart.home = ccall("getRUser", libR, POINTER(c_char), [])
     rstart.ReadConsole = get_cb_ptr("R_ReadConsole")
