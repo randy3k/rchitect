@@ -677,10 +677,14 @@ def bootstrap(libR, verbose=True):
         except Exception:
             setter(notavaiable)
             if verbose:
-                print("warning: cannot import {}".format(name))
+                print("warning: cannot import function {}".format(name))
 
     for name, var in _globals.items():
-        var.value = cglobal(name, libR, c_void_p).value
+        try:
+            var.value = cglobal(name, libR, c_void_p).value
+        except Exception:
+            if verbose:
+                print("warning: cannot import global {}".format(name))
 
     from . import interface
     types.internals = internals
