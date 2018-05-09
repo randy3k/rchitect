@@ -24,7 +24,16 @@ rhome = None
 libR = None
 
 
-def start(arguments=["rapi", "--quiet", "--no-save"], repl=False, verbose=True):
+def start(
+        arguments=[
+            "rapi",
+            "--quiet",
+            "--no-save",
+            "--no-restore"
+        ],
+        repl=False,
+        verbose=True):
+
     global rhome, libR
     rhome = get_rhome()
     ensure_path(rhome)

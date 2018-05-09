@@ -70,7 +70,7 @@ def set_callback(name, func):
     callback[name] = func
 
 
-def initialize(libR, arguments=["rapi", "--quiet", "--no-save"]):
+def initialize(libR, arguments):
     argn = len(arguments)
     argv = (c_char_p * argn)()
     for i, a in enumerate(arguments):
@@ -178,21 +178,21 @@ def setup_win32(libR):
     libR.R_setStartTime()
     rstart = RStart()
     libR.R_DefParams(pointer(rstart))
+
+    rstart.R_Quiet = 1
+    rstart.R_Interactive = 1
+    rstart.RestoreAction = 0  # SA_NORESTORE
+    rstart.SaveAction = 3  # SA_NOSAVE
     rstart.rhome = ccall("get_R_HOME", libR, POINTER(c_char), [])
     rstart.home = ccall("getRUser", libR, POINTER(c_char), [])
-    rstart.CharacterMode = 0
     rstart.ReadConsole = get_cb_ptr("R_ReadConsole")
     rstart.WriteConsole = get_cb_ptr("R_WriteConsole")
-    rstart.WriteConsoleEx = get_cb_ptr("R_WriteConsoleEx")
     rstart.CallBack = get_cb_ptr("R_PolledEvents")
     rstart.ShowMessage = get_cb_ptr("R_ShowMessage")
     rstart.YesNoCancel = get_cb_ptr("R_YesNoCancel")
     rstart.Busy = get_cb_ptr("R_Busy")
-
-    rstart.R_Quiet = 1
-    rstart.R_Interactive = 1
-    rstart.RestoreAction = 0  # or 1
-    rstart.SaveAction = 3  # or 5
+    rstart.CharacterMode = 0
+    rstart.WriteConsoleEx = get_cb_ptr("R_WriteConsoleEx")
 
     libR.R_SetParams(pointer(rstart))
 
