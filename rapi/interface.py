@@ -1,3 +1,4 @@
+import sys
 from ctypes import py_object, byref, cast, c_void_p, c_int
 from ctypes import CFUNCTYPE, Structure, POINTER
 from collections import OrderedDict
@@ -14,6 +15,7 @@ from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, V
 from .internals import Rf_GetOption1, Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal
 from .internals import R_data_class
 from .internals import R_NamesSymbol, Rf_getAttrib, Rf_isNull
+from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
 
 
 from .types import SEXP, RObject, SEXPTYPE, SEXPCLASS
@@ -149,8 +151,32 @@ def rstring_p(s):
     return sexp(Rf_mkString(s.encode()))
 
 
-def rstring(*args, **kwargs):
-    return RObject(rstring_p(*args, **kwargs))
+def rstring(s):
+    return RObject(rstring_p(s))
+
+
+def rint_p(s):
+    return sexp(Rf_ScalarInteger(s))
+
+
+def rint(s):
+    return RObject(rint_p(s))
+
+
+def rlogical_p(s):
+    return sexp(Rf_ScalarLogical(s))
+
+
+def rlogical(s):
+    return RObject(rlogical_p(s))
+
+
+def rdouble_p(s):
+    return sexp(Rf_ScalarReal(s))
+
+
+def rdouble(s):
+    return RObject(rdouble_p(s))
 
 
 def rprint(s):
@@ -375,3 +401,12 @@ def set_option(key, value):
         TypeError("value type is not supported")
 
     rcall_p(rsym("base", "options"), **kwargs)
+
+
+def process_events():
+    if sys.platform == "win32" or sys.platform == "darwin":
+        R_ProcessEvents()
+    if sys.platform.startswith("linux") or sys.platform == "darwin":
+        what = R_checkActivity(0, 1)
+        if what:
+            R_runHandlers(R_InputHandlers, what)

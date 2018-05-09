@@ -40,7 +40,7 @@ def start(arguments=["rapi", "--quiet", "--no-save"], repl=False, verbose=True):
 
     embedded.initialize(libR, arguments=arguments)
 
-    bootstrap(libR, rversion=rversion(libR), verbose=verbose)
+    bootstrap(libR, verbose=verbose)
 
     if repl:
         embedded.run_loop(libR)

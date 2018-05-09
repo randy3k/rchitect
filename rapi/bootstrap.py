@@ -7,6 +7,7 @@ from . import internals
 from . import types
 from .types import SEXP, Rcomplex, R_len_t, R_xlen_t
 from .utils import cglobal
+# from .utils import rversion
 
 
 Signature = namedtuple("Signature", ["cname", "restype", "argtypes"])
@@ -657,8 +658,15 @@ _register("Rf_warning", None, None)
 
 _register("R_data_class", SEXP, [SEXP, c_int])
 
+_register_global("R_InputHandlers")
+_register("R_ProcessEvents", None, [])
+_register("R_checkActivity", c_void_p, [c_int, c_int])
+_register("R_runHandlers", None, [c_void_p, c_void_p])
 
-def bootstrap(libR, rversion, verbose=True):
+
+def bootstrap(libR, verbose=True):
+    # rver = rversion(libR)
+
     for name, (sign, setter) in _signatures.items():
         try:
             f = getattr(libR, sign.cname)

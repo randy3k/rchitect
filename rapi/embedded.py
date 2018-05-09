@@ -67,7 +67,7 @@ callbackptr = []
 def set_callback(name, func):
     if name not in callback:
         raise ValueError("method not found")
-    callback["name"] = func
+    callback[name] = func
 
 
 def initialize(libR, arguments=["rapi", "--quiet", "--no-save"]):
@@ -80,8 +80,8 @@ def initialize(libR, arguments=["rapi", "--quiet", "--no-save"]):
         setup_win32(libR)
         libR.R_set_command_line_arguments(argn, argv)
     else:
-        setup_posix(libR)
         libR.Rf_initialize_R(argn, argv)
+        setup_posix(libR)
 
     libR.setup_Rmainloop()
 
@@ -99,17 +99,16 @@ def get_cb_ptr(name):
 
 def set_posix_cb_ptr(libR, ptrname, name):
     if callback[name]:
-        ptr_show_message = get_cb_ptr(name)
+        cb_ptr = get_cb_ptr(name)
         # prevent gc
-        callbackptr.append(ptr_show_message)
-        c_void_p.in_dll(libR, ptrname).value = cast(ptr_show_message, c_void_p).value
+        callbackptr.append(cb_ptr)
+        c_void_p.in_dll(libR, ptrname).value = cast(cb_ptr, c_void_p).value
 
 
 def setup_posix(libR):
 
     set_posix_cb_ptr(libR, "ptr_R_Suicide", "R_Suicide")
     set_posix_cb_ptr(libR, "ptr_R_ShowMessage", "R_ShowMessage")
-    set_posix_cb_ptr(libR, "ptr_R_ReadConsole", "R_ReadConsole")
     set_posix_cb_ptr(libR, "ptr_R_ReadConsole", "R_ReadConsole")
     set_posix_cb_ptr(libR, "ptr_R_WriteConsole", "R_WriteConsole")
     set_posix_cb_ptr(libR, "ptr_R_WriteConsoleEx", "R_WriteConsoleEx")
