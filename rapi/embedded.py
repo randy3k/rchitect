@@ -189,7 +189,7 @@ def setup_win32(libR, args):
 
     rstart.R_Quiet = "--quiet" in args
     rstart.R_Slave = "--slave" in args
-    rstart.R_Interactive = "--interactive" in args
+    rstart.R_Interactive = 1
     rstart.R_Verbose = "--verbose" in args
     rstart.LoadSiteFile = "--no-site-file" not in args
     rstart.LoadInitFile = "--no-init-file" not in args
