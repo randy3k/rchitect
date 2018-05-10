@@ -2,11 +2,12 @@ import os
 import re
 from setuptools import setup, find_packages
 
-try:
-    import pypandoc
-    long_description = pypandoc.convert_file('README.md', 'rst')
-except Exception:
-    long_description = ''
+
+def get_long_description():
+    with open('README.md', 'rb') as f:
+        desc = f.read().decode('utf-8')
+
+    return desc
 
 
 def get_version(package):
@@ -26,7 +27,7 @@ setup(
     version=get_version("rapi"),
     url='https://github.com/randy3k/rapi',
     description='A minimal R API for Python',
-    long_description=long_description,
+    long_description=get_long_description(),
     long_description_content_type="text/markdown",
     packages=find_packages('.'),
     install_requires=[
