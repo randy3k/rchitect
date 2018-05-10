@@ -27,6 +27,7 @@ setup(
     url='https://github.com/randy3k/rapi',
     description='A minimal R API for Python',
     long_description=long_description,
+    long_description_content_type="text/markdown",
     packages=find_packages('.'),
     install_requires=[
         "multipledispatch",
