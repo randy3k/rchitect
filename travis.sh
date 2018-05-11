@@ -2,23 +2,17 @@
 
 set -e
 
-get_package() {
-    package="$1"
-    ver="$2"
-    wget -qO- https://cran.rstudio.com/bin/linux/ubuntu/$(lsb_release -s -c)/ | sed -n "s/.*\(${package}\)_\($ver-[a-z0-9]*\).*/\1=\2/p" | tail -1
-}
 
 InstallR() {
     sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
     sudo add-apt-repository -y "deb http://cran.rstudio.com/bin/linux/ubuntu $(lsb_release -s -c)/"
     sudo apt-get update -qq -y
-    if [ "$1" == "r-release" ]; then
+    if [ "$1" = "release" ]; then
         sudo apt-get install r-base r-base-core r-recommended -y
     else
-        sudo apt-get install -y \
-            $(get_package r-base  "$1") \
-            $(get_package r-base-core  "$1") \
-            $(get_package r-recommended "$1")
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
+        export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
+        brew install https://linuxbrew.bintray.com/bottles/r-"${1}".x86_64_linux.bottle.tar.gz
     fi
 }
 
