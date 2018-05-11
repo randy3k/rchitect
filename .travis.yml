@@ -1,25 +1,19 @@
 language: python
+python: 3.5
 
-sudo: required
-
-python:
-  - 2.7
-  - 3.5
-
-env:
-  - RVERSION="3.4.0"
-  - RVERSION="3.4.1"
-  - RVERSION="3.4.2"
-  - RVERSION="3.4.3"
-  - RVERSION="3.4.4"
-  - RVERSION=""  # r-release
 
 before_install:
-  - sh travis.sh install-r "$RVERSION"
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo add-apt-repository -y "deb http://cran.rstudio.com/bin/linux/ubuntu $(lsb_release -s -c)/"; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update -qq -y; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install git r-base r-base-dev r-recommended -y; fi
+
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then wget "https://cran.rstudio.com/bin/macosx/$(wget -qO- https://cran.rstudio.com/bin/macosx/ | sed -n 's/.*href="\(R-[^"]*.pkg\)".*/\1/p' | head -n 1)"; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo installer -pkg R-*.pkg -target /; fi
   - pip install .
 
 script:
-  - pytest -s
+  - pytest
 
 
 deploy:
