@@ -624,15 +624,15 @@ _register("R_finite", c_int, [c_double])
 
 # Print.h
 
-_register("Rf_formatRaw", None, [c_char_p, R_xlen_t, POINTER(c_int)])
-_register("Rf_formatString", None, [POINTER(SEXP), R_xlen_t, POINTER(c_int), c_int])
-_register("Rf_EncodeElement", c_char_p, [SEXP, c_int, c_int, c_char])
-_register("Rf_EncodeElement0", c_char_p, [SEXP, c_int, c_int, c_char_p])
-_register("Rf_EncodeEnvironment", SEXP, [SEXP])
-_register("Rf_printArray", None, [SEXP, SEXP, c_int, c_int, SEXP])
-_register("Rf_printMatrix", None, [SEXP, c_int, SEXP, c_int, c_int, SEXP, SEXP, c_char_p, c_char_p])
-_register("Rf_printNamedVector", None, [SEXP, SEXP, c_int, c_char_p])
-_register("Rf_printVector", None, [SEXP, c_int, c_int])
+# _register("Rf_formatRaw", None, [c_char_p, R_xlen_t, POINTER(c_int)])
+# _register("Rf_formatString", None, [POINTER(SEXP), R_xlen_t, POINTER(c_int), c_int])
+# _register("Rf_EncodeElement", c_char_p, [SEXP, c_int, c_int, c_char])
+# _register("Rf_EncodeElement0", c_char_p, [SEXP, c_int, c_int, c_char_p])
+# _register("Rf_EncodeEnvironment", SEXP, [SEXP])
+# _register("Rf_printArray", None, [SEXP, SEXP, c_int, c_int, SEXP])
+# _register("Rf_printMatrix", None, [SEXP, c_int, SEXP, c_int, c_int, SEXP, SEXP, c_char_p, c_char_p])
+# _register("Rf_printNamedVector", None, [SEXP, SEXP, c_int, c_char_p])
+# _register("Rf_printVector", None, [SEXP, c_int, c_int])
 
 
 # Parse.h
