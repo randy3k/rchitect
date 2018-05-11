@@ -15,11 +15,11 @@ env:
 
 before_install:
   - sh travis.sh install-r "$RVERSION"
+  - export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
   - brew install python
   - pip install .
 
 script:
-  - export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
   - pip install pytest
   - pytest -s
 
