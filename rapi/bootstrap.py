@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import sys
 from ctypes import c_char, c_char_p, c_double, c_int, c_uint, c_void_p, c_size_t
 from ctypes import POINTER, CFUNCTYPE
 from collections import namedtuple
@@ -663,6 +664,15 @@ if sys.platform != "win32":
     _register("R_ProcessEvents", None, [])
     _register("R_checkActivity", c_void_p, [c_int, c_int])
     _register("R_runHandlers", None, [c_void_p, c_void_p])
+
+_register_global("R_interrupts_pending")
+_register("R_CheckUserInterrupt", None, [])
+
+# Rembedded.h
+
+if sys.platform == "win32":
+    _register_global("UserBreak")
+
 
 
 def bootstrap(libR, verbose=True):
