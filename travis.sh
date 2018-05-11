@@ -12,6 +12,7 @@ InstallR() {
     else
         sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
         export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
+        echo "export PATH='$(brew --prefix)/bin:$(brew --prefix)/sbin'":'"$PATH"' >>~/.profile
         brew install https://linuxbrew.bintray.com/bottles/r-"${1}".x86_64_linux.bottle.tar.gz
     fi
 }
