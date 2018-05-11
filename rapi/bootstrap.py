@@ -56,10 +56,10 @@ def _register(name, restype, argtypes, cname=None):
     _signatures[name] = (sign, setter)
 
 
-def _register_global(name):
-    s = SEXP()
+def _register_global(name, vtype=SEXP):
+    s = vtype()
     setattr(internals, name, s)
-    _globals[name] = s
+    _globals[name] = (s, vtype)
 
 
 # TODO: use pycparser to parse Rinternals.h
@@ -665,13 +665,13 @@ if sys.platform != "win32":
     _register("R_checkActivity", c_void_p, [c_int, c_int])
     _register("R_runHandlers", None, [c_void_p, c_void_p])
 
-_register_global("R_interrupts_pending")
+_register_global("R_interrupts_pending", vtype=c_int)
 _register("R_CheckUserInterrupt", None, [])
 
 # Rembedded.h
 
 if sys.platform == "win32":
-    _register_global("UserBreak")
+    _register_global("UserBreak", vtype=c_int)
 
 
 
@@ -690,9 +690,9 @@ def bootstrap(libR, verbose=True):
             if verbose:
                 print("warning: cannot import function {}".format(name))
 
-    for name, var in _globals.items():
+    for name, (var, vtype) in _globals.items():
         try:
-            var.value = cglobal(name, libR, c_void_p).value
+            var.value = cglobal(name, libR, vtype).value
         except Exception:
             if verbose:
                 print("warning: cannot import global {}".format(name))
