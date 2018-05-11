@@ -403,10 +403,14 @@ def set_option(key, value):
     rcall_p(rsym("base", "options"), **kwargs)
 
 
-def process_events():
+def _process_events():
     if sys.platform == "win32" or sys.platform == "darwin":
         R_ProcessEvents()
     if sys.platform.startswith("linux") or sys.platform == "darwin":
         what = R_checkActivity(0, 1)
         if what:
             R_runHandlers(R_InputHandlers, what)
+
+
+def process_events():
+    rexec(_process_events)
