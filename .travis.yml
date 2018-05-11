@@ -1,0 +1,29 @@
+language: python
+python: 3.5
+
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo add-apt-repository -y "deb http://cran.rstudio.com/bin/linux/ubuntu $(lsb_release -s -c)/"; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update -qq -y; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install git r-base r-base-dev r-recommended -y; fi
+
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then wget "https://cran.rstudio.com/bin/macosx/$(wget -qO- https://cran.rstudio.com/bin/macosx/ | sed -n 's/.*href="\(R-[^"]*.pkg\)".*/\1/p' | head -n 1)"; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo installer -pkg R-*.pkg -target /; fi
+
+script:
+  - pytest
+
+
+deploy:
+  provider: pypi
+  user: randy3k
+  password:
+    secure: NN8JFjYnhGzllpmfsCxsxmBuvj+zgzOiA0z82bkUcrNauWu+TcsK1ydbDGzOQ9MeCQgp9G8oLfd9jC0sv6PdcUoR7T+HLYd4pgLjBvy204MEOrnhYlm9PmXW4xXh1GNB+0027ieTocsHeYyKb8Teqoaygq3fNlZjXo9roFo55woGm5pb9WhWG2TyKSDBV/ynSnsruASLnyU9rYOkNgd1HXiqBSo9fKYntFLt8iSoYPS/0xTdw2FtO+VUlOutEWKukdoIHqodKqJalSpFcvPUqjohbCavQ/oXFE/1KRvw7gcoXEa8/ZnduYmp8jppT2SFIxdx4qGJ0yBM4OxPL8pAhxEfUUCPwTuKQa93d1+kHV0dBkzxilqwJVu7OCki9ysLyeAUjPEVCHHigTo9oH53Kgm4oJC5tekETRpML1buGz+ZHKScmyjMZyAXSjF2sPs7Wzwga2JPY2pAyTW86o4VfMlTSxuxOuoCwun/gMsiiOjN9MJrnKbM/I+xNFBK2haQZAWIVHos/mvH2+sT97msWFh4voLAm7H3WKt2cs0MG3wHwWZ7+C0MHn42GlVW53bs12ruEsE3xGnL2upwYztSCjFEBOt87rG+pTdLM2kJqxty92opva2M5REFAKBWL8vC85+lCANS7BHHO0rYdfeL2ZcnZDxo0FDyGxm5nz9jTJA=
+  on:
+    tags: true
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change

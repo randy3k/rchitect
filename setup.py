@@ -33,5 +33,11 @@ setup(
     install_requires=[
         "multipledispatch",
         'enum34;python_version<"3.4"',
+    ],
+    setup_requires=[
+        "pytest-runner"
+    ],
+    tests_require=[
+        "pytest"
     ]
 )
