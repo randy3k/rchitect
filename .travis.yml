@@ -18,6 +18,7 @@ before_install:
   - pip install .
 
 script:
+  - export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
   - pytest -s
 
 
