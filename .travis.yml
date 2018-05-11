@@ -7,15 +7,19 @@ python:
   - 3.5
 
 env:
-  - RVERSION="3.5.0"
   - RVERSION="3.4.0"
+  - RVERSION="3.4.1"
+  - RVERSION="3.4.2"
+  - RVERSION="3.4.3"
+  - RVERSION="3.4.4"
+  - RVERSION=""  # r-release
 
 before_install:
   - sh travis.sh install-r "$RVERSION"
   - pip install .
 
 script:
-  - pytest
+  - pytest -s
 
 
 deploy:
