@@ -67,6 +67,20 @@ jobs:
           pip3 install pytest
       - run: pip3 install -e .
       - run: pytest
+  deploy-to-pypi:
+    docker:
+      - image: circleci/python
+    steps:
+      - checkout
+      - run:
+          name: init .pypirc
+          command: |
+            echo -e "[pypi]" >> ~/.pypirc
+            echo -e "username = randy3k" >> ~/.pypirc
+            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
+      - run: |
+          python setup.py sdist
+          twine upload dist/*
 
 
 workflows:
@@ -79,3 +93,16 @@ workflows:
       - test-r-3.4.4-py3
       - test-r-release-py3
       - test-r-devel-py3
+      - deploy-to-pypi:
+          requires:
+            - test-r-3.4.4-py2
+            - test-r-release-py2
+            - test-r-devel-py2
+            - test-r-3.4.4-py3
+            - test-r-release-py3
+            - test-r-devel-py3
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
