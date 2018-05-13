@@ -1,7 +1,7 @@
 # Minimal R API for Python
 
 [![pypi](https://img.shields.io/pypi/v/rapi.svg)](https://pypi.org/project/rapi/)
-[![Build Status](https://travis-ci.org/randy3k/rapi.svg?branch=master)](https://travis-ci.org/randy3k/rapi)
+[![CircleCI](https://circleci.com/gh/randy3k/rapi/tree/master.svg?style=svg)](https://circleci.com/gh/randy3k/rapi/tree/master)
 
 ```py
 import rapi
