@@ -1,0 +1,45 @@
+version: 2
+
+jobs:
+  test-r-3.4.4:
+    docker:
+      - image: rocker/r-ver:3.4.4
+    steps:
+      - checkout
+      - run: |
+          apt-get update
+          apt-get install git curl python python-pip -y
+          pip install pytest
+      - run: pip install -e .
+      - run: pytest
+  test-r-release:
+    docker:
+      - image: rocker/r-base
+    steps:
+      - checkout
+      - run: |
+          apt-get update
+          apt-get install git curl python python-pip -y
+          pip install pytest
+      - run: pip install -e .
+      - run: pytest
+  test-r-devel:
+    docker:
+      - image: rocker/r-ver:devel
+    steps:
+      - checkout
+      - run: |
+          apt-get update
+          apt-get install git curl python python-pip -y
+          pip install pytest
+      - run: pip install -e .
+      - run: pytest
+
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - test-r-3.4.4
+      - test-r-release
+      - test-r-devel
