@@ -88,7 +88,7 @@ def rversion(libR):
 
     sym = libR.Rf_install("R.version.string".encode())
     ret = libR.Rf_eval(sym, cglobal("R_GlobalEnv", libR, c_void_p))
-    rversion_string = libR.R_CHAR(libR.Rf_asChar(ret)).decode()
+    rversion_string = libR.R_CHAR(libR.Rf_asChar(ret)).decode("uft-8")
 
     m = re.match(r"R version ([0-9]+\.[0-9]+\.[0-9]+)", rversion_string)
     version = LooseVersion(m.group(1))

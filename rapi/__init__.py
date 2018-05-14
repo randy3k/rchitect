@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .bootstrap import bootstrap
 from .utils import get_rhome, get_libR, ensure_path
 from . import embedded, defaults

@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from multipledispatch.dispatcher import Dispatcher, str_signature, MDNotImplementedError
 
 
@@ -10,7 +12,7 @@ class Type(type):
                 return cls._instances[t]
             else:
                 T = super(Type, cls).__new__(
-                    cls, "Type({})".format(t.__name__),
+                    cls, str("Type({})".format(t.__name__)),
                     (type,),
                     {"__new__": lambda cls: t})
                 cls._instances[t] = T

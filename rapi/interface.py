@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import sys
 from ctypes import py_object, byref, cast, c_void_p, c_int
 from ctypes import CFUNCTYPE, Structure, POINTER
@@ -52,7 +54,7 @@ def protectedEval(pdata_t):
     try:
         pdata.ret[0] = func(*data)
     except Exception as e:
-        Rf_error(("{}: {}".format(type(e).__name__, str(e))).encode())
+        Rf_error(("{}: {}".format(type(e).__name__, str(e))).encode('utf-8'))
 
 
 protectedEval_t = CFUNCTYPE(None, c_void_p)(protectedEval)
@@ -74,7 +76,7 @@ def rexec(*args, **kwargs):
 
 
 def rparse_p(string):
-    buf = string.encode()
+    buf = string.encode('utf-8')
     status = c_int()
     s = Rf_protect(Rf_mkString(buf))
     try:
@@ -116,7 +118,7 @@ def rlang_p(*args, **kwargs):
     for k, v in kwargs.items():
         s = CDR(s)
         SETCAR(s, v)
-        SET_TAG(s, Rf_install(k.encode()))
+        SET_TAG(s, Rf_install(k.encode('utf-8')))
     Rf_unprotect(1)
     return sexp(t)
 
@@ -137,18 +139,18 @@ def rsym_p(s, t=None):
     if t:
         return rlang(rsym_p("::"), rsym_p(s), rsym_p(t))
     else:
-        return Rf_install(s.encode())
+        return Rf_install(s.encode('utf-8'))
 
 
 def rsym(s, t=None):
     if t:
         return rlang_p(rsym_p("::"), rsym_p(s), rsym_p(t))
     else:
-        return Rf_install(s.encode())
+        return Rf_install(s.encode('utf-8'))
 
 
 def rstring_p(s):
-    return sexp(Rf_mkString(s.encode()))
+    return sexp(Rf_mkString(s.encode('utf-8')))
 
 
 def rstring(s):
@@ -258,12 +260,12 @@ def rcopy(_, s):
 
 @dispatch(Type(text_type), SEXPCLASS(SEXPTYPE.STRSXP))
 def rcopy(_, s):
-    return CHAR(STRING_ELT(s, 0)).decode()
+    return CHAR(STRING_ELT(s, 0)).decode("utf-8")
 
 
 @dispatch(Type(list), SEXPCLASS(SEXPTYPE.STRSXP))
 def rcopy(_, s):
-    return [CHAR(STRING_ELT(s, i)).decode() for i in range(LENGTH(s))]
+    return [CHAR(STRING_ELT(s, i)).decode("utf-8") for i in range(LENGTH(s))]
 
 
 @dispatch(Type(list), SEXPCLASS(SEXPTYPE.VECSXP))
@@ -337,7 +339,7 @@ class RClass(object):
             return cls._instances[rcls]
         else:
             T = type(
-                "RClass(\'{}\')".format(rcls),
+                str("RClass(\'{}\')".format(rcls)),
                 (type,),
                 {"__new__": lambda cls: None})
             cls._instances[rcls] = T
@@ -380,7 +382,7 @@ def sexp(s):
 
 
 def get_option(key, default=None):
-    ret = rcopy(Rf_GetOption1(Rf_install(key.encode())))
+    ret = rcopy(Rf_GetOption1(Rf_install(key.encode('utf-8'))))
     if ret is None:
         return default
     else:
