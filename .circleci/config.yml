@@ -72,7 +72,7 @@ jobs:
       - image: circleci/python
     steps:
       - checkout
-      - run: pip install twine
+      - run: sudo pip install twine
       - run:
           name: init .pypirc
           command: |
