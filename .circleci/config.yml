@@ -86,17 +86,21 @@ jobs:
 
 workflows:
   version: 2
-  test:
+  build:
     jobs:
-      - test-r-3.4.4-py2
-      - test-r-release-py2
-      - test-r-devel-py2
-      - test-r-3.4.4-py3
-      - test-r-release-py3
-      - test-r-devel-py3
-  deploy:
-    jobs:
+      - test-r-3.4.4-py2:
+          filters:
+            tags:
+              only: /^v.*/
       - test-r-release-py2:
+          filters:
+            tags:
+              only: /^v.*/
+      - test-r-devel-py2:
+          filters:
+            tags:
+              only: /^v.*/
+      - test-r-3.4.4-py3:
           filters:
             tags:
               only: /^v.*/
@@ -104,10 +108,18 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+      - test-r-devel-py3:
+          filters:
+            tags:
+              only: /^v.*/
       - deploy-to-pypi:
           requires:
+            - test-r-3.4.4-py2
             - test-r-release-py2
+            - test-r-devel-py2
+            - test-r-3.4.4-py3
             - test-r-release-py3
+            - test-r-devel-py3
           filters:
             branches:
               ignore: /.*/
