@@ -5,66 +5,66 @@ jobs:
     docker:
       - image: rocker/r-ver:3.4.4
     steps:
-      - checkout
       - run: |
           apt-get update
           apt-get install git curl python python-pip -y
           pip install pytest
+      - checkout
       - run: pip install -e .
       - run: pytest
   test-r-release-py2:
     docker:
       - image: rocker/r-base
     steps:
-      - checkout
       - run: |
           apt-get update
           apt-get install git curl python python-pip -y
           pip install pytest
+      - checkout
       - run: pip install -e .
       - run: pytest
   test-r-devel-py2:
     docker:
       - image: rocker/r-ver:devel
     steps:
-      - checkout
       - run: |
           apt-get update
           apt-get install git curl python python-pip -y
           pip install pytest
+      - checkout
       - run: pip install -e .
       - run: pytest
   test-r-3.4.4-py3:
     docker:
       - image: rocker/r-ver:3.4.4
     steps:
-      - checkout
       - run: |
           apt-get update
           apt-get install git curl python3 python3-pip -y
           pip3 install pytest
+      - checkout
       - run: pip3 install -e .
       - run: pytest
   test-r-release-py3:
     docker:
       - image: rocker/r-base
     steps:
-      - checkout
       - run: |
           apt-get update
           apt-get install git curl python3 python3-pip -y
           pip3 install pytest
+      - checkout
       - run: pip3 install -e .
       - run: pytest
   test-r-devel-py3:
     docker:
       - image: rocker/r-ver:devel
     steps:
-      - checkout
       - run: |
           apt-get update
           apt-get install git curl python3 python3-pip -y
-          pip3 install pytest twine
+          pip3 install pytest
+      - checkout
       - run: pip3 install -e .
       - run: pytest
   deploy-to-pypi:
@@ -72,6 +72,7 @@ jobs:
       - image: circleci/python
     steps:
       - checkout
+      - run: pip install twine
       - run:
           name: init .pypirc
           command: |
@@ -97,14 +98,10 @@ workflows:
     jobs:
       - test-r-release-py2:
           filters:
-            branches:
-              ignore: /.*/
             tags:
               only: /^v.*/
       - test-r-release-py3:
           filters:
-            branches:
-              ignore: /.*/
             tags:
               only: /^v.*/
       - deploy-to-pypi:
