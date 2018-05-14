@@ -1,6 +1,12 @@
-import rapi
-from rapi import rcopy, reval
-rapi.start()
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
-def test_rcopy():
+from rapi import rcopy, reval
+
+
+def test_number():
     assert rcopy(reval("5")) == 5
+
+
+def test_unicode():
+    assert rcopy(reval("'α'")) == "α"
