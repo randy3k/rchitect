@@ -2,6 +2,7 @@ from .bootstrap import bootstrap
 from .utils import get_rhome, get_libR, ensure_path
 from . import embedded, defaults
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy
+from .types import RObject
 
 
 __all__ = [
@@ -13,7 +14,8 @@ __all__ = [
     "rcall",
     "rsym",
     "rstring",
-    "rcopy"
+    "rcopy",
+    "RObject"
 ]
 
 __version__ = '0.0.6'

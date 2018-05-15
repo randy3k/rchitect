@@ -65,11 +65,13 @@ def SEXPCLASS(enum):
 
 
 class RObject(SEXP):
-    def __init__(self, p):
-        if not isinstance(p, SEXP):
-            raise Exception("expect a SEXP, got {}".format(str(type(p))))
-        self.value = p.value
-        internals.R_PreserveObject(p.value)
+    def __init__(self, s):
+        if not isinstance(s, SEXP):
+            s = interface.sexp(s)
+        if not isinstance(s, SEXP):
+            raise Exception("s is not a SEXP and cannot be converted to a SEXP")
+        self.value = s.value
+        internals.R_PreserveObject(s.value)
 
     def __del__(self):
         internals.R_ReleaseObject(self.value)
