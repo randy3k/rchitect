@@ -1,6 +1,9 @@
+from ctypes import cast, c_void_p
+
 from . import internals
 from . import types
 from .utils import cglobal
+from .internals import R_CallMethodDef
 
 
 def notavaiable(*args):
@@ -32,3 +35,10 @@ def bootstrap(libR, verbose=True):
     from . import interface
     types.internals = internals
     types.interface = interface
+
+    from .interface import rapi_callback
+    dll = internals.R_getEmbeddingDllInfo()
+    CallEntries = (R_CallMethodDef * 2)()
+    CallEntries[0] = R_CallMethodDef(b"rapi_callback", cast(rapi_callback, c_void_p), 2)
+    CallEntries[1] = R_CallMethodDef(None, None, 0)
+    internals.R_registerRoutines(dll, None, CallEntries, None, None)

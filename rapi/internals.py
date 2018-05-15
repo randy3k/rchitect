@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import sys
 from ctypes import c_char, c_char_p, c_double, c_int, c_uint, c_void_p, c_size_t
-from ctypes import POINTER, CFUNCTYPE
+from ctypes import POINTER, CFUNCTYPE, Structure
 from collections import namedtuple
 
 from . import internals
@@ -697,3 +697,18 @@ _register("R_CheckUserInterrupt", None, [])
 
 if sys.platform == "win32":
     _register_global("UserBreak", vtype=c_int)
+
+
+# Rdynload.h
+
+class R_CallMethodDef(Structure):
+    _fields_ = [
+        ("name", c_char_p),
+        ("fun", c_void_p),
+        ("numArgs", c_int)
+    ]
+
+
+_register("R_getDllInfo", c_void_p, [c_char_p])
+_register("R_getEmbeddingDllInfo", c_void_p, [])
+_register("R_registerRoutines", c_int, [c_void_p, c_void_p, c_void_p, c_void_p, c_void_p])

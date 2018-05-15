@@ -5,6 +5,7 @@ from ctypes import py_object, byref, cast, c_void_p, c_int
 from ctypes import CFUNCTYPE, Structure, POINTER, string_at
 from collections import OrderedDict
 from six import text_type
+from types import FunctionType
 
 from .internals import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalEnv
 from .internals import R_ToplevelExec
@@ -20,10 +21,11 @@ from .internals import Rf_ScalarString, R_data_class
 from .internals import R_NamesSymbol, Rf_getAttrib, Rf_isNull
 from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
 from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE
-
+from .internals import R_MissingArg, R_DotsSymbol, Rf_list1, R_ExternalPtrAddr
 
 from .types import SEXP, RObject, RClass, SEXPTYPE, sexptype, Rcomplex
 from .dispatch import dispatch, Type
+from .externalptr import rextptr
 
 
 __all__ = [
@@ -486,6 +488,44 @@ def sexp(s):
     else:
         x = sexp(RClass("list"), s)
     return x
+
+
+def sexp_dots():
+    s = Rf_protect(Rf_list1(R_MissingArg))
+    SET_TAG(s, R_DotsSymbol)
+    Rf_unprotect(1)
+    return s
+
+
+@CFUNCTYPE(SEXP, SEXP, SEXP)
+def rapi_callback(exptr, arglist):
+    ptr = cast(R_ExternalPtrAddr(exptr), POINTER(py_object))
+    f = ptr.contents.value
+    args = []
+    kwargs = {}
+    names = rcopy(list, rname_p(arglist))
+    try:
+        for i in range(LENGTH(arglist)):
+            if names and names[i]:
+                kwargs[names[i]] = rcopy(VECTOR_ELT(arglist, i))
+            else:
+                args.append(rcopy(VECTOR_ELT(arglist, i)))
+        return sexp(f(*args, **kwargs)).value
+    except Exception as e:
+        return Rf_error("callback error {}".format(e))
+
+
+@dispatch(FunctionType)
+def sexp(f):
+    fextptr = Rf_protect(rextptr(f))
+    dotlist = Rf_protect(rlang_p(rsym("list"), R_DotsSymbol))
+    body = Rf_protect(rlang_p(rsym(".Call"), "rapi_callback", fextptr, dotlist))
+    try:
+        lang = rlang_p(rsym("function"), sexp_dots(), body)
+        res = rexec_p(Rf_eval, lang, R_GlobalEnv)
+    finally:
+        Rf_unprotect(3)
+    return res
 
 
 @dispatch(SEXP)
