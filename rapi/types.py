@@ -13,8 +13,9 @@ interface = None
 __all__ = [
     "SEXP",
     "SEXPTYPE",
-    "SEXPCLASS",
+    "sexptype",
     "RObject",
+    "RClass",
     "Rcomplex",
     "R_len_t",
     "R_xlen_t"
@@ -56,25 +57,45 @@ class SEXPTYPE(Enum):
     FUNSXP = 99
 
 
-for n in SEXPTYPE._member_names_:
-    globals()[n] = type(n, (SEXP,), {})
+for name in SEXPTYPE._member_names_:
+    globals()[name] = type(name, (SEXP,), {})
 
 
-def SEXPCLASS(enum):
+def sexptype(enum):
     return globals()[SEXPTYPE(enum).name]
 
 
-class RObject(SEXP):
-    def __init__(self, s):
-        if not isinstance(s, SEXP):
-            s = interface.sexp(s)
-        if not isinstance(s, SEXP):
-            raise Exception("s is not a SEXP and cannot be converted to a SEXP")
-        self.value = s.value
-        internals.R_PreserveObject(s.value)
+class RObject(object):
+    p = None
+
+    def __init__(self, p):
+        p = interface.sexp(p)
+        if not isinstance(p, SEXP):
+            raise Exception("p is not a SEXP or cannot be converted to a SEXP")
+        self.p = p
+        internals.R_PreserveObject(p)
 
     def __del__(self):
-        internals.R_ReleaseObject(self.value)
+        internals.R_ReleaseObject(self.p)
+
+
+def _RClassFactory():
+    _instances = {}
+
+    def _(rcls):
+        if rcls in _instances:
+            return _instances[rcls]
+        else:
+            T = type(
+                str("RClass(\'{}\')".format(rcls)),
+                (type,),
+                {"__new__": lambda cls: None})
+            _instances[rcls] = T
+        return T
+    return _
+
+
+RClass = _RClassFactory()
 
 
 class Rcomplex(Structure):
