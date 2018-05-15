@@ -151,7 +151,14 @@ def rsym(s, t=None):
 
 
 def rint_p(s):
-    return sexp(s)
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(INTSXP, n))
+    try:
+        for i in range(n):
+            INTEGER(x)[i] = s[i]
+    finally:
+        Rf_unprotect(1)
+    return sexp(x)
 
 
 def rint(s):
@@ -159,7 +166,14 @@ def rint(s):
 
 
 def rlogical_p(s):
-    return sexp(s)
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(LGLSXP, n))
+    try:
+        for i in range(n):
+            LOGICAL(x)[i] = s[i]
+    finally:
+        Rf_unprotect(1)
+    return sexp(x)
 
 
 def rlogical(s):
@@ -167,7 +181,14 @@ def rlogical(s):
 
 
 def rdouble_p(s):
-    return sexp(s)
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(REALSXP, n))
+    try:
+        for i in range(n):
+            REAL(x)[i] = s[i]
+    finally:
+        Rf_unprotect(1)
+    return sexp(x)
 
 
 def rdouble(s):
@@ -175,7 +196,9 @@ def rdouble(s):
 
 
 def rstring_p(s):
-    return sexp(s)
+    isascii = all(ord(c) < 128 for c in s)
+    b = s.encode('utf-8')
+    return sexp(Rf_ScalarString(Rf_mkCharLenCE(b, len(b), 0 if isascii else 0)))
 
 
 def rstring(s):
@@ -394,9 +417,7 @@ def sexp(s):
 
 @dispatch(text_type)
 def sexp(s):
-    isascii = all(ord(c) < 128 for c in s)
-    b = s.encode('utf-8')
-    return sexp(Rf_ScalarString(Rf_mkCharLenCE(b, len(b), 0 if isascii else 0)))
+    return rstring_p(s)
 
 
 @dispatch(bytes)
@@ -408,43 +429,22 @@ def sexp(s):
             RAW(x)[i] = s[i]
     finally:
         Rf_unprotect(1)
-    return x
+    return sexp(x)
 
 
 @dispatch(Type(RClass("integer")), list)
 def sexp(_, s):
-    n = len(s)
-    x = Rf_protect(Rf_allocVector(INTSXP, n))
-    try:
-        for i in range(n):
-            INTEGER(x)[i] = s[i]
-    finally:
-        Rf_unprotect(1)
-    return x
+    return rint_p(s)
 
 
 @dispatch(Type(RClass("logical")), list)
 def sexp(_, s):
-    n = len(s)
-    x = Rf_protect(Rf_allocVector(LGLSXP, n))
-    try:
-        for i in range(n):
-            LOGICAL(x)[i] = s[i]
-    finally:
-        Rf_unprotect(1)
-    return x
+    return rlogical_p(s)
 
 
 @dispatch(Type(RClass("numeric")), list)
 def sexp(_, s):
-    n = len(s)
-    x = Rf_protect(Rf_allocVector(REALSXP, n))
-    try:
-        for i in range(n):
-            REAL(x)[i] = s[i]
-    finally:
-        Rf_unprotect(1)
-    return x
+    return rdouble_p(s)
 
 
 @dispatch(Type(RClass("complex")), list)
@@ -459,7 +459,7 @@ def sexp(_, s):
             xi.i = z.imag
     finally:
         Rf_unprotect(1)
-    return x
+    return sexp(x)
 
 
 @dispatch(Type(RClass("character")), list)
@@ -473,7 +473,7 @@ def sexp(_, s):
             SET_STRING_ELT(x, i, Rf_mkCharLenCE(b, len(b), 0 if isascii else 1))
     finally:
         Rf_unprotect(1)
-    return x
+    return sexp(x)
 
 
 @dispatch(Type(RClass("list")), list)
@@ -485,7 +485,7 @@ def sexp(_, s):
             SET_VECTOR_ELT(x, i, sexp(s[i]))
     finally:
         Rf_unprotect(1)
-    return x
+    return sexp(x)
 
 
 @dispatch(list)
@@ -525,18 +525,11 @@ def get_option(key, default=None):
 
 def set_option(key, value):
     kwargs = {}
-    if isinstance(value, text_type):
-        kwargs[key] = rstring(value)
-    elif isinstance(value, bool):
-        kwargs[key] = rlogical(int(value))
-    elif isinstance(value, int):
-        kwargs[key] = rint(value)
-    elif isinstance(value, float):
-        kwargs[key] = rdouble(value)
-    else:
-        TypeError("value type is not supported")
-
-    rcall_p(rsym("base", "options"), **kwargs)
+    kwargs[key] = Rf_protect(sexp(value))
+    try:
+        rcall_p(rsym("base", "options"), **kwargs)
+    finally:
+        Rf_unprotect(1)
 
 
 def _process_events():
