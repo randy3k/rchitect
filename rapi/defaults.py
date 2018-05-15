@@ -35,10 +35,12 @@ def R_ReadConsole(p, buf, buflen, add_history):
     while True:
         try:
             text = str(input(p.decode(ENCODING)))
-            addr = ctypes.addressof(buf.contents)
-            c = (ctypes.c_char * buflen).from_address(addr)
-            nb = min(len(text), buflen - 2)
-            c[:(nb + 2)] = text.encode(ENCODING)[:nb] + b'\n\0'  # truncate input
+            code = text.encode(ENCODING)
+            nb = min(len(text), buflen - 2)  # truncate input
+            for i in range(nb):
+                buf[i] = code[i]
+            buf[nb] = b"\n"
+            buf[nb + 1] = b"\0"
             return 1
         except EOFError:
             return 0
