@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import sys
 from ctypes import py_object, byref, cast, c_void_p, c_int
-from ctypes import CFUNCTYPE, Structure, POINTER
+from ctypes import CFUNCTYPE, Structure, POINTER, string_at
 from collections import OrderedDict
 from six import text_type
 
@@ -10,17 +10,19 @@ from .internals import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalE
 from .internals import R_ToplevelExec
 from .internals import R_ParseVector, Rf_eval
 from .internals import Rf_PrintValue
-from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install, Rf_mkString
+from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install
 from .internals import LENGTH, TYPEOF, LANGSXP
-# from .internals import INTSXP, LGLSXP, REALSXP, CHARSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
+from .internals import INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
 from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
-from .internals import Rf_GetOption1, Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal
-from .internals import R_data_class
+from .internals import Rf_GetOption1
+from .internals import Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal, Rf_ScalarComplex
+from .internals import Rf_ScalarString, R_data_class
 from .internals import R_NamesSymbol, Rf_getAttrib, Rf_isNull
 from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
+from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE
 
 
-from .types import SEXP, RObject, SEXPTYPE, SEXPCLASS
+from .types import SEXP, RObject, SEXPTYPE, SEXPCLASS, Rcomplex
 from .dispatch import dispatch, Type
 
 
@@ -76,9 +78,8 @@ def rexec(*args, **kwargs):
 
 
 def rparse_p(string):
-    buf = string.encode('utf-8')
     status = c_int()
-    s = Rf_protect(Rf_mkString(buf))
+    s = Rf_protect(rstring_p(string))
     try:
         ret = rexec_p(R_ParseVector, s, -1, status, R_NilValue)
     finally:
@@ -149,16 +150,8 @@ def rsym(s, t=None):
         return Rf_install(s.encode('utf-8'))
 
 
-def rstring_p(s):
-    return sexp(Rf_mkString(s.encode('utf-8')))
-
-
-def rstring(s):
-    return RObject(rstring_p(s))
-
-
 def rint_p(s):
-    return sexp(Rf_ScalarInteger(s))
+    return sexp(s)
 
 
 def rint(s):
@@ -166,7 +159,7 @@ def rint(s):
 
 
 def rlogical_p(s):
-    return sexp(Rf_ScalarLogical(s))
+    return sexp(s)
 
 
 def rlogical(s):
@@ -174,11 +167,19 @@ def rlogical(s):
 
 
 def rdouble_p(s):
-    return sexp(Rf_ScalarReal(s))
+    return sexp(s)
 
 
 def rdouble(s):
-    return RObject(rdouble_p(s))
+    return RObject(sexp(s))
+
+
+def rstring_p(s):
+    return sexp(s)
+
+
+def rstring(s):
+    return RObject(rstring_p(s))
 
 
 def rprint(s):
@@ -255,7 +256,7 @@ def rcopy(_, s):
 
 @dispatch(Type(bytes), SEXPCLASS(SEXPTYPE.RAWSXP))
 def rcopy(_, s):
-    return RAW(s)
+    return string_at(RAW(s), LENGTH(s))
 
 
 @dispatch(Type(text_type), SEXPCLASS(SEXPTYPE.STRSXP))
@@ -369,6 +370,139 @@ def rcopy(r):
 @dispatch(object)
 def rcopy(r):
     return r
+
+
+@dispatch(int)
+def sexp(s):
+    return sexp(Rf_ScalarInteger(s))
+
+
+@dispatch(float)
+def sexp(s):
+    return sexp(Rf_ScalarReal(s))
+
+
+@dispatch(bool)
+def sexp(s):
+    return sexp(Rf_ScalarLogical(s))
+
+
+@dispatch(complex)
+def sexp(s):
+    return sexp(Rf_ScalarComplex(Rcomplex(r=s.real, i=s.imag)))
+
+
+@dispatch(text_type)
+def sexp(s):
+    isascii = all(ord(c) < 128 for c in s)
+    b = s.encode('utf-8')
+    return sexp(Rf_ScalarString(Rf_mkCharLenCE(b, len(b), 0 if isascii else 0)))
+
+
+@dispatch(bytes)
+def sexp(s):
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(RAWSXP, n))
+    try:
+        for i in range(n):
+            RAW(x)[i] = s[i]
+    finally:
+        Rf_unprotect(1)
+    return x
+
+
+@dispatch(Type(RClass("integer")), list)
+def sexp(_, s):
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(INTSXP, n))
+    try:
+        for i in range(n):
+            INTEGER(x)[i] = s[i]
+    finally:
+        Rf_unprotect(1)
+    return x
+
+
+@dispatch(Type(RClass("logical")), list)
+def sexp(_, s):
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(LGLSXP, n))
+    try:
+        for i in range(n):
+            LOGICAL(x)[i] = s[i]
+    finally:
+        Rf_unprotect(1)
+    return x
+
+
+@dispatch(Type(RClass("numeric")), list)
+def sexp(_, s):
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(REALSXP, n))
+    try:
+        for i in range(n):
+            REAL(x)[i] = s[i]
+    finally:
+        Rf_unprotect(1)
+    return x
+
+
+@dispatch(Type(RClass("complex")), list)
+def sexp(_, s):
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(CPLXSXP, n))
+    try:
+        for i in range(n):
+            xi = COMPLEX(x)[i]
+            z = s[i]
+            xi.r = z.real
+            xi.i = z.imag
+    finally:
+        Rf_unprotect(1)
+    return x
+
+
+@dispatch(Type(RClass("character")), list)
+def sexp(_, s):
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(STRSXP, n))
+    try:
+        for i in range(n):
+            isascii = all(ord(c) < 128 for c in s[i])
+            b = s[i].encode('utf-8')
+            SET_STRING_ELT(x, i, Rf_mkCharLenCE(b, len(b), 0 if isascii else 1))
+    finally:
+        Rf_unprotect(1)
+    return x
+
+
+@dispatch(Type(RClass("list")), list)
+def sexp(_, s):
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(VECSXP, n))
+    try:
+        for i in range(n):
+            SET_VECTOR_ELT(x, i, sexp(s[i]))
+    finally:
+        Rf_unprotect(1)
+    return x
+
+
+@dispatch(list)
+def sexp(s):
+    if all(isinstance(x, int) for x in s):
+        x = sexp(RClass("integer"), s)
+    elif all(isinstance(x, bool) for x in s):
+        x = sexp(RClass("logical"), s)
+    elif all(isinstance(x, float) for x in s):
+        x = sexp(RClass("numeric"), s)
+    elif all(isinstance(x, complex) for x in s):
+        x = sexp(RClass("complex"), s)
+    elif all(isinstance(x, text_type) for x in s):
+        x = sexp(RClass("character"), s)
+    else:
+        x = sexp(RClass("list"), s)
+    return x
 
 
 @dispatch(SEXP)

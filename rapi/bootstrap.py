@@ -131,7 +131,7 @@ _register("SETLEVELS", c_int, [SEXP, c_int])
 
 _register("LOGICAL", POINTER(c_int), [SEXP])
 _register("INTEGER", POINTER(c_int), [SEXP])
-_register("RAW", c_char_p, [SEXP])
+_register("RAW", POINTER(c_char), [SEXP])
 _register("REAL", POINTER(c_double), [SEXP])
 _register("COMPLEX", POINTER(Rcomplex), [SEXP])
 _register("STRING_ELT", SEXP, [SEXP, R_xlen_t])
@@ -433,6 +433,7 @@ _register("R_cycle_detected", c_int, [SEXP, SEXP])
 
 _register("Rf_getCharCE", c_int, [SEXP])
 _register("Rf_mkCharCE", SEXP, [c_char_p, c_int, c_int])
+_register("Rf_mkCharLenCE", SEXP, [c_char_p, c_int, c_int])
 _register("Rf_reEnc", c_char_p, [c_char_p, c_int, c_int, c_int])
 
 _register("R_forceAndCall", SEXP, [SEXP, c_int, SEXP])
@@ -672,7 +673,6 @@ _register("R_CheckUserInterrupt", None, [])
 
 if sys.platform == "win32":
     _register_global("UserBreak", vtype=c_int)
-
 
 
 def bootstrap(libR, verbose=True):
