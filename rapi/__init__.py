@@ -1,9 +1,8 @@
 from .bootstrap import bootstrap
 from .utils import get_rhome, get_libR, ensure_path
-from . import embedded, defaults
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy
+from . import embedded, defaults
 from .types import RObject
-
 
 __all__ = [
     "rexec",
