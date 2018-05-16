@@ -1,10 +1,11 @@
-from __future__ import unicode_literals
+from __future__ import unicode_literals, absolute_import
 
 import sys
 from ctypes import py_object, byref, cast, c_void_p, c_int
 from ctypes import CFUNCTYPE, Structure, POINTER, string_at
 from collections import OrderedDict
 from six import text_type
+from types import FunctionType
 
 from .internals import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalEnv
 from .internals import R_ToplevelExec
@@ -26,9 +27,6 @@ from .types import SEXP, RObject, RClass, SEXPTYPE, sexptype, Rcomplex
 from .dispatch import dispatch, Type
 from .externalptr import rextptr
 
-
-# `from .types import FunctionType` confuses python 2
-FunctionType = sys.modules["types"].FunctionType
 
 __all__ = [
     "rexec",
