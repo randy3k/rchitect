@@ -683,11 +683,10 @@ _register("Rf_warning", None, None)
 
 _register("R_data_class", SEXP, [SEXP, c_int])
 
-if sys.platform != "win32":
-    _register_global("R_InputHandlers")
-    _register("R_ProcessEvents", None, [])
-    _register("R_checkActivity", c_void_p, [c_int, c_int])
-    _register("R_runHandlers", None, [c_void_p, c_void_p])
+_register_global("R_InputHandlers")
+_register("R_ProcessEvents", None, [])
+_register("R_checkActivity", c_void_p, [c_int, c_int])
+_register("R_runHandlers", None, [c_void_p, c_void_p])
 
 _register_global("R_interrupts_pending", vtype=c_int)
 _register("R_CheckUserInterrupt", None, [])
