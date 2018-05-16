@@ -4,7 +4,6 @@ from ctypes import c_char, c_char_p, c_double, c_int, c_uint, c_void_p, c_size_t
 from ctypes import POINTER, CFUNCTYPE, Structure
 from collections import namedtuple
 
-from . import internals
 from .types import SEXP, Rcomplex, R_len_t, R_xlen_t
 # from .utils import rversion
 
@@ -81,7 +80,7 @@ def _register(name, restype, argtypes, cname=None):
 
 def _register_global(name, vtype=SEXP):
     s = vtype()
-    setattr(internals, name, s)
+    globals()[name] = s
     _global_registry[name] = (s, vtype)
 
 
