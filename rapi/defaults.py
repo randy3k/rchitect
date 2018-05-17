@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import sys
 import re
-import ctypes
+
 
 ENCODING = "utf-8"
 UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe")
