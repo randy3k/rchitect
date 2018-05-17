@@ -14,13 +14,13 @@ from .internals import Rf_PrintValue
 from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install
 from .internals import LENGTH, TYPEOF, LANGSXP
 from .internals import INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
-from .internals import INTEGER, LOGICAL, REAL, CHAR, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
+from .internals import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
 from .internals import Rf_GetOption1
 from .internals import Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal, Rf_ScalarComplex
 from .internals import Rf_ScalarString, R_data_class
 from .internals import R_NamesSymbol, Rf_getAttrib, Rf_isNull
 from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
-from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE
+from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
 from .internals import R_MissingArg, R_DotsSymbol, Rf_list1, R_ExternalPtrAddr
 
 from .types import SEXP, RObject, RClass, SEXPTYPE, sexptype, Rcomplex
@@ -179,7 +179,7 @@ def rdouble(s):
 def rstring_p(s):
     isascii = all(ord(c) < 128 for c in s)
     b = s.encode("utf-8")
-    return sexp(Rf_ScalarString(Rf_mkCharLenCE(b, len(b), 0 if isascii else 0)))
+    return sexp(Rf_ScalarString(Rf_mkCharLenCE(b, len(b), 0 if isascii else 1)))
 
 
 def rstring(s):
