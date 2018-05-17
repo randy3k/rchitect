@@ -58,7 +58,7 @@ def protectedEval(pdata_t):
     try:
         pdata.ret[0] = func(*data)
     except Exception as e:
-        Rf_error(("{}: {}".format(type(e).__name__, str(e))).encode('utf-8'))
+        Rf_error(("{}: {}".format(type(e).__name__, str(e))).encode("utf-8"))
 
 
 protectedEval_t = CFUNCTYPE(None, c_void_p)(protectedEval)
@@ -121,7 +121,7 @@ def rlang_p(*args, **kwargs):
     for k, v in kwargs.items():
         s = CDR(s)
         SETCAR(s, sexp(v))
-        SET_TAG(s, Rf_install(k.encode('utf-8')))
+        SET_TAG(s, Rf_install(k.encode("utf-8")))
     Rf_unprotect(1)
     return sexp(t)
 
@@ -142,14 +142,14 @@ def rsym_p(s, t=None):
     if t:
         return rlang(rsym_p("::"), rsym_p(s), rsym_p(t))
     else:
-        return Rf_install(s.encode('utf-8'))
+        return Rf_install(s.encode("utf-8"))
 
 
 def rsym(s, t=None):
     if t:
         return rlang_p(rsym_p("::"), rsym_p(s), rsym_p(t))
     else:
-        return Rf_install(s.encode('utf-8'))
+        return Rf_install(s.encode("utf-8"))
 
 
 def rint_p(s):
@@ -178,7 +178,7 @@ def rdouble(s):
 
 def rstring_p(s):
     isascii = all(ord(c) < 128 for c in s)
-    b = s.encode('utf-8')
+    b = s.encode("utf-8")
     return sexp(Rf_ScalarString(Rf_mkCharLenCE(b, len(b), 0 if isascii else 0)))
 
 
@@ -266,12 +266,12 @@ def rcopy(_, s):
 
 @dispatch(Type(text_type), sexptype(SEXPTYPE.STRSXP))
 def rcopy(_, s):
-    return CHAR(STRING_ELT(s, 0)).decode("utf-8")
+    return Rf_translateCharUTF8(STRING_ELT(s, 0)).decode("utf-8")
 
 
 @dispatch(Type(list), sexptype(SEXPTYPE.STRSXP))
 def rcopy(_, s):
-    return [CHAR(STRING_ELT(s, i)).decode("utf-8") for i in range(LENGTH(s))]
+    return [Rf_translateCharUTF8(STRING_ELT(s, i)).decode("utf-8") for i in range(LENGTH(s))]
 
 
 @dispatch(Type(list), sexptype(SEXPTYPE.VECSXP))
@@ -454,7 +454,7 @@ def sexp(_, s):
     try:
         for i in range(n):
             isascii = all(ord(c) < 128 for c in s[i])
-            b = s[i].encode('utf-8')
+            b = s[i].encode("utf-8")
             SET_STRING_ELT(x, i, Rf_mkCharLenCE(b, len(b), 0 if isascii else 1))
     finally:
         Rf_unprotect(1)
@@ -544,7 +544,7 @@ def sexp(s):
 
 
 def get_option(key, default=None):
-    ret = rcopy(Rf_GetOption1(Rf_install(key.encode('utf-8'))))
+    ret = rcopy(Rf_GetOption1(Rf_install(key.encode("utf-8"))))
     if ret is None:
         return default
     else:
