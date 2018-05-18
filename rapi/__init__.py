@@ -19,9 +19,6 @@ __all__ = [
 
 __version__ = '0.0.7'
 
-rhome = None
-libR = None
-
 
 def start(
         arguments=[
@@ -33,7 +30,6 @@ def start(
         repl=False,
         verbose=True):
 
-    global rhome, libR
     rhome = get_rhome()
     ensure_path(rhome)
 
