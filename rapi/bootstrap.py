@@ -27,7 +27,10 @@ def bootstrap(libR, verbose=True):
 
     for name, (var, vtype) in internals._global_registry.items():
         try:
-            var.value = cglobal(name, libR, vtype).value
+            if vtype == types.SEXP:
+                var.value = cglobal(name, libR, vtype).value
+            else:
+                var.set_constant(cglobal(name, libR, vtype))
         except Exception:
             if verbose:
                 print("warning: cannot import global {}".format(name))

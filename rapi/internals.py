@@ -84,6 +84,26 @@ def _register_sexp(name):
     _global_registry[name] = (s, SEXP)
 
 
+
+class Const(object):
+    def set_constant(self, p):
+        self.p = p
+
+    @property
+    def value(self):
+        return self.p.value
+
+    @value.setter
+    def value(self, v):
+        self.p.value = v
+
+
+def _register_constant(name, vtype):
+    c = Const()
+    globals()[name] = c
+    _global_registry[name] = (c, vtype)
+
+
 # TODO: use pycparser to parse Rinternals.h
 
 # mimic R.internals.h
@@ -690,6 +710,11 @@ _register("R_runHandlers", None, [c_void_p, c_void_p])
 
 _register("R_CheckUserInterrupt", None, [])
 
+
+if sys.platform == "win32":
+    _register_constant("UserBreak", c_int)
+else:
+    _register_constant("R_interrupts_pending", c_int)
 
 # Rdynload.h
 
