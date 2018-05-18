@@ -78,10 +78,10 @@ def _register(name, restype, argtypes, cname=None):
     _function_registry[name] = (sign, setter)
 
 
-def _register_global(name, vtype=SEXP):
-    s = vtype()
+def _register_sexp(name):
+    s = SEXP()
     globals()[name] = s
-    _global_registry[name] = (s, vtype)
+    _global_registry[name] = (s, SEXP)
 
 
 # TODO: use pycparser to parse Rinternals.h
@@ -247,67 +247,67 @@ _register("REPROTECT", SEXP, [SEXP, c_int], cname="R_Reprotect")
 
 # Evaluation Environment
 
-_register_global("R_GlobalEnv")
-_register_global("R_EmptyEnv")
-_register_global("R_BaseEnv")
-_register_global("R_BaseNamespace")
-_register_global("R_NamespaceRegistry")
-_register_global("R_Srcref")
+_register_sexp("R_GlobalEnv")
+_register_sexp("R_EmptyEnv")
+_register_sexp("R_BaseEnv")
+_register_sexp("R_BaseNamespace")
+_register_sexp("R_NamespaceRegistry")
+_register_sexp("R_Srcref")
 
 # Special Values
 
-_register_global("R_NilValue")
-_register_global("R_UnboundValue")
-_register_global("R_MissingArg")
-_register_global("R_InBCInterpreter")
-_register_global("R_CurrentExpression")
+_register_sexp("R_NilValue")
+_register_sexp("R_UnboundValue")
+_register_sexp("R_MissingArg")
+_register_sexp("R_InBCInterpreter")
+_register_sexp("R_CurrentExpression")
 
 
 # Symbol Table Shortcuts
 
-_register_global("R_AsCharacterSymbol")
-_register_global("R_baseSymbol")
-_register_global("R_BaseSymbol")
-_register_global("R_BraceSymbol")
-_register_global("R_Bracket2Symbol")
-_register_global("R_BracketSymbol")
-_register_global("R_ClassSymbol")
-_register_global("R_DeviceSymbol")
-_register_global("R_DimNamesSymbol")
-_register_global("R_DimSymbol")
-_register_global("R_DollarSymbol")
-_register_global("R_DotsSymbol")
-_register_global("R_DoubleColonSymbol")
-_register_global("R_DropSymbol")
-_register_global("R_LastvalueSymbol")
-_register_global("R_LevelsSymbol")
-_register_global("R_ModeSymbol")
-_register_global("R_NaRmSymbol")
-_register_global("R_NameSymbol")
-_register_global("R_NamesSymbol")
-_register_global("R_NamespaceEnvSymbol")
-_register_global("R_PackageSymbol")
-_register_global("R_PreviousSymbol")
-_register_global("R_QuoteSymbol")
-_register_global("R_RowNamesSymbol")
-_register_global("R_SeedsSymbol")
-_register_global("R_SortListSymbol")
-_register_global("R_SourceSymbol")
-_register_global("R_SpecSymbol")
-_register_global("R_TripleColonSymbol")
-_register_global("R_TspSymbol")
+_register_sexp("R_AsCharacterSymbol")
+_register_sexp("R_baseSymbol")
+_register_sexp("R_BaseSymbol")
+_register_sexp("R_BraceSymbol")
+_register_sexp("R_Bracket2Symbol")
+_register_sexp("R_BracketSymbol")
+_register_sexp("R_ClassSymbol")
+_register_sexp("R_DeviceSymbol")
+_register_sexp("R_DimNamesSymbol")
+_register_sexp("R_DimSymbol")
+_register_sexp("R_DollarSymbol")
+_register_sexp("R_DotsSymbol")
+_register_sexp("R_DoubleColonSymbol")
+_register_sexp("R_DropSymbol")
+_register_sexp("R_LastvalueSymbol")
+_register_sexp("R_LevelsSymbol")
+_register_sexp("R_ModeSymbol")
+_register_sexp("R_NaRmSymbol")
+_register_sexp("R_NameSymbol")
+_register_sexp("R_NamesSymbol")
+_register_sexp("R_NamespaceEnvSymbol")
+_register_sexp("R_PackageSymbol")
+_register_sexp("R_PreviousSymbol")
+_register_sexp("R_QuoteSymbol")
+_register_sexp("R_RowNamesSymbol")
+_register_sexp("R_SeedsSymbol")
+_register_sexp("R_SortListSymbol")
+_register_sexp("R_SourceSymbol")
+_register_sexp("R_SpecSymbol")
+_register_sexp("R_TripleColonSymbol")
+_register_sexp("R_TspSymbol")
 
-_register_global("R_dot_defined")
-_register_global("R_dot_Method")
-_register_global("R_dot_packageName")
-_register_global("R_dot_target")
-_register_global("R_dot_Generic")
+_register_sexp("R_dot_defined")
+_register_sexp("R_dot_Method")
+_register_sexp("R_dot_packageName")
+_register_sexp("R_dot_target")
+_register_sexp("R_dot_Generic")
 
 # Missing Values
 
-_register_global("R_NaString")
-_register_global("R_BlankString")
-_register_global("R_BlankScalarString")
+_register_sexp("R_NaString")
+_register_sexp("R_BlankString")
+_register_sexp("R_BlankScalarString")
 
 
 # srcref related functions
@@ -638,11 +638,11 @@ _register("R_FixupRHS", SEXP, [SEXP, SEXP])
 
 # Arith.h
 
-_register_global("R_NaN")
-_register_global("R_PosInf")
-_register_global("R_NegInf")
-_register_global("R_NaReal")
-_register_global("R_NaInt")
+_register_sexp("R_NaN")
+_register_sexp("R_PosInf")
+_register_sexp("R_NegInf")
+_register_sexp("R_NaReal")
+_register_sexp("R_NaInt")
 _register("R_IsNA", c_int, [c_double])
 _register("R_IsNaN", c_int, [c_double])
 _register("R_finite", c_int, [c_double])
@@ -683,7 +683,7 @@ _register("Rf_warning", None, None)
 
 _register("R_data_class", SEXP, [SEXP, c_int])
 
-_register_global("R_InputHandlers")
+_register_sexp("R_InputHandlers")
 _register("R_ProcessEvents", None, [])
 _register("R_checkActivity", c_void_p, [c_int, c_int])
 _register("R_runHandlers", None, [c_void_p, c_void_p])
