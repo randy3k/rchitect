@@ -688,13 +688,7 @@ _register("R_ProcessEvents", None, [])
 _register("R_checkActivity", c_void_p, [c_int, c_int])
 _register("R_runHandlers", None, [c_void_p, c_void_p])
 
-_register_global("R_interrupts_pending", vtype=c_int)
 _register("R_CheckUserInterrupt", None, [])
-
-# Rembedded.h
-
-if sys.platform == "win32":
-    _register_global("UserBreak", vtype=c_int)
 
 
 # Rdynload.h
