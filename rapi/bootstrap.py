@@ -25,17 +25,22 @@ def bootstrap(libR, verbose=True):
             if verbose:
                 print("warning: cannot import function {}".format(name))
 
-    for name, (var, vtype) in internals._global_registry.items():
+    for name, (var, vtype) in internals._sexp_registry.items():
         try:
-            if vtype == types.SEXP:
-                var.value = cglobal(name, libR, vtype).value
-            else:
-                var.set_constant(cglobal(name, libR, vtype))
+            var.value = cglobal(name, libR, vtype).value
         except Exception:
             if verbose:
-                print("warning: cannot import global {}".format(name))
+                print("warning: cannot import sexp {}".format(name))
+
+    for name, (var, vtype) in internals._constant_registry.items():
+        try:
+            var.set_constant(cglobal(name, libR, vtype))
+        except Exception as e:
+            if verbose:
+                print("warning: cannot import constant {}".format(name))
 
     from . import interface
+
     types.internals = internals
     types.interface = interface
 
