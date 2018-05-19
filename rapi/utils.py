@@ -38,7 +38,7 @@ def read_registry(key, valueex):
     return QueryValueEx(reg_key, valueex)
 
 
-def get_rhome():
+def which_rhome():
     if 'R_HOME' not in os.environ:
         try:
             rhome = subprocess.check_output(["R", "RHOME"]).decode("utf-8").strip()
@@ -58,7 +58,7 @@ def get_rhome():
     return rhome
 
 
-def get_libR(rhome):
+def find_libR(rhome):
     if sys.platform.startswith("win"):
         libRdir = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386")
         libRpath = os.path.join(libRdir, "R.dll")

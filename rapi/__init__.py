@@ -1,5 +1,5 @@
 from .bootstrap import bootstrap
-from .utils import get_rhome, get_libR, ensure_path
+from .utils import which_rhome, find_libR, ensure_path
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy
 from . import embedded, defaults
 from .types import RObject
@@ -30,10 +30,10 @@ def start(
         repl=False,
         verbose=True):
 
-    rhome = get_rhome()
+    rhome = which_rhome()
     ensure_path(rhome)
 
-    libR = get_libR(rhome)
+    libR = find_libR(rhome)
 
     embedded.set_callback("R_ShowMessage", defaults.R_ShowMessage)
     embedded.set_callback("R_ReadConsole", defaults.R_ReadConsole)
