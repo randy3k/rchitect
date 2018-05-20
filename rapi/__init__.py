@@ -1,8 +1,6 @@
-from .bootstrap import bootstrap
-from .utils import which_rhome, find_libR, ensure_path
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy
-from . import embedded, defaults
 from .types import RObject
+from .machine import Engine
 
 __all__ = [
     "rexec",
@@ -30,21 +28,8 @@ def start(
         repl=False,
         verbose=True):
 
-    rhome = which_rhome()
-    ensure_path(rhome)
-
-    libR = find_libR(rhome)
-
-    embedded.set_callback("R_ShowMessage", defaults.R_ShowMessage)
-    embedded.set_callback("R_ReadConsole", defaults.R_ReadConsole)
-    embedded.set_callback("R_WriteConsoleEx", defaults.R_WriteConsoleEx)
-    embedded.set_callback("R_Busy", defaults.R_Busy)
-    embedded.set_callback("R_PolledEvents", defaults.R_PolledEvents)
-    embedded.set_callback("R_YesNoCancel", defaults.R_YesNoCancel)
-
-    embedded.initialize(libR, arguments=arguments)
-
-    bootstrap(libR, verbose=verbose)
+    engine = Engine(verbose=verbose)
+    engine.start(arguments=arguments)
 
     if repl:
-        embedded.run_loop(libR)
+        engine.run_repl()
