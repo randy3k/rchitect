@@ -14,7 +14,7 @@ class DataType(type):
 _data_types = {}
 
 
-def Type(t):
+def typeof(t):
     if isinstance(t, type) and t is not object:
         if t not in _data_types:
             _data_types[t] = DataType(
@@ -32,7 +32,7 @@ namespace = dict()
 class TypeDispatcher(Dispatcher):
 
     def __call__(self, *args, **kwargs):
-        types = tuple([Type(arg) for arg in args])
+        types = tuple([typeof(arg) for arg in args])
         try:
             func = self._cache[types]
         except KeyError:

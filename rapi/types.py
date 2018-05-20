@@ -13,7 +13,7 @@ interface = None
 __all__ = [
     "SEXP",
     "SEXPTYPE",
-    "sexptype",
+    "sexptypeof",
     "RObject",
     "RClass",
     "Rcomplex",
@@ -61,7 +61,7 @@ for name in SEXPTYPE._member_names_:
     globals()[name] = type(name, (SEXP,), {})
 
 
-def sexptype(enum):
+def sexptypeof(enum):
     return globals()[SEXPTYPE(enum).name]
 
 
