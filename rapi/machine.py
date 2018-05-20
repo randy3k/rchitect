@@ -221,7 +221,6 @@ class Engine(object):
         self.set_callback("R_PolledEvents", defaults.R_PolledEvents)
         self.set_callback("R_YesNoCancel", defaults.R_YesNoCancel)
 
-
     def set_callback(self, name, func):
         if name not in callback_dict:
             raise ValueError("method not found")
