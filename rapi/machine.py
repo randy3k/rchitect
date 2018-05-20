@@ -97,12 +97,6 @@ class RStart(Structure):
 callback_pointer = []
 
 
-def set_callback(name, func):
-    if name not in callback_dict:
-        raise ValueError("method not found")
-    callback_dict[name] = func
-
-
 def get_cb_ptr(name):
     if callback_dict[name]:
         return callback_signature[name](callback_dict[name])
@@ -220,12 +214,18 @@ class Engine(object):
         self.libR = libR
         Engine.instance = self
 
-        set_callback("R_ShowMessage", defaults.R_ShowMessage)
-        set_callback("R_ReadConsole", defaults.R_ReadConsole)
-        set_callback("R_WriteConsoleEx", defaults.R_WriteConsoleEx)
-        set_callback("R_Busy", defaults.R_Busy)
-        set_callback("R_PolledEvents", defaults.R_PolledEvents)
-        set_callback("R_YesNoCancel", defaults.R_YesNoCancel)
+        self.set_callback("R_ShowMessage", defaults.R_ShowMessage)
+        self.set_callback("R_ReadConsole", defaults.R_ReadConsole)
+        self.set_callback("R_WriteConsoleEx", defaults.R_WriteConsoleEx)
+        self.set_callback("R_Busy", defaults.R_Busy)
+        self.set_callback("R_PolledEvents", defaults.R_PolledEvents)
+        self.set_callback("R_YesNoCancel", defaults.R_YesNoCancel)
+
+
+    def set_callback(self, name, func):
+        if name not in callback_dict:
+            raise ValueError("method not found")
+        callback_dict[name] = func
 
     def start(self, arguments=[
                 "rapi",
