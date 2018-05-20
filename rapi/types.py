@@ -5,8 +5,8 @@ from ctypes import sizeof
 
 from enum import Enum
 
-from . import internals
-from . import interface
+internals = None
+interface = None
 
 
 class SEXP(c_void_p):
