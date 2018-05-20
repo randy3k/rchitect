@@ -79,23 +79,13 @@ class RObject(object):
         internals.R_ReleaseObject(self.p)
 
 
-def _RClassFactory():
-    _instances = {}
-
-    def _(rcls):
-        if rcls in _instances:
-            return _instances[rcls]
-        else:
-            T = type(
-                str("RClass(\'{}\')".format(rcls)),
-                (type,),
-                {"__new__": lambda cls: None})
-            _instances[rcls] = T
-        return T
-    return _
+_rclasses = {}
 
 
-RClass = _RClassFactory()
+def RClass(rcls):
+    if rcls not in _rclasses:
+        _rclasses[rcls] = type(str(rcls), (type,), {})
+    return _rclasses[rcls]
 
 
 class Rcomplex(Structure):

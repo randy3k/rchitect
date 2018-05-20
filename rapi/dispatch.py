@@ -3,31 +3,27 @@ from __future__ import unicode_literals
 from multipledispatch.dispatcher import Dispatcher, str_signature, MDNotImplementedError
 
 
-class Type(type):
-    _instances = {}
-
-    def __new__(cls, t):
-        if isinstance(t, type) and t is not object:
-            if t in cls._instances:
-                return cls._instances[t]
-            else:
-                T = super(Type, cls).__new__(
-                    cls, str("Type({})".format(t.__name__)),
-                    (type,),
-                    {"__new__": lambda cls: t})
-                cls._instances[t] = T
-            return T
-        else:
-            return type(t)
-
-    def __init__(self, t):
-        self.t = t
-
+class DataType(type):
     def __instancecheck__(self, instance):
         return self.t == instance
 
     def __subclasscheck__(self, subclass):
-        return isinstance(subclass, Type) and self.t == subclass.t
+        return isinstance(subclass, DataType) and self.t == subclass.t
+
+
+_data_types = {}
+
+
+def Type(t):
+    if isinstance(t, type) and t is not object:
+        if t not in _data_types:
+            _data_types[t] = DataType(
+                str("{}_type".format(t.__name__)),
+                (type,),
+                {"t": t, "__new__": lambda cls: cls.t})
+        return _data_types[t]
+    else:
+        return type(t)
 
 
 namespace = dict()
