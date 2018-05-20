@@ -7,7 +7,7 @@ from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
 
 from .bootstrap import bootstrap
 from .types import SEXP
-from .utils import which_rhome, find_libR, ensure_path, ccall
+from .utils import which_rhome, find_libR, ensure_path, ccall, cglobal
 from . import defaults
 
 
@@ -199,8 +199,16 @@ def setup_win32(libR, args):
 
 
 class Engine(object):
-    instance = None
+    _instance = None
     libR = None
+    bootstrapped = False
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance:
+            return cls._instance
+        else:
+            cls._instance = super(Engine, cls).__new__(cls)
+            return cls._instance
 
     def __init__(self, rhome=None, verbose=False):
         self.verbose = verbose
@@ -212,7 +220,6 @@ class Engine(object):
         libR = find_libR(rhome)
 
         self.libR = libR
-        Engine.instance = self
 
         self.set_callback("R_ShowMessage", defaults.R_ShowMessage)
         self.set_callback("R_ReadConsole", defaults.R_ReadConsole)
@@ -233,19 +240,27 @@ class Engine(object):
                 "--no-restore"
             ]):
 
-        argn = len(arguments)
-        argv = (c_char_p * argn)()
-        for i, a in enumerate(arguments):
-            argv[i] = c_char_p(a.encode('utf-8'))
+        if self.bootstrapped:
+            raise RuntimeError("R has been started.")
 
-        if sys.platform.startswith("win"):
-            setup_win32(self.libR, arguments)
-            self.libR.R_set_command_line_arguments(argn, argv)
-        else:
-            self.libR.Rf_initialize_R(argn, argv)
-            setup_posix(self.libR)
+        initialized = cglobal("R_NilValue", self.libR).value is not None
 
-        self.libR.setup_Rmainloop()
+        if not initialized:
+            argn = len(arguments)
+            argv = (c_char_p * argn)()
+            for i, a in enumerate(arguments):
+                argv[i] = c_char_p(a.encode('utf-8'))
+
+            if sys.platform.startswith("win"):
+                setup_win32(self.libR, arguments)
+                self.libR.R_set_command_line_arguments(argn, argv)
+            else:
+                self.libR.Rf_initialize_R(argn, argv)
+                setup_posix(self.libR)
+
+            self.libR.setup_Rmainloop()
+
+        self.bootstrapped = True
         bootstrap(self.libR, self.verbose)
 
     def run_repl(self):
