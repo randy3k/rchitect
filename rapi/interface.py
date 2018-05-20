@@ -12,8 +12,7 @@ from .internals import R_ToplevelExec
 from .internals import R_ParseVector, Rf_eval
 from .internals import Rf_PrintValue
 from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install
-from .internals import LENGTH, TYPEOF, LANGSXP
-from .internals import INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
+from .internals import LENGTH
 from .internals import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
 from .internals import Rf_GetOption1
 from .internals import Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal, Rf_ScalarComplex
@@ -23,7 +22,8 @@ from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runH
 from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
 from .internals import R_MissingArg, R_DotsSymbol, Rf_list1, R_ExternalPtrAddr
 
-from .types import SEXP, RObject, RClass, SEXPTYPE, sexptypeof, Rcomplex
+from .types import SEXP, sexptype, Rcomplex, RObject, RClass
+from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP, LANGSXP
 from .dispatch import dispatch, typeof
 from .externalptr import rextptr
 
@@ -112,7 +112,7 @@ def reval(string, env=R_GlobalEnv):
 
 def rlang_p(*args, **kwargs):
     nargs = len(args) + len(kwargs)
-    t = Rf_protect(Rf_allocVector(LANGSXP, nargs))
+    t = Rf_protect(Rf_allocVector(LANGSXP.sexpnum, nargs))
     s = t
     SETCAR(s, sexp(args[0]))
     for a in args[1:]:
@@ -213,73 +213,73 @@ def rname(s):
 
 # conversion dispatches
 
-@dispatch(object, sexptypeof(SEXPTYPE.NILSXP))
+@dispatch(object, NILSXP)
 def rcopy(_, s):
     return None
 
 
-@dispatch(typeof(int), sexptypeof(SEXPTYPE.INTSXP))
+@dispatch(typeof(int), INTSXP)
 def rcopy(_, s):
     return INTEGER(s)[0]
 
 
-@dispatch(typeof(list), sexptypeof(SEXPTYPE.INTSXP))
+@dispatch(typeof(list), INTSXP)
 def rcopy(_, s):
     return [INTEGER(s)[i] for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(bool), sexptypeof(SEXPTYPE.LGLSXP))
+@dispatch(typeof(bool), LGLSXP)
 def rcopy(_, s):
     return bool(LOGICAL(s)[0])
 
 
-@dispatch(typeof(list), sexptypeof(SEXPTYPE.LGLSXP))
+@dispatch(typeof(list), LGLSXP)
 def rcopy(_, s):
     return [bool(LOGICAL(s)[i]) for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(float), sexptypeof(SEXPTYPE.REALSXP))
+@dispatch(typeof(float), REALSXP)
 def rcopy(_, s):
     return REAL(s)[0]
 
 
-@dispatch(typeof(list), sexptypeof(SEXPTYPE.REALSXP))
+@dispatch(typeof(list), REALSXP)
 def rcopy(_, s):
     return [REAL(s)[i] for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(complex), sexptypeof(SEXPTYPE.CPLXSXP))
+@dispatch(typeof(complex), CPLXSXP)
 def rcopy(_, s):
     z = COMPLEX(s)[0]
     return complex(z.r, z.i)
 
 
-@dispatch(typeof(list), sexptypeof(SEXPTYPE.CPLXSXP))
+@dispatch(typeof(list), CPLXSXP)
 def rcopy(_, s):
     return [complex(COMPLEX(s)[i].r, COMPLEX(s)[i].i) for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(bytes), sexptypeof(SEXPTYPE.RAWSXP))
+@dispatch(typeof(bytes), RAWSXP)
 def rcopy(_, s):
     return string_at(RAW(s), LENGTH(s))
 
 
-@dispatch(typeof(text_type), sexptypeof(SEXPTYPE.STRSXP))
+@dispatch(typeof(text_type), STRSXP)
 def rcopy(_, s):
     return Rf_translateCharUTF8(STRING_ELT(s, 0)).decode("utf-8")
 
 
-@dispatch(typeof(list), sexptypeof(SEXPTYPE.STRSXP))
+@dispatch(typeof(list), STRSXP)
 def rcopy(_, s):
     return [Rf_translateCharUTF8(STRING_ELT(s, i)).decode("utf-8") for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(list), sexptypeof(SEXPTYPE.VECSXP))
+@dispatch(typeof(list), VECSXP)
 def rcopy(_, s):
     return [rcopy(VECTOR_ELT(s, i)) for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(OrderedDict), sexptypeof(SEXPTYPE.VECSXP))
+@dispatch(typeof(OrderedDict), VECSXP)
 def rcopy(_, s):
     ret = OrderedDict()
     names = rcopy(list, rname_p(s))
@@ -295,37 +295,37 @@ def rcopy(_, s):
 
 # default conversion
 
-@dispatch(object, sexptypeof(SEXPTYPE.INTSXP))
+@dispatch(object, INTSXP)
 def rcopytype(_, s):
     return int if LENGTH(s) == 1 else list
 
 
-@dispatch(object, sexptypeof(SEXPTYPE.LGLSXP))
+@dispatch(object, LGLSXP)
 def rcopytype(_, s):
     return bool if LENGTH(s) == 1 else list
 
 
-@dispatch(object, sexptypeof(SEXPTYPE.REALSXP))
+@dispatch(object, REALSXP)
 def rcopytype(_, s):
     return float if LENGTH(s) == 1 else list
 
 
-@dispatch(object, sexptypeof(SEXPTYPE.CPLXSXP))
+@dispatch(object, CPLXSXP)
 def rcopytype(_, s):
     return complex if LENGTH(s) == 1 else list
 
 
-@dispatch(object, sexptypeof(SEXPTYPE.RAWSXP))
+@dispatch(object, RAWSXP)
 def rcopytype(_, s):
     return bytes
 
 
-@dispatch(object, sexptypeof(SEXPTYPE.STRSXP))
+@dispatch(object, STRSXP)
 def rcopytype(_, s):
     return text_type if LENGTH(s) == 1 else list
 
 
-@dispatch(object, sexptypeof(SEXPTYPE.VECSXP))
+@dispatch(object, VECSXP)
 def rcopytype(_, s):
     return list if Rf_isNull(rname_p(s)) else OrderedDict
 
@@ -411,7 +411,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("logical")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(LGLSXP, n))
+    x = Rf_protect(Rf_allocVector(LGLSXP.sexpnum, n))
     try:
         for i in range(n):
             LOGICAL(x)[i] = s[i]
@@ -423,7 +423,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("numeric")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(REALSXP, n))
+    x = Rf_protect(Rf_allocVector(REALSXP.sexpnum, n))
     try:
         for i in range(n):
             REAL(x)[i] = s[i]
@@ -435,7 +435,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("complex")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(CPLXSXP, n))
+    x = Rf_protect(Rf_allocVector(CPLXSXP.sexpnum, n))
     try:
         for i in range(n):
             xi = COMPLEX(x)[i]
@@ -450,7 +450,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("character")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(STRSXP, n))
+    x = Rf_protect(Rf_allocVector(STRSXP.sexpnum, n))
     try:
         for i in range(n):
             isascii = all(ord(c) < 128 for c in s[i])
@@ -464,7 +464,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("list")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(VECSXP, n))
+    x = Rf_protect(Rf_allocVector(VECSXP.sexpnum, n))
     try:
         for i in range(n):
             SET_VECTOR_ELT(x, i, sexp(s[i]))
@@ -530,7 +530,7 @@ def sexp(f):
 
 @dispatch(SEXP)
 def sexp(s):
-    return cast(s, sexptypeof(TYPEOF(s)))
+    return cast(s, sexptype(s))
 
 
 @dispatch(RObject)

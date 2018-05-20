@@ -5,25 +5,11 @@ from ctypes import sizeof
 
 from enum import Enum
 
-# to be injected by bootstrap
-internals = None
-interface = None
-
-
-__all__ = [
-    "SEXP",
-    "SEXPTYPE",
-    "sexptypeof",
-    "RObject",
-    "RClass",
-    "Rcomplex",
-    "R_len_t",
-    "R_xlen_t"
-]
+from . import internals
+from . import interface
 
 
 class SEXP(c_void_p):
-
     pass
 
 
@@ -57,12 +43,40 @@ class SEXPTYPE(Enum):
     FUNSXP = 99
 
 
-for name in SEXPTYPE._member_names_:
-    globals()[name] = type(name, (SEXP,), {})
+_sexptype_map = {}
+
+for name, enum in SEXPTYPE._member_map_.items():
+    t = type(str(name), (SEXP,), {"sexpnum": enum.value})
+    globals()[name] = t
+    _sexptype_map[enum.value] = t
 
 
-def sexptypeof(enum):
-    return globals()[SEXPTYPE(enum).name]
+def sexptype(s):
+    if isinstance(s, int):
+        return _sexptype_map[s]
+    else:
+        return _sexptype_map[sexpnum(s)]
+
+
+def sexpnum(s):
+    return internals.TYPEOF(s)
+
+
+class Rcomplex(Structure):
+    _fields_ = [
+        ('r', c_double),
+        ('i', c_double),
+    ]
+
+
+if sizeof(c_void_p) == 4:
+    ptrdiff_t = c_int32
+elif sizeof(c_void_p) == 8:
+    ptrdiff_t = c_int64
+
+R_len_t = c_int
+
+R_xlen_t = ptrdiff_t
 
 
 class RObject(object):
@@ -86,20 +100,3 @@ def RClass(rcls):
     if rcls not in _rclasses:
         _rclasses[rcls] = type(str(rcls), (type,), {})
     return _rclasses[rcls]
-
-
-class Rcomplex(Structure):
-    _fields_ = [
-        ('r', c_double),
-        ('i', c_double),
-    ]
-
-
-if sizeof(c_void_p) == 4:
-    ptrdiff_t = c_int32
-elif sizeof(c_void_p) == 8:
-    ptrdiff_t = c_int64
-
-R_len_t = c_int
-
-R_xlen_t = ptrdiff_t
