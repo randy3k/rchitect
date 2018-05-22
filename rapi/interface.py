@@ -581,6 +581,24 @@ def set_option(key, value):
         Rf_unprotect(1)
 
 
+def get_attrib_p(s, key):
+    s = sexp(s)
+    return Rf_getAttrib(s, rsym(key))
+
+
+def get_attrib(s, key):
+    return RObject(get_attrib_p(s, key))
+
+
+def set_attrib(s, key, value):
+    s = sexp(s)
+    v = Rf_protect(sexp(value))
+    try:
+        Rf_setAttrib(s, rsym(key) if isinstance(key, text_type) else key, v)
+    finally:
+        Rf_unprotect(1)
+
+
 def _process_events():
     if sys.platform == "win32" or sys.platform == "darwin":
         R_ProcessEvents()
