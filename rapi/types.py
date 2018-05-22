@@ -3,8 +3,6 @@ from ctypes import c_void_p, c_double, c_int, c_int32, c_int64
 from ctypes import Structure
 from ctypes import sizeof
 
-from enum import Enum
-
 internals = None
 interface = None
 
@@ -13,7 +11,12 @@ class SEXP(c_void_p):
     pass
 
 
-class SEXPTYPE(Enum):
+class SEXPTYPE(object):
+    _fields = [
+        "NILSXP", "SYMSXP", "LISTSXP", "CLOSXP", "ENVSXP", "PROMSXP", "LANGSXP",
+        "SPECIALSXP", "BUILTINSXP", "CHARSXP", "LGLSXP", "INTSXP", "REALSXP",
+        "CPLXSXP", "STRSXP", "DOTSXP", "ANYSXP", "VECSXP", "EXPRSXP", "BCODESXP",
+        "EXTPTRSXP", "WEAKREFSXP", "RAWSXP", "S4SXP", "NEWSXP", "FREESXP", "FUNSXP"]
     NILSXP = 0
     SYMSXP = 1
     LISTSXP = 2
@@ -45,10 +48,11 @@ class SEXPTYPE(Enum):
 
 _sexptype_map = {}
 
-for name, enum in SEXPTYPE._member_map_.items():
-    t = type(str(name), (SEXP,), {"sexpnum": enum.value})
+for name in SEXPTYPE._fields:
+    v = getattr(SEXPTYPE, name)
+    t = type(str(name), (SEXP,), {})
     globals()[name] = t
-    _sexptype_map[enum.value] = t
+    _sexptype_map[v] = t
 
 
 def sexptype(s):

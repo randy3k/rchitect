@@ -31,8 +31,7 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages('.'),
     install_requires=[
-        "multipledispatch",
-        'enum34;python_version<"3.4"',
+        "multipledispatch"
     ],
     setup_requires=[
         "pytest-runner"
