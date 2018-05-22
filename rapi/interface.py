@@ -17,13 +17,14 @@ from .internals import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_
 from .internals import Rf_GetOption1
 from .internals import Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal, Rf_ScalarComplex
 from .internals import Rf_ScalarString, R_data_class
-from .internals import R_NamesSymbol, Rf_getAttrib, Rf_isNull
+from .internals import R_NamesSymbol, Rf_getAttrib, Rf_setAttrib, Rf_isNull
 from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
 from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
 from .internals import R_MissingArg, R_DotsSymbol, Rf_list1, R_ExternalPtrAddr
 
-from .types import SEXP, sexptype, Rcomplex, RObject, RClass
-from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP, LANGSXP
+
+from .types import SEXP, SEXPTYPE, sexptype, Rcomplex, RObject, RClass
+from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
 from .dispatch import dispatch, typeof
 from .externalptr import rextptr
 
@@ -112,7 +113,7 @@ def reval(string, env=R_GlobalEnv):
 
 def rlang_p(*args, **kwargs):
     nargs = len(args) + len(kwargs)
-    t = Rf_protect(Rf_allocVector(LANGSXP.sexpnum, nargs))
+    t = Rf_protect(Rf_allocVector(SEXPTYPE.LANGSXP, nargs))
     s = t
     SETCAR(s, sexp(args[0]))
     for a in args[1:]:
@@ -411,7 +412,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("logical")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(LGLSXP.sexpnum, n))
+    x = Rf_protect(Rf_allocVector(SEXPTYPE.LGLSXP, n))
     try:
         for i in range(n):
             LOGICAL(x)[i] = s[i]
@@ -423,7 +424,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("numeric")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(REALSXP.sexpnum, n))
+    x = Rf_protect(Rf_allocVector(SEXPTYPE.REALSXP, n))
     try:
         for i in range(n):
             REAL(x)[i] = s[i]
@@ -435,7 +436,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("complex")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(CPLXSXP.sexpnum, n))
+    x = Rf_protect(Rf_allocVector(SEXPTYPE.CPLXSXP, n))
     try:
         for i in range(n):
             xi = COMPLEX(x)[i]
@@ -450,7 +451,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("character")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(STRSXP.sexpnum, n))
+    x = Rf_protect(Rf_allocVector(SEXPTYPE.STRSXP, n))
     try:
         for i in range(n):
             isascii = all(ord(c) < 128 for c in s[i])
@@ -464,7 +465,7 @@ def sexp(_, s):
 @dispatch(typeof(RClass("list")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(VECSXP.sexpnum, n))
+    x = Rf_protect(Rf_allocVector(SEXPTYPE.VECSXP, n))
     try:
         for i in range(n):
             SET_VECTOR_ELT(x, i, sexp(s[i]))
@@ -488,6 +489,21 @@ def sexp(s):
     else:
         x = sexp(RClass("list"), s)
     return x
+
+
+@dispatch(typeof(RClass("list")), (dict, OrderedDict))
+def sexp(_, s):
+    v = Rf_protect(sexp(RClass("list"), list(s.values())))
+    try:
+        Rf_setAttrib(v, R_NamesSymbol, sexp(RClass("character"), list(s.keys())))
+    finally:
+        Rf_unprotect(1)
+    return v
+
+
+@dispatch((dict, OrderedDict))
+def sexp(s):
+    return sexp(RClass("list"), s)
 
 
 def sexp_dots():
@@ -526,6 +542,11 @@ def sexp(f):
     finally:
         Rf_unprotect(3)
     return res
+
+
+@dispatch(type(None))
+def sexp(n):
+    return R_NilValue
 
 
 @dispatch(SEXP)
