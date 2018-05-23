@@ -141,16 +141,16 @@ def rcall(*args, **kwargs):
 
 def rsym_p(s, t=None):
     if t:
-        return rlang(rsym_p("::"), rsym_p(s), rsym_p(t))
+        return rlang_p(rsym_p("::"), rsym_p(s), rsym_p(t))
     else:
-        return Rf_install(s.encode("utf-8"))
+        return sexp(Rf_install(s.encode("utf-8")))
 
 
 def rsym(s, t=None):
     if t:
-        return rlang_p(rsym_p("::"), rsym_p(s), rsym_p(t))
+        return rlang(rsym_p("::"), rsym_p(s), rsym_p(t))
     else:
-        return Rf_install(s.encode("utf-8"))
+        return RObject(Rf_install(s.encode("utf-8")))
 
 
 def rint_p(s):
