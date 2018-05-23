@@ -1,7 +1,7 @@
 from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
-from .interface import rcall, reval, rsym, set_attrib, sexp
+from .interface import rcall, reval, rsym, setattrib, sexp
 
 
 def new_env(parent, hash=True):
@@ -20,17 +20,17 @@ def set_namespace_info(ns, which, val):
 def make_namespace(name, version=None, lib=None):
     version = text_type(version) if version else None
     impenv = new_env(R_BaseNamespace)
-    set_attrib(impenv, R_NameSymbol, "imports:{}".format(name))
+    setattrib(impenv, R_NameSymbol, "imports:{}".format(name))
     env = new_env(impenv)
     info = new_env(R_BaseNamespace)
     assign(".__NAMESPACE__.", info, envir=env)
     spec = sexp([name, version] if version else name)
     assign("spec", spec, envir=info)
-    set_attrib(spec, R_NamesSymbol, ["name", "version"] if version else name)
+    setattrib(spec, R_NamesSymbol, ["name", "version"] if version else name)
     exportenv = new_env(R_BaseNamespace)
     set_namespace_info(env, "exports", exportenv)
     dimpenv = new_env(R_BaseNamespace)
-    set_attrib(dimpenv, R_NameSymbol, "lazydata:{}".format(name))
+    setattrib(dimpenv, R_NameSymbol, "lazydata:{}".format(name))
     set_namespace_info(env, "lazydata", dimpenv)
     set_namespace_info(env, "imports", {"base": True})
     set_namespace_info(env, "path", lib)

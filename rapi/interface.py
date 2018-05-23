@@ -17,7 +17,7 @@ from .internals import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_
 from .internals import Rf_GetOption1
 from .internals import Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal, Rf_ScalarComplex
 from .internals import Rf_ScalarString, R_data_class
-from .internals import R_NamesSymbol, Rf_getAttrib, Rf_setAttrib, Rf_isNull
+from .internals import R_NamesSymbol, R_ClassSymbol, Rf_getAttrib, Rf_setAttrib, Rf_isNull
 from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
 from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
 from .internals import R_MissingArg, R_DotsSymbol, Rf_list1, R_ExternalPtrAddr
@@ -39,7 +39,7 @@ __all__ = [
     "rsym",
     "rstring",
     "rclass",
-    "rname",
+    "rnames",
     "rcopy"
 ]
 
@@ -196,22 +196,6 @@ def rprint(s):
         Rf_unprotect(1)
 
 
-def rclass_p(s, singleString=0):
-    return sexp(R_data_class(sexp(s), singleString))
-
-
-def rclass(s, singleString=0):
-    return RObject(rclass_p(s, singleString))
-
-
-def rname_p(s):
-    return sexp(Rf_getAttrib(sexp(s), R_NamesSymbol))
-
-
-def rname(s):
-    return RObject(rname_p(s))
-
-
 # conversion dispatches
 
 @dispatch(object, NILSXP)
@@ -283,7 +267,7 @@ def rcopy(_, s):
 @dispatch(typeof(OrderedDict), VECSXP)
 def rcopy(_, s):
     ret = OrderedDict()
-    names = rcopy(list, rname_p(s))
+    names = rnames(s)
     for i in range(LENGTH(s)):
         ret[names[i]] = rcopy(VECTOR_ELT(s, i))
     return ret
@@ -328,7 +312,7 @@ def rcopytype(_, s):
 
 @dispatch(object, VECSXP)
 def rcopytype(_, s):
-    return list if Rf_isNull(rname_p(s)) else OrderedDict
+    return list if Rf_isNull(getnames_p(s)) else OrderedDict
 
 
 @dispatch(object, SEXP)
@@ -339,7 +323,7 @@ def rcopytype(_, s):
 @dispatch(SEXP)
 def rcopy(s):
     s = sexp(s)
-    T = rcopytype(RClass(rcopy(text_type, rclass_p(s, 1))), s)
+    T = rcopytype(RClass(rclass(s, 1)), s)
     return rcopy(T, s)
 
 
@@ -350,9 +334,9 @@ def rcopy(t, r):
 
 @dispatch(RObject)
 def rcopy(r):
-    r = sexp(r)
-    T = rcopytype(RClass(rcopy(text_type, rclass_p(r, 1))), r)
-    return rcopy(T, r)
+    s = sexp(r)
+    T = rcopytype(RClass(rclass(s, 1)), s)
+    return rcopy(T, s)
 
 
 @dispatch(object)
@@ -400,7 +384,7 @@ def sexp(s):
 @dispatch(typeof(RClass("integer")), list)
 def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(INTSXP, n))
+    x = Rf_protect(Rf_allocVector(SEXPTYPE.INTSXP, n))
     try:
         for i in range(n):
             INTEGER(x)[i] = s[i]
@@ -519,7 +503,7 @@ def rapi_callback(exptr, arglist):
     f = ptr.contents.value
     args = []
     kwargs = {}
-    names = rcopy(list, rname_p(arglist))
+    names = rnames(arglist)
     try:
         for i in range(LENGTH(arglist)):
             if names and names[i]:
@@ -564,15 +548,20 @@ def sexp(s):
     return s
 
 
-def get_option(key, default=None):
-    ret = rcopy(Rf_GetOption1(Rf_install(key.encode("utf-8"))))
-    if ret is None:
-        return default
-    else:
-        return ret
+def getoption_p(key):
+    return Rf_GetOption1(Rf_install(key.encode("utf-8")))
 
 
-def set_option(key, value):
+def getoption(key):
+    return RObject(getoption_p(key))
+
+
+def roption(key, default=None):
+    ret = rcopy(getoption_p(key))
+    return ret if ret else default
+
+
+def setoption(key, value):
     kwargs = {}
     kwargs[key] = Rf_protect(sexp(value))
     try:
@@ -581,22 +570,54 @@ def set_option(key, value):
         Rf_unprotect(1)
 
 
-def get_attrib_p(s, key):
+def getattrib_p(s, key):
     s = sexp(s)
-    return Rf_getAttrib(s, rsym(key))
+    return sexp(Rf_getAttrib(s, rsym(key) if isinstance(key, text_type) else key))
 
 
-def get_attrib(s, key):
-    return RObject(get_attrib_p(s, key))
+def getattrib(s, key):
+    return RObject(getattrib_p(s, key))
 
 
-def set_attrib(s, key, value):
+def setattrib(s, key, value):
     s = sexp(s)
     v = Rf_protect(sexp(value))
     try:
         Rf_setAttrib(s, rsym(key) if isinstance(key, text_type) else key, v)
     finally:
         Rf_unprotect(1)
+
+
+def getnames_p(s):
+    return sexp(getattrib_p(s, R_NamesSymbol))
+
+
+def getnames(s):
+    return RObject(getnames_p(s))
+
+
+def rnames(s):
+    return rcopy(list, getnames_p(s))
+
+
+def setnames(s, names):
+    setattrib(s, R_NamesSymbol, names)
+
+
+def getclass_p(s, singleString=0):
+    return sexp(R_data_class(sexp(s), singleString))
+
+
+def getclass(s, singleString=0):
+    return RObject(getclass_p(s, singleString))
+
+
+def rclass(s, singleString=0):
+    return rcopy(text_type if singleString else list, getclass_p(s, singleString))
+
+
+def setclass(s, classes):
+    setattrib(s, R_ClassSymbol, classes)
 
 
 def _process_events():
