@@ -558,7 +558,7 @@ def getoption(key):
 
 def roption(key, default=None):
     ret = rcopy(getoption_p(key))
-    return ret if ret else default
+    return ret if ret is not None else default
 
 
 def setoption(key, value):
