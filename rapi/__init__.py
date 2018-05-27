@@ -2,7 +2,6 @@ from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring
 from .interface import process_events
 from .types import RObject
 from .machine import Engine
-from .repl import repl_r
 
 
 __all__ = [

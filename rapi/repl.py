@@ -2,16 +2,16 @@
 
 from .interface import rprint, reval
 import sys
+from prompt_toolkit import prompt
 
 def repl_r():
     while True:
         try:
-            if sys.version >= "3":
-                text = str(input("> "))
-            else:
-                text = raw_input("> ")
+            text = prompt("> ")
             rprint(reval(text))
         except EOFError:
             break
+        except KeyboardInterrupt:
+            pass
         except Exception:
             pass
