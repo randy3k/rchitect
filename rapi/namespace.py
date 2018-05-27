@@ -12,6 +12,10 @@ def assign(name, value, envir):
     rcall(rsym("base", "assign"), name, value, envir=envir)
 
 
+def get(name, envir):
+    rcall(rsym("base", "get"), name, envir=envir)
+
+
 def set_namespace_info(ns, which, val):
     rcall(rsym("base", "setNamespaceInfo"), ns, which, val)
 
@@ -50,3 +54,7 @@ def seal_namespace(ns):
     rcall(rsym("base", "lockEnvironment"), ns, True)
     parent = rcall(rsym("base", "parent.env"), ns)
     rcall(rsym("base", "lockEnvironment"), parent, True)
+
+
+def namespace_export(ns, vs):
+    rcall(rsym("base", "namespaceExport"), ns, vs)
