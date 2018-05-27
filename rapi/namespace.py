@@ -1,7 +1,7 @@
 from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
-from .interface import rcall, reval, rsym, setattrib, sexp
+from .interface import rcopy, rcall, reval, rsym, setattrib, sexp
 
 
 def new_env(parent, hash=True):
@@ -26,7 +26,7 @@ def make_namespace(name, version=None, lib=None):
     assign(".__NAMESPACE__.", info, envir=env)
     spec = sexp([name, version] if version else name)
     assign("spec", spec, envir=info)
-    setattrib(spec, R_NamesSymbol, ["name", "version"] if version else name)
+    setattrib(spec, R_NamesSymbol, ["name", "version"] if version else "name")
     exportenv = new_env(R_BaseNamespace)
     set_namespace_info(env, "exports", exportenv)
     dimpenv = new_env(R_BaseNamespace)
@@ -40,3 +40,13 @@ def make_namespace(name, version=None, lib=None):
     assign(".__S3MethodsTable__.", s3methodstableenv, envir=env)
     assign(name, env, envir=R_NamespaceRegistry)
     return env
+
+
+def seal_namespace(ns):
+    sealed = rcopy(rcall(rsym("base", "environmentIsLocked"), ns))
+    if sealed:
+        name = rcopy(rcall(rsym("base", "getNamespaceName"), ns))
+        raise Exception("namespace {} is already sealed".format(name))
+    rcall(rsym("base", "lockEnvironment"), ns, True)
+    parent = rcall(rsym("base", "parent.env"), ns)
+    rcall(rsym("base", "lockEnvironment"), parent, True)
