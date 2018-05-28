@@ -512,7 +512,7 @@ def rapi_callback(exptr, arglist):
                 args.append(rcopy(VECTOR_ELT(arglist, i)))
         return sexp(f(*args, **kwargs)).value
     except Exception as e:
-        return Rf_error("callback error {}".format(e))
+        Rf_error(str(e).encode("utf-8"))
 
 
 @dispatch(FunctionType)
