@@ -25,7 +25,7 @@ from .internals import R_Visible
 
 
 from .types import SEXP, SEXPTYPE, sexptype, Rcomplex, RObject, RClass
-from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
+from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP, CLOSXP
 from .dispatch import dispatch, typeof
 from .externalptr import rextptr
 
@@ -298,6 +298,13 @@ def rcopy(_, s):
     return ret
 
 
+@dispatch(typeof(FunctionType), CLOSXP)
+def rcopy(_, s):
+    def _(*args, **kwargs):
+        return rcopy(rcall(s, *args, **kwargs))
+    return _
+
+
 @dispatch(object, SEXP)
 def rcopy(_, s):
     return s
@@ -338,6 +345,11 @@ def rcopytype(_, s):
 @dispatch(object, VECSXP)
 def rcopytype(_, s):
     return list if Rf_isNull(getnames_p(s)) else OrderedDict
+
+
+@dispatch(object, CLOSXP)
+def rcopytype(_, s):
+    return FunctionType
 
 
 @dispatch(object, SEXP)
