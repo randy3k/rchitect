@@ -198,7 +198,7 @@ def setup_win32(libR, args):
     RStart.rstart = rstart
 
 
-class Engine(object):
+class Machine(object):
     _instance = None
     libR = None
     bootstrapped = False
@@ -207,10 +207,11 @@ class Engine(object):
         if cls._instance:
             return cls._instance
         else:
-            cls._instance = super(Engine, cls).__new__(cls)
+            cls._instance = super(Machine, cls).__new__(cls)
             return cls._instance
 
     def __init__(self, rhome=None, verbose=False):
+
         self.verbose = verbose
 
         if not rhome:
@@ -263,5 +264,5 @@ class Engine(object):
         self.bootstrapped = True
         bootstrap(self.libR, self.verbose)
 
-    def run_repl(self):
+    def run_loop(self):
         self.libR.run_Rmainloop()

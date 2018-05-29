@@ -1,7 +1,7 @@
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy
 from .interface import process_events
 from .types import RObject
-from .machine import Engine
+from .setup import Machine
 
 
 __all__ = [
@@ -29,8 +29,8 @@ def start(
         ],
         verbose=True):
 
-    engine = Engine(verbose=verbose)
-    engine.start(arguments=arguments)
+    m = Machine(verbose=verbose)
+    m.start(arguments=arguments)
 
     try:
         import IPython
