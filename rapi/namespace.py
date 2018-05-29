@@ -1,3 +1,5 @@
+import tempfile
+import os
 from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
@@ -22,15 +24,25 @@ def set_namespace_info(ns, which, val):
 
 # mirror https://github.com/wch/r-source/blob/trunk/src/library/base/R/namespace.R
 def make_namespace(name, version=None, lib=None):
-    version = text_type(version) if version else None
+    if not version:
+        version = "0.0.1"
+    else:
+        version = text_type(version)
+    if not lib:
+        lib = os.path.join(tempfile.TemporaryDirectory().name, name)
+        os.makedirs(lib)
+        description = os.path.join(lib, "DESCRIPTION")
+        with open(description, "w") as f:
+            f.write("Package: {}\n".format(name))
+            f.write("Version: {}\n".format(version))
     impenv = new_env(R_BaseNamespace)
     setattrib(impenv, R_NameSymbol, "imports:{}".format(name))
     env = new_env(impenv)
     info = new_env(R_BaseNamespace)
     assign(".__NAMESPACE__.", info, envir=env)
-    spec = sexp([name, version] if version else name)
+    spec = sexp([name, version])
     assign("spec", spec, envir=info)
-    setattrib(spec, R_NamesSymbol, ["name", "version"] if version else "name")
+    setattrib(spec, R_NamesSymbol, ["name", "version"])
     exportenv = new_env(R_BaseNamespace)
     set_namespace_info(env, "exports", exportenv)
     dimpenv = new_env(R_BaseNamespace)

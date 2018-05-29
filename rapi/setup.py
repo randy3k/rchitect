@@ -5,7 +5,6 @@ import sys
 from ctypes import c_int, c_size_t, c_char, c_char_p, c_void_p, cast, pointer
 from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
 
-from .bootstrap import bootstrap
 from .types import SEXP
 from .utils import which_rhome, find_libR, ensure_path, ccall, cglobal
 
@@ -263,6 +262,8 @@ class Machine(object):
             self.libR.setup_Rmainloop()
 
         self.bootstrapped = True
+
+        from .bootstrap import bootstrap
         bootstrap(self.libR, self.verbose)
 
     def run_loop(self):
