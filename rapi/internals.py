@@ -702,3 +702,6 @@ class R_CallMethodDef(Structure):
 _register_function("R_getDllInfo", c_void_p, [c_char_p])
 _register_function("R_getEmbeddingDllInfo", c_void_p, [])
 _register_function("R_registerRoutines", c_int, [c_void_p, c_void_p, c_void_p, c_void_p, c_void_p])
+
+
+_register_constant("R_Visible", c_int)

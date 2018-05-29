@@ -21,6 +21,7 @@ from .internals import R_NamesSymbol, R_ClassSymbol, Rf_getAttrib, Rf_setAttrib,
 from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
 from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
 from .internals import R_MissingArg, R_DotsSymbol, Rf_list1, R_ExternalPtrAddr
+from .internals import R_Visible
 
 
 from .types import SEXP, SEXPTYPE, sexptype, Rcomplex, RObject, RClass
@@ -109,6 +110,30 @@ def reval_p(string, env=R_GlobalEnv):
 
 def reval(string, env=R_GlobalEnv):
     return RObject(reval_p(string, env=R_GlobalEnv))
+
+
+def Rf_eval_with_visible(expression, env, visible):
+    ret = Rf_eval(expression, env)
+    visible[0] = R_Visible.value
+    return ret
+
+
+def reval_with_visible_p(string, env=R_GlobalEnv):
+    expressions = Rf_protect(rparse_p(string))
+    ret = R_NilValue
+    visible = [1]
+    try:
+        for i in range(0, LENGTH(expressions)):
+            ret = rexec_p(Rf_eval_with_visible, VECTOR_ELT(expressions, i), env, visible)
+    finally:
+        Rf_unprotect(1)
+    return {"value": sexp(ret), "visible": visible[0]}
+
+
+def reval_with_visible(string, env=R_GlobalEnv):
+    ret = reval_with_visible_p(string, env)
+    ret["value"] = RObject(ret["value"])
+    return ret
 
 
 def rlang_p(*args, **kwargs):
