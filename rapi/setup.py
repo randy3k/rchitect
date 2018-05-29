@@ -8,7 +8,6 @@ from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
 from .bootstrap import bootstrap
 from .types import SEXP
 from .utils import which_rhome, find_libR, ensure_path, ccall, cglobal
-from . import defaults
 
 
 callback_dict = {
@@ -210,7 +209,7 @@ class Machine(object):
             cls._instance = super(Machine, cls).__new__(cls)
             return cls._instance
 
-    def __init__(self, rhome=None, verbose=False):
+    def __init__(self, rhome=None, set_default_callbacks=True, verbose=False):
 
         self.verbose = verbose
 
@@ -222,12 +221,14 @@ class Machine(object):
 
         self.libR = libR
 
-        self.set_callback("R_ShowMessage", defaults.R_ShowMessage)
-        self.set_callback("R_ReadConsole", defaults.R_ReadConsole)
-        self.set_callback("R_WriteConsoleEx", defaults.R_WriteConsoleEx)
-        self.set_callback("R_Busy", defaults.R_Busy)
-        self.set_callback("R_PolledEvents", defaults.R_PolledEvents)
-        self.set_callback("R_YesNoCancel", defaults.R_YesNoCancel)
+        if set_default_callbacks:
+            from . import callbacks
+            self.set_callback("R_ShowMessage", callbacks.show_message)
+            self.set_callback("R_ReadConsole", callbacks.read_console)
+            self.set_callback("R_WriteConsoleEx", callbacks.write_console_ex)
+            self.set_callback("R_Busy", callbacks.busy)
+            self.set_callback("R_PolledEvents", callbacks.polled_events)
+            self.set_callback("R_YesNoCancel", callbacks.ask_yes_no_cancel)
 
     def set_callback(self, name, func):
         if name not in callback_dict:
