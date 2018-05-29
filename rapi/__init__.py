@@ -27,14 +27,10 @@ def start(
             "--no-save",
             "--no-restore"
         ],
-        repl=False,
         verbose=True):
 
     engine = Engine(verbose=verbose)
     engine.start(arguments=arguments)
-
-    if repl:
-        engine.run_repl()
 
     try:
         import IPython
