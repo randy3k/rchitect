@@ -14,7 +14,7 @@ jobs:
       - run: pytest
   test-r-release-py2:
     docker:
-      - image: rocker/r-base
+      - image: rocker/r-ver
     steps:
       - run: |
           apt-get update
@@ -47,7 +47,7 @@ jobs:
       - run: pytest
   test-r-release-py3:
     docker:
-      - image: rocker/r-base
+      - image: rocker/r-ver
     steps:
       - run: |
           apt-get update
