@@ -46,3 +46,7 @@ def start(
                 process_events()
 
         IPython.terminal.pt_inputhooks.register("r", inputhook)
+
+
+def get_machine():
+    return Machine()
