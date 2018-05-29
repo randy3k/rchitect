@@ -3,6 +3,7 @@ import sys
 import re
 import ctypes
 import locale
+from six import text_type
 
 
 if sys.platform == "win32":
@@ -28,6 +29,14 @@ def rconsole2str(buf):
         m = UTFPATTERN.search(buf)
     ret += system2utf8(buf)
     return ret
+
+
+if sys.version >= "3":
+    def ask_input(s):
+        return input(s)
+else:
+    def ask_input(s):
+        return raw_input(s).decode("utf-8", "backslashreplace")
 
 
 if sys.platform == "win32":
@@ -64,22 +73,21 @@ else:
 
 
 def read_console(p, buf, buflen, add_history):
-    if not code[0]:
-        if sys.version >= "3":
-            text = str(input(rconsole2str(p)))
-        else:
-            text = str(raw_input(rconsole2str(p)))
-        if text is None:
+    text = None
+    while text is None:
+        try:
+            text = ask_input(rconsole2str(p))
+        except EOFError:
             return 0
-        code[0] = utf8tosystem(text)
 
-    nb = min(len(code[0]), buflen - 2)
+    code = utf8tosystem(text)
+
+    nb = min(len(code), buflen - 2)
     for i in range(nb):
-        buf[i] = code[0][i]
+        buf[i] = code[i]
     if nb < buflen - 2:
         buf[nb] = b'\n'
         buf[nb + 1] = b'\0'
-    code[0] = code[0][nb:]
     return 1
 
 
@@ -116,7 +124,7 @@ def show_message(buf):
 def ask_yes_no_cancel(p):
     while True:
         try:
-            result = str(input("{} [y/n/c]: ".format(rconsole2str(p))))
+            result = ask_input("{} [y/n/c]: ".format(rconsole2str(p)))
             if result in ["Y", "y"]:
                 return 1
             elif result in ["N", "n"]:
