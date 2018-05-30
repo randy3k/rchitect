@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from rapi import rtopy, rcall, pytor
+from rapi import rcopy, rcall, robject
 
 
 def test_lambda():
-    rtopy(rcall(pytor(lambda x: x + 3), 4)) == 7
+    rcopy(rcall(robject(lambda x: x + 3), 4)) == 7

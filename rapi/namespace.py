@@ -6,7 +6,7 @@ from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
-from .interface import rtopy, pytor, rcall, reval, rsym, setattrib, invisiblize, sexp
+from .interface import rcopy, robject, rcall, reval, rsym, setattrib, invisiblize, sexp
 from .types import RClass, SEXPTYPE
 from .externalptr import to_pyo
 
@@ -49,7 +49,7 @@ def make_namespace(name, version=None, lib=None):
     env = new_env(impenv)
     info = new_env(R_BaseNamespace)
     assign(".__NAMESPACE__.", info, envir=env)
-    spec = pytor([name, version])
+    spec = robject([name, version])
     assign("spec", spec, envir=info)
     setattrib(spec, R_NamesSymbol, ["name", "version"])
     exportenv = new_env(R_BaseNamespace)
@@ -68,9 +68,9 @@ def make_namespace(name, version=None, lib=None):
 
 
 def seal_namespace(ns):
-    sealed = rtopy(rcall(rsym("base", "environmentIsLocked"), ns))
+    sealed = rcopy(rcall(rsym("base", "environmentIsLocked"), ns))
     if sealed:
-        name = rtopy(rcall(rsym("base", "getNamespaceName"), ns))
+        name = rcopy(rcall(rsym("base", "getNamespaceName"), ns))
         raise Exception("namespace {} is already sealed".format(name))
     rcall(rsym("base", "lockEnvironment"), ns, True)
     parent = rcall(rsym("base", "parent.env"), ns)
@@ -82,7 +82,7 @@ def namespace_export(ns, vs):
 
 
 def register_s3_methods(ns, methods):
-    name = rtopy(get_namespace_info(ns, "spec"))[0]
+    name = rcopy(get_namespace_info(ns, "spec"))[0]
     m = Rf_protect(Rf_allocMatrix(SEXPTYPE.STRSXP, len(methods), 3))
     for i in range(len(methods)):
         generic = methods[i][0]
@@ -113,12 +113,12 @@ def package_event(pkg, event):
 # rapi namespace
 
 def pyeval(code):
-    return pytor(RClass("PyObject"), eval(code))
+    return robject(RClass("PyObject"), eval(code))
 
 
 def pycall(fun, *args, **kwargs):
     ret = fun(*args, **kwargs)
-    return pytor(RClass("PyObject"), ret)
+    return robject(RClass("PyObject"), ret)
 
 
 def pyprint(s):
@@ -150,7 +150,7 @@ def make_rapi_namespace():
     import rapi
 
     ns = make_namespace("rapi", version=rapi.__version__)
-    assign("rapi", pytor(RClass("PyObject"), rapi), ns)
+    assign("rapi", robject(RClass("PyObject"), rapi), ns)
     assign("pyprint", invisiblize(pyprint), ns)
     assign("pyeval", pyeval, ns)
     assign("pycall", pycall, ns)

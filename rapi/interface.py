@@ -42,8 +42,8 @@ __all__ = [
     "rstring",
     "rclass",
     "rnames",
-    "rtopy",
-    "pytor"
+    "rcopy",
+    "robject"
 ]
 
 
@@ -168,7 +168,7 @@ def rcall_p(*args, **kwargs):
 def rcall(*args, **kwargs):
     if "_convert" in kwargs and kwargs["_convert"]:
         del kwargs["_convert"]
-        return rtopy(rcall_p(*args, **kwargs))
+        return rcopy(rcall_p(*args, **kwargs))
     else:
         return RObject(rcall_p(*args, **kwargs))
 
@@ -324,6 +324,15 @@ def rcopy(_, s):
     return s
 
 
+@dispatch(object, RObject)
+def rcopy(t, r):
+    ret = rcopy(t, sexp(r))
+    if isinstance(ret, SEXP):
+        return RObject(ret)
+    else:
+        return ret
+
+
 # default conversion
 
 @dispatch(object, INTSXP)
@@ -381,6 +390,15 @@ def rcopy(s):
     s = sexp(s)
     T = rcopytype(RClass(rclass(s, 1)), s)
     return rcopy(T, s)
+
+
+@dispatch(RObject)
+def rcopy(r):
+    ret = rcopy(sexp(r))
+    if isinstance(ret, SEXP):
+        return RObject(ret)
+    else:
+        return ret
 
 
 @dispatch(object)
@@ -615,17 +633,7 @@ def sexp(s):
     return s
 
 
-def rtopy(*args):
-    if len(args) == 1:
-        s = sexp(args[0])
-        T = rcopytype(RClass(rclass(s, 1)), s)
-    else:
-        T = args[0]
-        s = sexp(args[1])
-    return rcopy(T, s)
-
-
-def pytor(*args):
+def robject(*args):
     return RObject(sexp(*args))
 
 
