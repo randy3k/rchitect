@@ -162,7 +162,11 @@ def rcall_p(*args, **kwargs):
 
 
 def rcall(*args, **kwargs):
-    return RObject(rcall_p(*args, **kwargs))
+    if "_convert" in kwargs and kwargs["_convert"]:
+        del kwargs["_convert"]
+        return rtopy(rcall_p(*args, **kwargs))
+    else:
+        return RObject(rcall_p(*args, **kwargs))
 
 
 def rsym_p(s, t=None):
