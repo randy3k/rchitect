@@ -2,7 +2,7 @@ from __future__ import unicode_literals, absolute_import
 
 import sys
 from ctypes import py_object, byref, cast, c_void_p, c_int
-from ctypes import CFUNCTYPE, Structure, POINTER, string_at
+from ctypes import CFUNCTYPE, Structure, string_at
 from collections import OrderedDict
 from six import text_type
 from types import FunctionType
@@ -55,7 +55,7 @@ class ProtectedEvalData(Structure):
 
 
 def protectedEval(pdata_t):
-    pdata = cast(pdata_t, POINTER(ProtectedEvalData)).contents
+    pdata = ProtectedEvalData.from_address(pdata_t)
     func = pdata.func
     data = pdata.data
     try:
@@ -525,8 +525,8 @@ def sexp_dots():
 
 @CFUNCTYPE(SEXP, SEXP, SEXP)
 def rapi_callback(exptr, arglist):
-    ptr = cast(R_ExternalPtrAddr(exptr), POINTER(py_object))
-    f = ptr.contents.value
+    ptr = py_object.from_address(R_ExternalPtrAddr(exptr))
+    f = ptr.value
     args = []
     kwargs = {}
     names = rnames(arglist)
