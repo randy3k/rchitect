@@ -365,18 +365,6 @@ def rcopy(s):
     return rcopy(T, s)
 
 
-@dispatch(object, RObject)
-def rcopy(t, r):
-    return rcopy(t, sexp(r))
-
-
-@dispatch(RObject)
-def rcopy(r):
-    s = sexp(r)
-    T = rcopytype(RClass(rclass(s, 1)), s)
-    return rcopy(T, s)
-
-
 @dispatch(object)
 def rcopy(r):
     return r
@@ -587,7 +575,13 @@ def sexp(s):
 
 
 def rtopy(*args):
-    return rcopy(*args)
+    if len(args) == 1:
+        s = sexp(args[0])
+        T = rcopytype(RClass(rclass(s, 1)), s)
+    else:
+        T = args[0]
+        s = sexp(args[1])
+    return rcopy(T, s)
 
 
 def pytor(*args):
