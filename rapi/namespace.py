@@ -29,7 +29,7 @@ def make_namespace(name, version=None, lib=None):
     else:
         version = text_type(version)
     if not lib:
-        lib = os.path.join(tempfile.TemporaryDirectory().name, name)
+        lib = os.path.join(tempfile.mkdtemp(), name)
         os.makedirs(lib)
         description = os.path.join(lib, "DESCRIPTION")
         with open(description, "w") as f:
