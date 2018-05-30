@@ -5,7 +5,6 @@ import os
 from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
-from .internals import R_ExternalPtrAddr
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
 from .interface import rtopy, pytor, rcall, reval, rsym, setattrib, invisiblize, sexp
 from .types import RClass, SEXPTYPE
@@ -113,9 +112,17 @@ def package_event(pkg, event):
 
 # rapi namespace
 
+def pyeval(code):
+    return pytor(RClass("PyObject"), eval(code))
+
+
+def pycall(fun, *args, **kwargs):
+    ret = fun(*args, **kwargs)
+    return pytor(RClass("PyObject"), ret)
+
+
 def pyprint(s):
-    pyo = to_pyo(s)
-    print(pyo.value)
+    print(s)
 
 
 def py_to_r(obj):
@@ -130,7 +137,7 @@ def r_to_py_factory():
     py_object = rcall(rsym("$"), ctypes, "py_object")
 
     def _(obj):
-        p = R_ExternalPtrAddr(obj)
+        p = id(obj)
         addr = rcall(rsym("reticulate", "py_eval"), str(p), convert=False)
         ret = rcall(rsym("reticulate", "py_call"), cast, addr, py_object)
         return rcall(rsym("$"), ret, "value")
@@ -145,8 +152,10 @@ def make_rapi_namespace():
     ns = make_namespace("rapi", version=rapi.__version__)
     assign("rapi", pytor(RClass("PyObject"), rapi), ns)
     assign("pyprint", invisiblize(pyprint), ns)
+    assign("pyeval", pyeval, ns)
+    assign("pycall", pycall, ns)
     assign("print.PyObject", invisiblize(pyprint), ns)
-    namespace_export(ns, ["rapi", "pyprint"])
+    namespace_export(ns, ["rapi", "pyeval", "pycall", "pyprint"])
     register_s3_methods(ns, [["print", "PyObject"]])
 
     def reticulate_s3_methods(pkgname, pkgpath):

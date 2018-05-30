@@ -25,7 +25,8 @@ from .internals import R_Visible
 
 
 from .types import SEXP, SEXPTYPE, sexptype, Rcomplex, RObject, RClass
-from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP, CLOSXP
+from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
+from .types import CLOSXP, EXTPTRSXP
 from .dispatch import dispatch, typeof
 from .externalptr import rextptr, to_pyo
 
@@ -313,6 +314,11 @@ def rcopy(_, s):
     return _
 
 
+@dispatch(typeof(py_object), EXTPTRSXP)
+def rcopy(_, s):
+    return to_pyo(s).value
+
+
 @dispatch(object, SEXP)
 def rcopy(_, s):
     return s
@@ -358,6 +364,11 @@ def rcopytype(_, s):
 @dispatch(object, CLOSXP)
 def rcopytype(_, s):
     return FunctionType
+
+
+@dispatch(typeof(RClass("PyObject")), EXTPTRSXP)
+def rcopytype(_, s):
+    return py_object
 
 
 @dispatch(object, SEXP)
