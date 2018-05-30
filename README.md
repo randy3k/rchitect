@@ -5,9 +5,9 @@
 
 ```py
 import rapi
-from rapi import rcopy, reval
+from rapi import rtopy, reval
 rapi.start()
-rcopy(reval("R.version"))
+rtopy(reval("R.version"))
 ```
 
 

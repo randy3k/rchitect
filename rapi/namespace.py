@@ -3,7 +3,7 @@ import os
 from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
-from .interface import rcopy, rcall, reval, rsym, setattrib, sexp
+from .interface import rtopy, rcall, reval, rsym, setattrib, sexp
 
 
 def new_env(parent, hash=True):
@@ -59,9 +59,9 @@ def make_namespace(name, version=None, lib=None):
 
 
 def seal_namespace(ns):
-    sealed = rcopy(rcall(rsym("base", "environmentIsLocked"), ns))
+    sealed = rtopy(rcall(rsym("base", "environmentIsLocked"), ns))
     if sealed:
-        name = rcopy(rcall(rsym("base", "getNamespaceName"), ns))
+        name = rtopy(rcall(rsym("base", "getNamespaceName"), ns))
         raise Exception("namespace {} is already sealed".format(name))
     rcall(rsym("base", "lockEnvironment"), ns, True)
     parent = rcall(rsym("base", "parent.env"), ns)

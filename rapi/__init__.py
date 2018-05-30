@@ -1,6 +1,5 @@
-from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy
+from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rtopy, pytor
 from .interface import process_events
-from .types import RObject
 from .setup import Machine
 
 
@@ -13,8 +12,8 @@ __all__ = [
     "rcall",
     "rsym",
     "rstring",
-    "rcopy",
-    "RObject"
+    "rtopy",
+    "pytor"
 ]
 
 __version__ = '0.0.11'

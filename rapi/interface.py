@@ -41,7 +41,8 @@ __all__ = [
     "rstring",
     "rclass",
     "rnames",
-    "rcopy"
+    "rtopy",
+    "pytor"
 ]
 
 
@@ -583,6 +584,14 @@ def sexp(r):
 @dispatch(object)
 def sexp(s):
     return s
+
+
+def rtopy(s):
+    return rcopy(s)
+
+
+def pytor(s):
+    return RObject(s)
 
 
 def getoption_p(key):
