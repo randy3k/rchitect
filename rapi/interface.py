@@ -525,7 +525,7 @@ def sexp_dots():
 
 @CFUNCTYPE(SEXP, SEXP, SEXP)
 def rapi_callback(exptr, arglist):
-    ptr = py_object.from_address(R_ExternalPtrAddr(exptr))
+    ptr = cast(R_ExternalPtrAddr(exptr), py_object)
     f = ptr.value
     args = []
     kwargs = {}
