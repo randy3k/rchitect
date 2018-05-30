@@ -586,12 +586,12 @@ def sexp(s):
     return s
 
 
-def rtopy(s):
-    return rcopy(s)
+def rtopy(*args):
+    return rcopy(*args)
 
 
-def pytor(s):
-    return RObject(s)
+def pytor(*args):
+    return RObject(sexp(*args))
 
 
 def getoption_p(key):
