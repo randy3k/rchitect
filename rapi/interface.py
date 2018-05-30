@@ -27,7 +27,7 @@ from .internals import R_Visible
 from .types import SEXP, SEXPTYPE, sexptype, Rcomplex, RObject, RClass
 from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP, CLOSXP
 from .dispatch import dispatch, typeof
-from .externalptr import rextptr
+from .externalptr import rextptr, to_pyo
 
 
 __all__ = [
@@ -523,6 +523,13 @@ def sexp(s):
     return sexp(RClass("list"), s)
 
 
+@dispatch(typeof(RClass("PyObject")), object)
+def sexp(_, s):
+    p = rextptr(s)
+    setclass(p, "PyObject")
+    return p
+
+
 def sexp_dots():
     s = Rf_protect(Rf_list1(R_MissingArg))
     SET_TAG(s, R_DotsSymbol)
@@ -532,8 +539,7 @@ def sexp_dots():
 
 @CFUNCTYPE(SEXP, SEXP, SEXP)
 def rapi_callback(exptr, arglist):
-    ptr = cast(R_ExternalPtrAddr(exptr), py_object)
-    f = ptr.value
+    f = to_pyo(exptr).value
     args = []
     kwargs = {}
     names = rnames(arglist)
@@ -559,6 +565,23 @@ def sexp(f):
     finally:
         Rf_unprotect(3)
     return res
+
+
+@dispatch(CLOSXP)
+def invisiblize(s):
+    body = Rf_protect(rcall_p(rsym("body"), s))
+    invisble_body = Rf_protect(rlang_p(rsym("invisible"), body))
+    lang = Rf_protect(rlang_p(rsym("function"), sexp_dots(), invisble_body))
+    try:
+        res = rexec_p(Rf_eval, lang, R_GlobalEnv)
+    finally:
+        Rf_unprotect(3)
+    return res
+
+
+@dispatch((RObject, FunctionType))
+def invisiblize(f):
+    return RObject(invisiblize(sexp(f)))
 
 
 @dispatch(type(None))

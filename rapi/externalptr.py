@@ -3,10 +3,13 @@ from .internals import R_MakeExternalPtr, R_ExternalPtrAddr, R_RegisterCFinalize
 from .types import SEXP
 
 
+def to_pyo(s):
+    return cast(R_ExternalPtrAddr(s), py_object)
+
+
 @CFUNCTYPE(None, SEXP)
 def finalizer(s):
-    pyo = cast(R_ExternalPtrAddr(s), py_object)
-    pythonapi.Py_DecRef(pyo)
+    pythonapi.Py_DecRef(to_pyo(s))
 
 
 def rextptr(x):

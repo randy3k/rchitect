@@ -1,9 +1,15 @@
+from __future__ import unicode_literals
+
 import tempfile
 import os
 from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
-from .interface import rtopy, rcall, reval, rsym, setattrib, sexp
+from .internals import R_ExternalPtrAddr, R_Visible
+from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
+from .interface import rtopy, pytor, rcall, reval, rsym, setattrib, invisiblize, sexp
+from .types import RClass, SEXPTYPE
+from .externalptr import to_pyo
 
 
 def new_env(parent, hash=True):
@@ -15,11 +21,15 @@ def assign(name, value, envir):
 
 
 def get(name, envir):
-    rcall(rsym("base", "get"), name, envir=envir)
+    return rcall(rsym("base", "get"), name, envir=envir)
 
 
 def set_namespace_info(ns, which, val):
     rcall(rsym("base", "setNamespaceInfo"), ns, which, val)
+
+
+def get_namespace_info(ns, which):
+    return rcall(rsym("base", "getNamespaceInfo"), ns, which)
 
 
 # mirror https://github.com/wch/r-source/blob/trunk/src/library/base/R/namespace.R
@@ -40,7 +50,7 @@ def make_namespace(name, version=None, lib=None):
     env = new_env(impenv)
     info = new_env(R_BaseNamespace)
     assign(".__NAMESPACE__.", info, envir=env)
-    spec = sexp([name, version])
+    spec = pytor([name, version])
     assign("spec", spec, envir=info)
     setattrib(spec, R_NamesSymbol, ["name", "version"])
     exportenv = new_env(R_BaseNamespace)
@@ -70,3 +80,61 @@ def seal_namespace(ns):
 
 def namespace_export(ns, vs):
     rcall(rsym("base", "namespaceExport"), ns, vs)
+
+
+def register_s3_methods(ns, methods):
+    name = rtopy(get_namespace_info(ns, "spec"))[0]
+    m = Rf_protect(Rf_allocMatrix(SEXPTYPE.STRSXP, len(methods), 3))
+    for i in range(len(methods)):
+        generic = methods[i][0]
+        cls = methods[i][1]
+        SET_STRING_ELT(m, 0 * len(methods) + i, Rf_mkChar(generic.encode("utf-8")))
+        SET_STRING_ELT(m, 1 * len(methods) + i, Rf_mkChar(cls.encode("utf-8")))
+        SET_STRING_ELT(m, 2 * len(methods) + i, Rf_mkChar((generic + "." + cls).encode("utf-8")))
+
+    rcall(rsym("base", "registerS3methods"), m, name, ns)
+    Rf_unprotect(1)
+
+
+def register_s3_method(pkg, generic, cls, fun):
+    rcall(
+        rsym("base", "registerS3method"),
+        generic, cls, fun,
+        envir=rcall(rsym("asNamespace"), pkg))
+
+
+def set_hook(event, fun):
+    rcall(rsym("base", "setHook"), event, fun)
+
+
+def package_event(pkg, event):
+    return rcall(rsym("base", "packageEvent"), pkg, event)
+
+
+# rapi namespace
+
+
+def make_rapi_namespace():
+    # rapi namespace
+    import rapi
+
+    def pyprint(s):
+        pyo = to_pyo(s)
+        print(pyo.value)
+
+    def py_to_r(python_obj):
+        c = get("pyobj", python_obj)
+        a = to_pyo(sexp(c))
+        return a.value
+
+    ns = make_namespace("rapi", version=rapi.__version__)
+    assign("rapi", pytor(RClass("PyObject"), rapi), ns)
+    assign("pyprint", invisiblize(pyprint), ns)
+    assign("print.PyObject", invisiblize(pyprint), ns)
+    namespace_export(ns, ["rapi", "pyprint"])
+    register_s3_methods(ns, [["print", "PyObject"]])
+
+    def reticulate_s3_methods(pkgname, pkgpath):
+        register_s3_method("reticulate", "py_to_r", "rapi.types.RObject", py_to_r)
+
+    set_hook(package_event("reticulate", "onLoad"), reticulate_s3_methods)

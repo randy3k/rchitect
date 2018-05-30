@@ -51,12 +51,5 @@ def bootstrap(libR, verbose=True):
     CallEntries[1] = R_CallMethodDef(None, None, 0)
     internals.R_registerRoutines(dll, None, CallEntries, None, None)
 
-    # rapi namespace
-    import rapi
-    from .namespace import make_namespace, namespace_export, assign
-    from .types import RClass
-
-    ns = make_namespace("rapi", version=rapi.__version__)
-    # assign("rapi", interface.sexp(RClass("PyObject"), rapi), ns)
-    # assign("print.PyObject", interface.sexp(RClass("PyObject"), rapi), ns)
-    # namespace_export(ns, ["rapi", "print.PyObject"])
+    from .namespace import make_rapi_namespace
+    make_rapi_namespace()
