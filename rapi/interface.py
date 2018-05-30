@@ -69,7 +69,10 @@ protectedEval_t = CFUNCTYPE(None, c_void_p)(protectedEval)
 
 def rexec_p(func, *data):
     ret = [None]
-    pdata = ProtectedEvalData(py_object(func), py_object(data), py_object(ret))
+    pdata = ProtectedEvalData(
+        cast(id(func), py_object),
+        cast(id(data), py_object),
+        cast(id(ret), py_object))
     if R_ToplevelExec(protectedEval_t, byref(pdata)) == 0:
         raise RuntimeError("rexec encountered an error")
     return sexp(pdata.ret[0])
