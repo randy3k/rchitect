@@ -5,7 +5,7 @@ import os
 from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
-from .internals import R_ExternalPtrAddr, R_Visible
+from .internals import R_ExternalPtrAddr
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
 from .interface import rtopy, pytor, rcall, reval, rsym, setattrib, invisiblize, sexp
 from .types import RClass, SEXPTYPE
@@ -113,19 +113,34 @@ def package_event(pkg, event):
 
 # rapi namespace
 
+def pyprint(s):
+    pyo = to_pyo(s)
+    print(pyo.value)
+
+
+def py_to_r(obj):
+    pyobj = get("pyobj", obj)
+    a = to_pyo(sexp(pyobj))
+    return a.value
+
+
+def r_to_py_factory():
+    ctypes = rcall(rsym("reticulate", "import"), "ctypes")
+    cast = rcall(rsym("$"), ctypes, "cast")
+    py_object = rcall(rsym("$"), ctypes, "py_object")
+
+    def _(obj):
+        p = R_ExternalPtrAddr(obj)
+        addr = rcall(rsym("reticulate", "py_eval"), str(p), convert=False)
+        ret = rcall(rsym("reticulate", "py_call"), cast, addr, py_object)
+        return rcall(rsym("$"), ret, "value")
+
+    return _
+
 
 def make_rapi_namespace():
     # rapi namespace
     import rapi
-
-    def pyprint(s):
-        pyo = to_pyo(s)
-        print(pyo.value)
-
-    def py_to_r(python_obj):
-        c = get("pyobj", python_obj)
-        a = to_pyo(sexp(c))
-        return a.value
 
     ns = make_namespace("rapi", version=rapi.__version__)
     assign("rapi", pytor(RClass("PyObject"), rapi), ns)
@@ -136,5 +151,6 @@ def make_rapi_namespace():
 
     def reticulate_s3_methods(pkgname, pkgpath):
         register_s3_method("reticulate", "py_to_r", "rapi.types.RObject", py_to_r)
+        register_s3_method("reticulate", "r_to_py", "PyObject", r_to_py_factory())
 
     set_hook(package_event("reticulate", "onLoad"), reticulate_s3_methods)
