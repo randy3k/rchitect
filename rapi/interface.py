@@ -236,14 +236,14 @@ def rprint(s):
 identity = type("identity", (), {})
 
 
-@dispatch(typeof(identity), NILSXP)
-def rcopy(_, s):
-    return s
-
-
-@dispatch(object, NILSXP)
+@dispatch(typeof(type(None)), NILSXP)
 def rcopy(_, s):
     return None
+
+
+@dispatch(typeof(list), NILSXP)
+def rcopy(_, s):
+    return []
 
 
 @dispatch(typeof(int), INTSXP)
@@ -352,6 +352,11 @@ def rcopy(t, r):
 default = RClass("")
 
 
+@dispatch(typeof(default), NILSXP)
+def rcopytype(_, s):
+    return type(None)
+
+
 @dispatch(typeof(default), INTSXP)
 def rcopytype(_, s):
     return int if LENGTH(s) == 1 else list
@@ -392,6 +397,11 @@ def rcopytype(_, s):
     return FunctionType
 
 
+@dispatch(typeof(default), SEXP)
+def rcopytype(_, s):
+    return identity
+
+
 @dispatch(typeof(RClass("PyObject")), EXTPTRSXP)
 def rcopytype(_, s):
     return py_object
@@ -400,11 +410,6 @@ def rcopytype(_, s):
 @dispatch(typeof(RClass("PyCallable")), CLOSXP)
 def rcopytype(_, s):
     return py_object
-
-
-@dispatch(typeof(default), SEXP)
-def rcopytype(_, s):
-    return identity
 
 
 @dispatch(object, SEXP)
