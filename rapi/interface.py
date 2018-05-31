@@ -21,7 +21,7 @@ from .internals import Rf_ScalarString, R_data_class
 from .internals import R_NamesSymbol, R_ClassSymbol, Rf_getAttrib, Rf_setAttrib, Rf_isNull
 from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
 from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
-from .internals import R_MissingArg, R_DotsSymbol, Rf_list1, R_ExternalPtrAddr
+from .internals import R_MissingArg, R_DotsSymbol, Rf_list1
 from .internals import R_Visible
 
 
@@ -233,8 +233,6 @@ def rprint(s):
 
 # conversion dispatches
 
-identity = type(str("identity"), (), {})
-
 
 @dispatch(typeof(type(None)), NILSXP)
 def rcopy(_, s):
@@ -333,7 +331,7 @@ def rcopy(_, s):
     return to_pyo(getattrib_p(s, "py_object")).value
 
 
-@dispatch(typeof(identity), SEXP)
+@dispatch(typeof(SEXP), SEXP)
 def rcopy(_, s):
     return sexp(s)
 
@@ -399,7 +397,7 @@ def rcopytype(_, s):
 
 @dispatch(typeof(default), SEXP)
 def rcopytype(_, s):
-    return identity
+    return SEXP
 
 
 @dispatch(typeof(RClass("PyObject")), EXTPTRSXP)
@@ -611,34 +609,47 @@ def sexp_dots():
     return s
 
 
-@CFUNCTYPE(SEXP, SEXP, SEXP)
-def rapi_callback(exptr, arglist):
+@CFUNCTYPE(SEXP, SEXP, SEXP, SEXP)
+def rapi_callback(exptr, arglist, _convert):
+    convert = rcopy(bool, sexp(_convert))
     f = to_pyo(exptr).value
     args = []
     kwargs = {}
     names = rnames(arglist)
     try:
-        for i in range(LENGTH(arglist)):
-            if names and names[i]:
-                kwargs[names[i]] = rcopy(VECTOR_ELT(arglist, i))
-            else:
-                args.append(rcopy(VECTOR_ELT(arglist, i)))
+        if convert:
+            for i in range(LENGTH(arglist)):
+                if names and names[i]:
+                    kwargs[names[i]] = rcopy(VECTOR_ELT(arglist, i))
+                else:
+                    args.append(rcopy(VECTOR_ELT(arglist, i)))
+        else:
+            for i in range(LENGTH(arglist)):
+                if names and names[i]:
+                    kwargs[names[i]] = sexp(VECTOR_ELT(arglist, i))
+                else:
+                    args.append(sexp(VECTOR_ELT(arglist, i)))
         return sexp(f(*args, **kwargs)).value
     except Exception as e:
         Rf_error(str(e).encode("utf-8"))
 
 
-@dispatch(Callable)
-def sexp(f):
+@dispatch(typeof(RClass("function")), Callable)
+def sexp(_, f, convert_args=True):
     fextptr = Rf_protect(rextptr(f))
     dotlist = Rf_protect(rlang_p(rsym("list"), R_DotsSymbol))
-    body = Rf_protect(rlang_p(rsym(".Call"), "rapi_callback", fextptr, dotlist))
+    body = Rf_protect(rlang_p(rsym(".Call"), "rapi_callback", fextptr, dotlist, convert_args))
     try:
         lang = rlang_p(rsym("function"), sexp_dots(), body)
         res = rexec_p(Rf_eval, lang, R_GlobalEnv)
     finally:
         Rf_unprotect(3)
     return res
+
+
+@dispatch(Callable)
+def sexp(f, convert_args=True):
+    return sexp(RClass("function"), f, convert_args=convert_args)
 
 
 @dispatch(CLOSXP)
@@ -678,8 +689,13 @@ def sexp(s):
     return sexp(RClass("PyObject"), s)
 
 
-def robject(*args):
-    return RObject(sexp(*args))
+def robject(*args, **kwargs):
+    if len(args) == 2 and isinstance(args[0], text_type):
+        return RObject(sexp(RClass(args[0]), args[1], **kwargs))
+    elif len(args) == 1:
+        return RObject(sexp(args[0], **kwargs))
+    else:
+        raise TypeError("wrong number of arguments or argument types")
 
 
 def getoption_p(key):

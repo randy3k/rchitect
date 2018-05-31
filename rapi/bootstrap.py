@@ -47,7 +47,7 @@ def bootstrap(libR, verbose=True):
     from .interface import rapi_callback
     dll = internals.R_getEmbeddingDllInfo()
     CallEntries = (R_CallMethodDef * 2)()
-    CallEntries[0] = R_CallMethodDef(b"rapi_callback", cast(rapi_callback, c_void_p), 2)
+    CallEntries[0] = R_CallMethodDef(b"rapi_callback", cast(rapi_callback, c_void_p), 3)
     CallEntries[1] = R_CallMethodDef(None, None, 0)
     internals.R_registerRoutines(dll, None, CallEntries, None, None)
 

@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from ctypes import c_void_p, c_double, c_int, c_int32, c_int64
 from ctypes import Structure
 from ctypes import sizeof
+from six import text_type
 
 internals = None
 interface = None
@@ -95,6 +96,14 @@ class RObject(object):
 
     def __del__(self):
         internals.R_ReleaseObject(self.p)
+
+    def __repr__(self):
+        lang = interface.rlang(interface.rsym("print"), self.p)
+        output = interface.rcall_p(interface.rsym("capture.output"), lang)
+        if not internals.Rf_isNull(output) and internals.LENGTH(output) > 0:
+            return interface.rcopy(text_type, output)
+        else:
+            return interface.rclass(self.p, 1)
 
 
 _rclasses = {}
