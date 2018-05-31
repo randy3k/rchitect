@@ -51,5 +51,5 @@ def bootstrap(libR, verbose=True):
     CallEntries[1] = R_CallMethodDef(None, None, 0)
     internals.R_registerRoutines(dll, None, CallEntries, None, None)
 
-    from .namespace import make_rapi_namespace
-    make_rapi_namespace()
+    from .namespace import make_py_namespace
+    make_py_namespace()

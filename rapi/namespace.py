@@ -121,8 +121,14 @@ def pycall(fun, *args, **kwargs):
     return robject(RClass("PyObject"), ret)
 
 
+def pyimport(module):
+    import importlib
+    i = importlib.import_module(module)
+    return robject(RClass("PyObject"), i)
+
+
 def pyprint(s):
-    print(s)
+    print(repr(s))
 
 
 def py_to_r(obj):
@@ -145,18 +151,36 @@ def r_to_py_factory():
     return _
 
 
-def make_rapi_namespace():
-    # rapi namespace
+def pygetattr(obj, key):
+    child = getattr(obj, key)
+    if callable(child):
+        return robject(RClass("PyObject"), child)
+    else:
+        return robject(RClass("PyObject"), child)
+
+
+def fieldnames(obj, pattern=""):
+    try:
+        return list(k for k in obj.__dict__.keys() if not k.startswith("_"))
+    except Exception:
+        return None
+
+
+def make_py_namespace():
+    # py namespace
     import rapi
 
-    ns = make_namespace("rapi", version=rapi.__version__)
-    assign("rapi", robject(RClass("PyObject"), rapi), ns)
-    assign("pyprint", invisiblize(pyprint), ns)
+    ns = make_namespace("py", version=rapi.__version__)
+    assign("import", pyimport, ns)
     assign("pyeval", pyeval, ns)
     assign("pycall", pycall, ns)
+    assign("$.PyObject", pygetattr, ns)
+    assign(".DollarNames.PyObject", fieldnames, ns)
     assign("print.PyObject", invisiblize(pyprint), ns)
-    namespace_export(ns, ["rapi", "pyeval", "pycall", "pyprint"])
-    register_s3_methods(ns, [["print", "PyObject"]])
+    namespace_export(ns, ["import", "pyeval", "pycall"])
+    register_s3_methods(ns, [["print", "PyObject"],
+                             [".DollarNames", "PyObject"],
+                             ["$", "PyObject"]])
 
     def reticulate_s3_methods(pkgname, pkgpath):
         register_s3_method("reticulate", "py_to_r", "rapi.types.RObject", py_to_r)
