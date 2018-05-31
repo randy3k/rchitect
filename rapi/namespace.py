@@ -196,7 +196,7 @@ def make_py_namespace():
             p = id(obj)
             addr = Rf_protect(rcall_p(("reticulate", "py_eval"), str(p), convert=False))
             ret = Rf_protect(rcall_p(("reticulate", "py_call"), cast, addr, py_object))
-            value = rcall_p("$", ret, "value")
+            value = rcall_p(("reticulate", "py_get_attr"), ret, "value")
             Rf_unprotect(2)
             return value
 
