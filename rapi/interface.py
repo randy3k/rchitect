@@ -416,11 +416,6 @@ def rcopytype(_, s):
     return FunctionType
 
 
-@dispatch(typeof(default), SEXP)
-def rcopytype(_, s):
-    return SEXP
-
-
 @dispatch(typeof(RClass("PyObject")), EXTPTRSXP)
 def rcopytype(_, s):
     return py_object
@@ -433,7 +428,7 @@ def rcopytype(_, s):
 
 @dispatch(object, SEXP)
 def rcopytype(_, s):
-    return object
+    return SEXP
 
 
 @dispatch(SEXP)
@@ -441,7 +436,7 @@ def rcopy(s):
     s = sexp(s)
     for cls in rclass(s):
         T = rcopytype(RClass(cls), s)
-        if T is not object:
+        if T is not SEXP:
             return rcopy(T, s)
     T = rcopytype(default, s)
     return rcopy(T, s)
