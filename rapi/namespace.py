@@ -154,7 +154,7 @@ def r_to_py_factory():
 def pygetattr(obj, key):
     child = getattr(obj, key)
     if callable(child):
-        return robject(RClass("PyObject"), child)
+        return robject(RClass("PyCallable"), child)
     else:
         return robject(RClass("PyObject"), child)
 

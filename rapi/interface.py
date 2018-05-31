@@ -6,6 +6,7 @@ from ctypes import CFUNCTYPE, Structure, string_at
 from collections import OrderedDict
 from six import text_type
 from types import FunctionType
+from collections import Callable
 
 from .internals import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalEnv
 from .internals import R_ToplevelExec
@@ -561,6 +562,13 @@ def sexp(_, s):
     return p
 
 
+@dispatch(typeof(RClass("PyCallable")), Callable)
+def sexp(_, f):
+    p = sexp(f)
+    setclass(p, ["PyCallable", "PyObject"])
+    return p
+
+
 def sexp_dots():
     s = Rf_protect(Rf_list1(R_MissingArg))
     SET_TAG(s, R_DotsSymbol)
@@ -585,7 +593,7 @@ def rapi_callback(exptr, arglist):
         Rf_error(str(e).encode("utf-8"))
 
 
-@dispatch(FunctionType)
+@dispatch(Callable)
 def sexp(f):
     fextptr = Rf_protect(rextptr(f))
     dotlist = Rf_protect(rlang_p(rsym("list"), R_DotsSymbol))
@@ -610,7 +618,7 @@ def invisiblize(s):
     return res
 
 
-@dispatch((RObject, FunctionType))
+@dispatch((RObject, Callable))
 def invisiblize(f):
     return RObject(invisiblize(sexp(f)))
 
