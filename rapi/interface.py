@@ -320,6 +320,11 @@ def rcopy(_, s):
     return to_pyo(s).value
 
 
+@dispatch(typeof(py_object), CLOSXP)
+def rcopy(_, s):
+    return to_pyo(getattrib_p(s, "py_object")).value
+
+
 @dispatch(object, RObject)
 def rcopy(t, r):
     ret = rcopy(t, sexp(r))
@@ -375,6 +380,11 @@ def rcopytype(_, s):
 
 
 @dispatch(typeof(RClass("PyObject")), EXTPTRSXP)
+def rcopytype(_, s):
+    return py_object
+
+
+@dispatch(typeof(RClass("PyCallable")), CLOSXP)
 def rcopytype(_, s):
     return py_object
 
@@ -564,8 +574,10 @@ def sexp(_, s):
 
 @dispatch(typeof(RClass("PyCallable")), Callable)
 def sexp(_, f):
-    p = sexp(f)
+    p = Rf_protect(sexp(f))
+    setattrib(p, "py_object", sexp(RClass("PyObject"), f))
     setclass(p, ["PyCallable", "PyObject"])
+    Rf_unprotect(1)
     return p
 
 
@@ -671,7 +683,7 @@ def setoption(key, value):
 
 def getattrib_p(s, key):
     s = sexp(s)
-    return sexp(Rf_getAttrib(s, rsym(key) if isinstance(key, text_type) else key))
+    return sexp(Rf_getAttrib(s, rsym_p(key) if isinstance(key, text_type) else key))
 
 
 def getattrib(s, key):
@@ -682,7 +694,7 @@ def setattrib(s, key, value):
     s = sexp(s)
     v = Rf_protect(sexp(value))
     try:
-        Rf_setAttrib(s, rsym(key) if isinstance(key, text_type) else key, v)
+        Rf_setAttrib(s, rsym_p(key) if isinstance(key, text_type) else key, v)
     finally:
         Rf_unprotect(1)
 
