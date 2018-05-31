@@ -319,11 +319,6 @@ def rcopy(_, s):
     return to_pyo(s).value
 
 
-@dispatch(object, SEXP)
-def rcopy(_, s):
-    return s
-
-
 @dispatch(object, RObject)
 def rcopy(t, r):
     ret = rcopy(t, sexp(r))
@@ -335,42 +330,45 @@ def rcopy(t, r):
 
 # default conversion
 
-@dispatch(object, INTSXP)
+default = RClass("")
+
+
+@dispatch(typeof(default), INTSXP)
 def rcopytype(_, s):
     return int if LENGTH(s) == 1 else list
 
 
-@dispatch(object, LGLSXP)
+@dispatch(typeof(default), LGLSXP)
 def rcopytype(_, s):
     return bool if LENGTH(s) == 1 else list
 
 
-@dispatch(object, REALSXP)
+@dispatch(typeof(default), REALSXP)
 def rcopytype(_, s):
     return float if LENGTH(s) == 1 else list
 
 
-@dispatch(object, CPLXSXP)
+@dispatch(typeof(default), CPLXSXP)
 def rcopytype(_, s):
     return complex if LENGTH(s) == 1 else list
 
 
-@dispatch(object, RAWSXP)
+@dispatch(typeof(default), RAWSXP)
 def rcopytype(_, s):
     return bytes
 
 
-@dispatch(object, STRSXP)
+@dispatch(typeof(default), STRSXP)
 def rcopytype(_, s):
     return text_type if LENGTH(s) == 1 else list
 
 
-@dispatch(object, VECSXP)
+@dispatch(typeof(default), VECSXP)
 def rcopytype(_, s):
     return list if Rf_isNull(getnames_p(s)) else OrderedDict
 
 
-@dispatch(object, CLOSXP)
+@dispatch(typeof(default), CLOSXP)
 def rcopytype(_, s):
     return FunctionType
 
@@ -388,7 +386,11 @@ def rcopytype(_, s):
 @dispatch(SEXP)
 def rcopy(s):
     s = sexp(s)
-    T = rcopytype(RClass(rclass(s, 1)), s)
+    for cls in rclass(s):
+        T = rcopytype(RClass(cls), s)
+        if T is not object:
+            return rcopy(T, s)
+    T = rcopytype(default, s)
     return rcopy(T, s)
 
 
