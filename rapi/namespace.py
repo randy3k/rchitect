@@ -112,73 +112,67 @@ def package_event(pkg, event):
 
 # rapi namespace
 
-def pyeval(code):
-    return robject(RClass("PyObject"), eval(code))
-
-
-def pycall(fun, *args, **kwargs):
-    ret = fun(*args, **kwargs)
-    return robject(RClass("PyObject"), ret)
-
-
-def pyimport(module):
-    import importlib
-    i = importlib.import_module(module)
-    return robject(RClass("PyObject"), i)
-
-
-def pyprint(s):
-    print(repr(s))
-
-
-def py_to_r(obj):
-    pyobj = get("pyobj", obj)
-    a = to_pyo(sexp(pyobj))
-    return a.value
-
-
-def r_to_py_factory():
-    ctypes = rcall(rsym("reticulate", "import"), "ctypes")
-    cast = rcall(rsym("$"), ctypes, "cast")
-    py_object = rcall(rsym("$"), ctypes, "py_object")
-
-    def _(obj):
-        p = id(obj)
-        addr = rcall(rsym("reticulate", "py_eval"), str(p), convert=False)
-        ret = rcall(rsym("reticulate", "py_call"), cast, addr, py_object)
-        return rcall(rsym("$"), ret, "value")
-
-    return _
-
-
-def pygetattr(obj, key):
-    child = getattr(obj, key)
-    if callable(child):
-        return robject(RClass("PyCallable"), child)
-    else:
-        return robject(RClass("PyObject"), child)
-
-
-def fieldnames(obj, pattern=""):
-    try:
-        return list(k for k in obj.__dict__.keys() if not k.startswith("_"))
-    except Exception:
-        return None
-
-
 def make_py_namespace():
     # py namespace
     import rapi
+
+    def pyeval(code):
+        return robject(RClass("PyObject"), eval(code))
+
+    def pycall(fun, *args, **kwargs):
+        ret = fun(*args, **kwargs)
+        return robject(RClass("PyObject"), ret)
+
+    def pyimport(module):
+        import importlib
+        i = importlib.import_module(module)
+        return robject(RClass("PyObject"), i)
+
+    def pyprint(s):
+        print(repr(s))
+
+    def py_to_r(obj):
+        pyobj = get("pyobj", obj)
+        a = to_pyo(sexp(pyobj))
+        return a.value
+
+    def r_to_py_factory():
+        ctypes = rcall(rsym("reticulate", "import"), "ctypes")
+        cast = rcall(rsym("$"), ctypes, "cast")
+        py_object = rcall(rsym("$"), ctypes, "py_object")
+
+        def _(obj):
+            p = id(obj)
+            addr = rcall(rsym("reticulate", "py_eval"), str(p), convert=False)
+            ret = rcall(rsym("reticulate", "py_call"), cast, addr, py_object)
+            return rcall(rsym("$"), ret, "value")
+
+        return _
+
+    def pygetattr(obj, key):
+        child = getattr(obj, key)
+        if callable(child):
+            return robject(RClass("PyCallable"), child)
+        else:
+            return robject(RClass("PyObject"), child)
+
+    def pynames(obj, pattern=""):
+        try:
+            return list(k for k in obj.__dict__.keys() if not k.startswith("_"))
+        except Exception:
+            return None
 
     ns = make_namespace("py", version=rapi.__version__)
     assign("import", pyimport, ns)
     assign("pyeval", pyeval, ns)
     assign("pycall", pycall, ns)
-    assign("$.PyObject", pygetattr, ns)
-    assign(".DollarNames.PyObject", fieldnames, ns)
     assign("print.PyObject", invisiblize(pyprint), ns)
+    assign("names.PyObject", pynames, ns)
+    assign(".DollarNames.PyObject", pynames, ns)
+    assign("$.PyObject", pygetattr, ns)
     namespace_export(ns, ["import", "pyeval", "pycall"])
     register_s3_methods(ns, [["print", "PyObject"],
+                             ["names", "PyObject"],
                              [".DollarNames", "PyObject"],
                              ["$", "PyObject"]])
 
