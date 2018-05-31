@@ -233,6 +233,14 @@ def rprint(s):
 
 # conversion dispatches
 
+identity = type("identity", (), {})
+
+
+@dispatch(typeof(identity), NILSXP)
+def rcopy(_, s):
+    return s
+
+
 @dispatch(object, NILSXP)
 def rcopy(_, s):
     return None
@@ -325,6 +333,11 @@ def rcopy(_, s):
     return to_pyo(getattrib_p(s, "py_object")).value
 
 
+@dispatch(typeof(identity), SEXP)
+def rcopy(_, s):
+    return sexp(s)
+
+
 @dispatch(object, RObject)
 def rcopy(t, r):
     ret = rcopy(t, sexp(r))
@@ -387,6 +400,11 @@ def rcopytype(_, s):
 @dispatch(typeof(RClass("PyCallable")), CLOSXP)
 def rcopytype(_, s):
     return py_object
+
+
+@dispatch(typeof(default), SEXP)
+def rcopytype(_, s):
+    return identity
 
 
 @dispatch(object, SEXP)
@@ -652,7 +670,7 @@ def sexp(r):
 
 @dispatch(object)
 def sexp(s):
-    return s
+    return sexp(RClass("PyObject"), s)
 
 
 def robject(*args):
