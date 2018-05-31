@@ -13,27 +13,27 @@ from .externalptr import to_pyo
 
 
 def new_env(parent, hash=True):
-    return rcall(rsym("base", "new.env"), parent=parent, hash=hash)
+    return rcall(("base", "new.env"), parent=parent, hash=hash)
 
 
 def assign(name, value, envir):
-    rcall(rsym("base", "assign"), name, value, envir=envir)
+    rcall(("base", "assign"), name, value, envir=envir)
 
 
 def get_p(name, envir):
-    return rcall_p(rsym("base", "get"), name, envir=envir)
+    return rcall_p(("base", "get"), name, envir=envir)
 
 
 def get(name, envir):
-    return rcall(rsym("base", "get"), name, envir=envir)
+    return rcall(("base", "get"), name, envir=envir)
 
 
 def set_namespace_info(ns, which, val):
-    rcall(rsym("base", "setNamespaceInfo"), ns, which, val)
+    rcall(("base", "setNamespaceInfo"), ns, which, val)
 
 
 def get_namespace_info(ns, which):
-    return rcall(rsym("base", "getNamespaceInfo"), ns, which)
+    return rcall(("base", "getNamespaceInfo"), ns, which)
 
 
 # mirror https://github.com/wch/r-source/blob/trunk/src/library/base/R/namespace.R
@@ -73,13 +73,13 @@ def make_namespace(name, version=None, lib=None):
 
 
 def seal_namespace(ns):
-    sealed = rcopy(rcall(rsym("base", "environmentIsLocked"), ns))
+    sealed = rcopy(rcall(("base", "environmentIsLocked"), ns))
     if sealed:
-        name = rcopy(rcall(rsym("base", "getNamespaceName"), ns))
+        name = rcopy(rcall(("base", "getNamespaceName"), ns))
         raise Exception("namespace {} is already sealed".format(name))
-    rcall(rsym("base", "lockEnvironment"), ns, True)
-    parent = rcall(rsym("base", "parent.env"), ns)
-    rcall(rsym("base", "lockEnvironment"), parent, True)
+    rcall(("base", "lockEnvironment"), ns, True)
+    parent = rcall(("base", "parent.env"), ns)
+    rcall(("base", "lockEnvironment"), parent, True)
 
 
 def namespace_export(ns, vs):
@@ -96,23 +96,23 @@ def register_s3_methods(ns, methods):
         SET_STRING_ELT(m, 1 * len(methods) + i, Rf_mkChar(cls.encode("utf-8")))
         SET_STRING_ELT(m, 2 * len(methods) + i, Rf_mkChar((generic + "." + cls).encode("utf-8")))
 
-    rcall(rsym("base", "registerS3methods"), m, name, ns)
+    rcall(("base", "registerS3methods"), m, name, ns)
     Rf_unprotect(1)
 
 
 def register_s3_method(pkg, generic, cls, fun):
     rcall(
-        rsym("base", "registerS3method"),
+        ("base", "registerS3method"),
         generic, cls, fun,
         envir=rcall(rsym("asNamespace"), pkg))
 
 
 def set_hook(event, fun):
-    rcall(rsym("base", "setHook"), event, fun)
+    rcall(("base", "setHook"), event, fun)
 
 
 def package_event(pkg, event):
-    return rcall(rsym("base", "packageEvent"), pkg, event)
+    return rcall(("base", "packageEvent"), pkg, event)
 
 
 # rapi namespace
@@ -188,15 +188,15 @@ def make_py_namespace():
             a = to_pyo(pyobj)
             return a.value
 
-        ctypes = rcall(rsym("reticulate", "import"), "ctypes")
-        cast = rcall(rsym("$"), ctypes, "cast")
-        py_object = rcall(rsym("$"), ctypes, "py_object")
+        ctypes = rcall(("reticulate", "import"), "ctypes")
+        cast = rcall("$", ctypes, "cast")
+        py_object = rcall("$", ctypes, "py_object")
 
         def r_to_py(obj):
             p = id(obj)
-            addr = Rf_protect(rcall_p(rsym("reticulate", "py_eval"), str(p), convert=False))
-            ret = Rf_protect(rcall_p(rsym("reticulate", "py_call"), cast, addr, py_object))
-            value = rcall_p(rsym("$"), ret, "value")
+            addr = Rf_protect(rcall_p(("reticulate", "py_eval"), str(p), convert=False))
+            ret = Rf_protect(rcall_p(("reticulate", "py_call"), cast, addr, py_object))
+            value = rcall_p("$", ret, "value")
             Rf_unprotect(2)
             return value
 

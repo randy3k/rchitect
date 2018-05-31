@@ -56,6 +56,7 @@ class ProtectedEvalData(Structure):
     ]
 
 
+@CFUNCTYPE(None, c_void_p)
 def protectedEval(pdata_t):
     pdata = ProtectedEvalData.from_address(pdata_t)
     func = pdata.func
@@ -66,16 +67,13 @@ def protectedEval(pdata_t):
         Rf_error(("{}: {}".format(type(e).__name__, str(e))).encode("utf-8"))
 
 
-protectedEval_t = CFUNCTYPE(None, c_void_p)(protectedEval)
-
-
 def rexec_p(func, *data):
     ret = [None]
     pdata = ProtectedEvalData(
         cast(id(func), py_object),
         cast(id(data), py_object),
         cast(id(ret), py_object))
-    if R_ToplevelExec(protectedEval_t, byref(pdata)) == 0:
+    if R_ToplevelExec(protectedEval, byref(pdata)) == 0:
         raise RuntimeError("rexec encountered an error")
     return sexp(pdata.ret[0])
 
@@ -143,19 +141,42 @@ def reval_with_visible(string, env=R_GlobalEnv):
 
 
 def rlang_p(*args, **kwargs):
+    nprotect = 0
+    for a in args:
+        if isinstance(a, SEXP):
+            Rf_protect(a)
+            nprotect += 1
+    for v in kwargs.values():
+        if isinstance(v, SEXP):
+            Rf_protect(v)
+            nprotect += 1
     nargs = len(args) + len(kwargs)
     t = Rf_protect(Rf_allocVector(SEXPTYPE.LANGSXP, nargs))
+    nprotect += 1
     s = t
-    SETCAR(s, sexp(args[0]))
-    for a in args[1:]:
-        s = CDR(s)
-        SETCAR(s, sexp(a))
-    for k, v in kwargs.items():
-        s = CDR(s)
-        SETCAR(s, sexp(v))
-        SET_TAG(s, Rf_install(k.encode("utf-8")))
-    Rf_unprotect(1)
-    return sexp(t)
+    try:
+        fname = args[0]
+        if isinstance(fname, SEXP):
+            SETCAR(s, fname)
+        elif isinstance(fname, RObject):
+            SETCAR(s, fname.p)
+        elif isinstance(fname, text_type):
+            SETCAR(s, rsym_p(fname))
+        elif isinstance(fname, tuple) and len(fname) == 2:
+            SETCAR(s, rsym_p(*fname))
+        else:
+            ValueError("unexpected first argument")
+        for a in args[1:]:
+            s = CDR(s)
+            SETCAR(s, sexp(a))
+        for k, v in kwargs.items():
+            s = CDR(s)
+            SETCAR(s, sexp(v))
+            SET_TAG(s, Rf_install(k.encode("utf-8")))
+        ret = sexp(t)
+    finally:
+        Rf_unprotect(nprotect)
+    return ret
 
 
 def rlang(*args, **kwargs):
@@ -654,13 +675,10 @@ def sexp(f, convert_args=True):
 
 @dispatch(CLOSXP)
 def invisiblize(s):
-    body = Rf_protect(rcall_p(rsym("body"), s))
-    invisble_body = Rf_protect(rlang_p(rsym("invisible"), body))
-    lang = Rf_protect(rlang_p(rsym("function"), sexp_dots(), invisble_body))
-    try:
-        res = rexec_p(Rf_eval, lang, R_GlobalEnv)
-    finally:
-        Rf_unprotect(3)
+    body = rcall_p(rsym("body"), s)
+    invisble_body = rlang_p("invisible", body)
+    lang = rlang_p("function", sexp_dots(), invisble_body)
+    res = rexec_p(Rf_eval, lang, R_GlobalEnv)
     return res
 
 
@@ -712,12 +730,8 @@ def roption(key, default=None):
 
 
 def setoption(key, value):
-    kwargs = {}
-    kwargs[key] = Rf_protect(sexp(value))
-    try:
-        rcall_p(rsym("base", "options"), **kwargs)
-    finally:
-        Rf_unprotect(1)
+    kwargs = {key: value}
+    rcall_p(("base", "options"), **kwargs)
 
 
 def getattrib_p(s, key):
