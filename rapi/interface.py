@@ -233,7 +233,7 @@ def rprint(s):
 
 # conversion dispatches
 
-identity = type("identity", (), {})
+identity = type(str("identity"), (), {})
 
 
 @dispatch(typeof(type(None)), NILSXP)
