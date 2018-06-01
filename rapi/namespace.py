@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import tempfile
 import os
 from six import text_type
-from ctypes import py_object
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
@@ -121,59 +120,59 @@ def make_py_namespace():
     # py namespace
     import rapi
 
-    def pyimport(module):
+    def py_import(module):
         import importlib
         i = importlib.import_module(module)
         return sexp(RClass("PyObject"), i)
 
-    def pycall(fun, *args, **kwargs):
+    def py_call(fun, *args, **kwargs):
         ret = fun(*args, **kwargs)
         return sexp(RClass("PyObject"), ret)
 
-    def pycopy(*args):
+    def py_copy(*args):
         return sexp(*args)
 
-    def pyeval(code):
+    def py_eval(code):
         return sexp(RClass("PyObject"), eval(code))
 
-    def pyobject(*args):
+    def py_object(*args):
         if len(args) == 1:
             return sexp(RClass("PyObject"), rcopy(args[0]))
         elif len(args) == 2:
             return sexp(RClass("PyObject"), rcopy(rcopy(object, args[0]), args[1]))
 
-    def pyprint(s):
+    def py_print(s):
         rcall_p(rsym("cat"), repr(s) + "\n")
 
-    def pygetattr(obj, key):
+    def py_getattr(obj, key):
         child = getattr(obj, key)
         if callable(child):
             return sexp(RClass("PyCallable"), child)
         else:
             return sexp(RClass("PyObject"), child)
 
-    def pynames(obj, pattern=""):
+    def py_names(obj, pattern=""):
         try:
             return list(k for k in obj.__dict__.keys() if not k.startswith("_"))
         except Exception:
             return None
 
     ns = make_namespace("py", version=rapi.__version__)
-    assign("import", pyimport, ns)
-    assign("pycall", pycall, ns)
-    assign("pycopy", pycopy, ns)
-    assign("pyeval", pyeval, ns)
-    assign("pyobject", robject(pyobject, convert_args=False), ns)
-    assign("names.PyObject", pynames, ns)
-    assign("print.PyObject", invisiblize(pyprint), ns)
-    assign(".DollarNames.PyObject", pynames, ns)
-    assign("$.PyObject", pygetattr, ns)
+    assign("py_import", py_import, ns)
+    assign("py_call", py_call, ns)
+    assign("py_copy", py_copy, ns)
+    assign("py_eval", py_eval, ns)
+    assign("py_object", robject(py_object, convert_args=False), ns)
+    assign("names.PyObject", py_names, ns)
+    assign("print.PyObject", invisiblize(py_print), ns)
+    assign(".DollarNames.PyObject", py_names, ns)
+    assign("$.PyObject", py_getattr, ns)
     namespace_export(ns, [
-        "import",
-        "pycall",
-        "pycopy",
-        "pyeval",
-        "pyobject"
+        "py_import",
+        "py_call",
+        "py_copy",
+        "py_eval",
+        "py_object"
     ])
     register_s3_methods(ns, [
         ["names", "PyObject"],
@@ -196,7 +195,7 @@ def make_py_namespace():
             p = id(obj)
             addr = Rf_protect(rcall_p(("reticulate", "py_eval"), str(p), convert=False))
             ret = Rf_protect(rcall_p(("reticulate", "py_call"), cast, addr, py_object))
-            value = rcall_p(("reticulate", "py_get_attr"), ret, "value")
+            value = rcall_p(("reticulate", "py_getattr"), ret, "value")
             Rf_unprotect(2)
             return value
 
