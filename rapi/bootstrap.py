@@ -1,9 +1,7 @@
 from ctypes import cast, c_void_p
 
 from . import internals
-from . import types
 from .utils import cglobal
-from .internals import R_CallMethodDef
 
 
 def notavaiable(*args):
@@ -39,12 +37,31 @@ def bootstrap(libR, verbose=True):
             if verbose:
                 print("warning: cannot import constant {}".format(name))
 
-    from . import interface
+    from . import types
+    from .types import RObject
+    from .internals import R_PreserveObject, R_ReleaseObject, Rf_isNull, LENGTH, TYPEOF
+    from .interface import sexp, rclass
+    from .interface import rlang, rcall, rcopy
 
-    types.internals = internals
-    types.interface = interface
+    types.sexpnum = lambda s: TYPEOF(s)
 
+    RObject.sexp = lambda self, p: sexp(p)
+    RObject.preserve = lambda self, p: R_PreserveObject(p)
+    RObject.release = lambda self, p: R_ReleaseObject(p)
+
+    def _repr(self):
+        output = rcall("capture.output", rlang("print", self.p))
+        name = "<class 'RObject{{{}}}'>\n".format(str(type(self.p).__name__))
+        if not Rf_isNull(sexp(output)) and LENGTH(sexp(output)) > 0:
+            return name + "\n".join(rcopy(list, output))
+        else:
+            return name
+
+    RObject.__repr__ = _repr
+
+    from .internals import R_CallMethodDef
     from .interface import rapi_callback
+
     dll = internals.R_getEmbeddingDllInfo()
     CallEntries = (R_CallMethodDef * 2)()
     CallEntries[0] = R_CallMethodDef(b"rapi_callback", cast(rapi_callback, c_void_p), 3)

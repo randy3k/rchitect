@@ -4,9 +4,6 @@ from ctypes import Structure
 from ctypes import sizeof
 from six import text_type
 
-internals = None
-interface = None
-
 
 class SEXP(c_void_p):
     pass
@@ -63,8 +60,9 @@ def sexptype(s):
         return _sexptype_map[sexpnum(s)]
 
 
+# to be injected by bootstrap
 def sexpnum(s):
-    return internals.TYPEOF(s)
+    pass
 
 
 class Rcomplex(Structure):
@@ -87,24 +85,27 @@ R_xlen_t = ptrdiff_t
 class RObject(object):
     p = None
 
+    def sexp(self, p):
+        # to be injected by bootstrap
+        return p
+
+    def preserve(self):
+        # to be injected by bootstrap
+        pass
+
+    def release(self):
+        # to be injected by bootstrap
+        pass
+
     def __init__(self, p):
-        p = interface.sexp(p)
+        p = self.sexp(p)
         if not isinstance(p, SEXP):
             raise Exception("p is not a SEXP or cannot be converted to a SEXP")
         self.p = p
-        internals.R_PreserveObject(p)
+        self.preserve(p)
 
     def __del__(self):
-        internals.R_ReleaseObject(self.p)
-
-    def __repr__(self):
-        lang = interface.rlang(interface.rsym("print"), self.p)
-        output = interface.rcall_p(interface.rsym("capture.output"), lang)
-        if not internals.Rf_isNull(output) and internals.LENGTH(output) > 0:
-            return "<class 'RObject{{{}}}'>\n".format(str(type(self.p).__name__)) + \
-                        "\n".join(interface.rcopy(list, output))
-        else:
-            return interface.rclass(self.p, 1)
+        self.release(self.p)
 
 
 _rclasses = {}
