@@ -252,8 +252,7 @@ def rprint(s):
         Rf_unprotect(1)
 
 
-# conversion dispatches
-
+# r to python conversions
 
 @dispatch(typeof(type(None)), NILSXP)
 def rcopy(_, s):
@@ -371,7 +370,7 @@ def rcopy(_, s):
     return s
 
 
-# default conversion
+# default conversions
 
 default = RClass("")
 
@@ -461,50 +460,45 @@ def rcopy(r):
     return r
 
 
-@dispatch(int)
-def sexp(s):
-    return rint_p(s)
+# python to r conversions
+
+@dispatch(typeof(RClass("NULL")), type(None))
+def sexp(_, n):
+    return R_NilValue
 
 
-@dispatch(float)
-def sexp(s):
-    return rdouble_p(s)
-
-
-@dispatch(bool)
-def sexp(s):
+@dispatch(typeof(RClass("logical")), bool)
+def sexp(_, s):
     return rlogical_p(s)
 
 
-@dispatch(complex)
-def sexp(s):
+@dispatch(typeof(RClass("integer")), int)
+def sexp(_, s):
+    return rint_p(s)
+
+
+@dispatch(typeof(RClass("numeric")), float)
+def sexp(_, s):
+    return rdouble_p(s)
+
+
+@dispatch(typeof(RClass("complex")), complex)
+def sexp(_, s):
     return sexp(Rf_ScalarComplex(Rcomplex(r=s.real, i=s.imag)))
 
 
-@dispatch(text_type)
-def sexp(s):
+@dispatch(typeof(RClass("character")), text_type)
+def sexp(_, s):
     return rstring_p(s)
 
 
-@dispatch(bytes)
-def sexp(s):
+@dispatch(typeof(RClass("raw")), bytes)
+def sexp(_, s):
     n = len(s)
-    x = Rf_protect(Rf_allocVector(RAWSXP, n))
+    x = Rf_protect(Rf_allocVector(SEXPTYPE.RAWSXP, n))
     try:
         for i in range(n):
             RAW(x)[i] = s[i]
-    finally:
-        Rf_unprotect(1)
-    return sexp(x)
-
-
-@dispatch(typeof(RClass("integer")), list)
-def sexp(_, s):
-    n = len(s)
-    x = Rf_protect(Rf_allocVector(SEXPTYPE.INTSXP, n))
-    try:
-        for i in range(n):
-            INTEGER(x)[i] = s[i]
     finally:
         Rf_unprotect(1)
     return sexp(x)
@@ -575,23 +569,6 @@ def sexp(_, s):
     return sexp(x)
 
 
-@dispatch(list)
-def sexp(s):
-    if all(isinstance(x, int) for x in s):
-        x = sexp(RClass("integer"), s)
-    elif all(isinstance(x, bool) for x in s):
-        x = sexp(RClass("logical"), s)
-    elif all(isinstance(x, float) for x in s):
-        x = sexp(RClass("numeric"), s)
-    elif all(isinstance(x, complex) for x in s):
-        x = sexp(RClass("complex"), s)
-    elif all(isinstance(x, text_type) for x in s):
-        x = sexp(RClass("character"), s)
-    else:
-        x = sexp(RClass("list"), s)
-    return x
-
-
 @dispatch(typeof(RClass("list")), (dict, OrderedDict))
 def sexp(_, s):
     v = Rf_protect(sexp(RClass("list"), list(s.values())))
@@ -600,27 +577,6 @@ def sexp(_, s):
     finally:
         Rf_unprotect(1)
     return v
-
-
-@dispatch((dict, OrderedDict))
-def sexp(s):
-    return sexp(RClass("list"), s)
-
-
-@dispatch(typeof(RClass("PyObject")), object)
-def sexp(_, s):
-    p = rextptr(s)
-    setclass(p, "PyObject")
-    return p
-
-
-@dispatch(typeof(RClass("PyCallable")), Callable)
-def sexp(_, f):
-    p = Rf_protect(sexp(f))
-    setattrib(p, "py_object", sexp(RClass("PyObject"), f))
-    setclass(p, ["PyCallable", "PyObject"])
-    Rf_unprotect(1)
-    return p
 
 
 def sexp_dots():
@@ -667,6 +623,71 @@ def sexp(_, f, convert_args=True, invisible=False):
     return res
 
 
+@dispatch(typeof(RClass("PyObject")), object)
+def sexp(_, s):
+    p = rextptr(s)
+    setclass(p, "PyObject")
+    return p
+
+
+@dispatch(typeof(RClass("PyCallable")), Callable)
+def sexp(_, f):
+    p = Rf_protect(sexp(f))
+    setattrib(p, "py_object", sexp(RClass("PyObject"), f))
+    setclass(p, ["PyCallable", "PyObject"])
+    Rf_unprotect(1)
+    return p
+
+
+# default conversions
+
+@dispatch(bool)
+def sexp(s):
+    return sexp(RClass("logical"), s)
+
+
+@dispatch(int)
+def sexp(s):
+    return sexp(RClass("integer"), s)
+
+
+@dispatch(float)
+def sexp(s):
+    return sexp(RClass("numeric"), s)
+
+
+@dispatch(complex)
+def sexp(s):
+    return sexp(RClass("complex"), s)
+
+
+@dispatch(text_type)
+def sexp(s):
+    return sexp(RClass("character"), s)
+
+
+@dispatch(list)
+def sexp(s):
+    if all(isinstance(x, int) for x in s):
+        x = sexp(RClass("integer"), s)
+    elif all(isinstance(x, bool) for x in s):
+        x = sexp(RClass("logical"), s)
+    elif all(isinstance(x, float) for x in s):
+        x = sexp(RClass("numeric"), s)
+    elif all(isinstance(x, complex) for x in s):
+        x = sexp(RClass("complex"), s)
+    elif all(isinstance(x, text_type) for x in s):
+        x = sexp(RClass("character"), s)
+    else:
+        x = sexp(RClass("list"), s)
+    return x
+
+
+@dispatch((dict, OrderedDict))
+def sexp(s):
+    return sexp(RClass("list"), s)
+
+
 @dispatch(Callable)
 def sexp(f, convert_args=True, invisible=False):
     return sexp(RClass("function"), f, convert_args=convert_args, invisible=invisible)
@@ -700,6 +721,8 @@ def robject(*args, **kwargs):
     else:
         raise TypeError("wrong number of arguments or argument types")
 
+
+# misc functions
 
 def getoption_p(key):
     return Rf_GetOption1(Rf_install(key.encode("utf-8")))
