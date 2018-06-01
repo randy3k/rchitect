@@ -101,7 +101,7 @@ class RObject(object):
         lang = interface.rlang(interface.rsym("print"), self.p)
         output = interface.rcall_p(interface.rsym("capture.output"), lang)
         if not internals.Rf_isNull(output) and internals.LENGTH(output) > 0:
-            return interface.rcopy(text_type, output)
+            return "\n".join(interface.rcopy(list, output))
         else:
             return interface.rclass(self.p, 1)
 
