@@ -25,8 +25,7 @@ from .internals import R_MissingArg, R_DotsSymbol, Rf_list1
 from .internals import R_Visible
 
 
-from .types import sexptype as _sexptype
-from .types import SEXP, SEXPTYPE, Rcomplex, RObject, RClass
+from .types import SEXP, SEXPTYPE, sexptype, Rcomplex, RObject, RClass
 from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
 from .types import CLOSXP, EXTPTRSXP
 from .dispatch import dispatch, typeof
@@ -680,7 +679,7 @@ def sexp(n):
 
 @dispatch(SEXP)
 def sexp(s):
-    return cast(s, _sexptype(s))
+    return cast(s, sexptype(s))
 
 
 @dispatch(RObject)
