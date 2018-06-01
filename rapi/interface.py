@@ -342,12 +342,12 @@ def rcopy(_, s):
     return _
 
 
-@dispatch(typeof(py_object), EXTPTRSXP)
+@dispatch(typeof(object), EXTPTRSXP)
 def rcopy(_, s):
     return to_pyo(s).value
 
 
-@dispatch(typeof(py_object), CLOSXP)
+@dispatch(typeof(object), CLOSXP)
 def rcopy(_, s):
     return to_pyo(getattrib_p(s, "py_object")).value
 
@@ -418,12 +418,12 @@ def rcopytype(_, s):
 
 @dispatch(typeof(RClass("PyObject")), EXTPTRSXP)
 def rcopytype(_, s):
-    return py_object
+    return object
 
 
 @dispatch(typeof(RClass("PyCallable")), CLOSXP)
 def rcopytype(_, s):
-    return py_object
+    return object
 
 
 @dispatch(object, SEXP)
