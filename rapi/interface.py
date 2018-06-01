@@ -656,30 +656,20 @@ def rapi_callback(exptr, arglist, _convert):
 
 
 @dispatch(typeof(RClass("function")), Callable)
-def sexp(_, f, convert_args=True):
-    fextptr = Rf_protect(rextptr(f))
-    dotlist = Rf_protect(rlang_p(rsym("list"), R_DotsSymbol))
-    body = Rf_protect(rlang_p(rsym(".Call"), "rapi_callback", fextptr, dotlist, convert_args))
-    try:
-        lang = rlang_p(rsym("function"), sexp_dots(), body)
-        res = rexec_p(Rf_eval, lang, R_GlobalEnv)
-    finally:
-        Rf_unprotect(3)
+def sexp(_, f, convert_args=True, invisible=False):
+    fextptr = rextptr(f)
+    dotlist = rlang_p("list", R_DotsSymbol)
+    body = rlang_p(".Call", "rapi_callback", fextptr, dotlist, convert_args)
+    if invisible:
+        body = rlang_p("invisible", body)
+    lang = rlang_p(rsym("function"), sexp_dots(), body)
+    res = rexec_p(Rf_eval, lang, R_GlobalEnv)
     return res
 
 
 @dispatch(Callable)
-def sexp(f, convert_args=True):
-    return sexp(RClass("function"), f, convert_args=convert_args)
-
-
-@dispatch(CLOSXP)
-def invisiblize(s):
-    body = rcall_p(rsym("body"), s)
-    invisble_body = rlang_p("invisible", body)
-    lang = rlang_p("function", sexp_dots(), invisble_body)
-    res = rexec_p(Rf_eval, lang, R_GlobalEnv)
-    return res
+def sexp(f, convert_args=True, invisible=False):
+    return sexp(RClass("function"), f, convert_args=convert_args, invisible=invisible)
 
 
 @dispatch((RObject, Callable))

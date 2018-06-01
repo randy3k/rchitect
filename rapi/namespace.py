@@ -6,7 +6,7 @@ from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
-from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib, invisiblize, sexp
+from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib, sexp
 from .types import RClass, SEXPTYPE
 from .externalptr import to_pyo
 
@@ -164,7 +164,7 @@ def make_py_namespace():
     assign("py_eval", py_eval, ns)
     assign("py_object", robject(py_object, convert_args=False), ns)
     assign("names.PyObject", py_names, ns)
-    assign("print.PyObject", invisiblize(py_print), ns)
+    assign("print.PyObject", robject(py_print, invisible=True), ns)
     assign(".DollarNames.PyObject", py_names, ns)
     assign("$.PyObject", py_getattr, ns)
     namespace_export(ns, [
