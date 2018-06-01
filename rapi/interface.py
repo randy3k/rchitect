@@ -378,62 +378,62 @@ default = RClass("")
 
 
 @dispatch(typeof(default), NILSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return type(None)
 
 
 @dispatch(typeof(default), INTSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return int if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), LGLSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return bool if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), REALSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return float if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), CPLXSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return complex if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), RAWSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return bytes
 
 
 @dispatch(typeof(default), STRSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return text_type if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), VECSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return list if Rf_isNull(getnames_p(s)) else OrderedDict
 
 
 @dispatch(typeof(default), CLOSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return FunctionType
 
 
 @dispatch(typeof(RClass("PyObject")), EXTPTRSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return object
 
 
 @dispatch(typeof(RClass("PyCallable")), CLOSXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return object
 
 
 @dispatch(object, SEXP)
-def rcopytype(_, s):
+def rcopyrule(_, s):
     return RObject
 
 
@@ -441,10 +441,10 @@ def rcopytype(_, s):
 def rcopy(s):
     s = sexp(s)
     for cls in rclass(s):
-        T = rcopytype(RClass(cls), s)
+        T = rcopyrule(RClass(cls), s)
         if T is not RObject:
             return rcopy(T, s)
-    T = rcopytype(default, s)
+    T = rcopyrule(default, s)
     return rcopy(T, s)
 
 
