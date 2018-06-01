@@ -352,9 +352,9 @@ def rcopy(_, s):
     return to_pyo(getattrib_p(s, "py_object")).value
 
 
-@dispatch(typeof(SEXP), SEXP)
+@dispatch(typeof(RObject), SEXP)
 def rcopy(_, s):
-    return sexp(s)
+    return RObject(sexp(s))
 
 
 @dispatch(object, RObject)
@@ -364,6 +364,11 @@ def rcopy(t, r):
         return RObject(ret)
     else:
         return ret
+
+
+@dispatch(typeof(RObject), RObject)
+def rcopy(_, s):
+    return s
 
 
 # default conversion
@@ -428,7 +433,7 @@ def rcopytype(_, s):
 
 @dispatch(object, SEXP)
 def rcopytype(_, s):
-    return SEXP
+    return RObject
 
 
 @dispatch(SEXP)
@@ -436,7 +441,7 @@ def rcopy(s):
     s = sexp(s)
     for cls in rclass(s):
         T = rcopytype(RClass(cls), s)
-        if T is not SEXP:
+        if T is not RObject:
             return rcopy(T, s)
     T = rcopytype(default, s)
     return rcopy(T, s)

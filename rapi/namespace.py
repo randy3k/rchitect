@@ -140,7 +140,7 @@ def make_py_namespace():
         if len(args) == 1:
             return sexp(RClass("PyObject"), rcopy(args[0]))
         elif len(args) == 2:
-            return sexp(RClass("PyObject"), rcopy(rcopy(py_object, args[0]), args[1]))
+            return sexp(RClass("PyObject"), rcopy(rcopy(object, args[0]), args[1]))
 
     def pyprint(s):
         rcall_p(rsym("cat"), repr(s) + "\n")
