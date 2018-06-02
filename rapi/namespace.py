@@ -165,12 +165,24 @@ def make_py_namespace():
         rcall_p(rsym("cat"), repr(s) + "\n")
 
     def py_setattr(obj, key, value):
-        setattr(obj, key, value)
-        return as_py_robject(obj)
+        Rf_protect(obj)
+        Rf_protect(key)
+        Rf_protect(value)
+        try:
+            setattr(rcopy(object, obj), rcopy(key), rcopy(value))
+        finally:
+            Rf_unprotect(3)
+        return obj
 
     def py_setitem(obj, key, value):
-        obj[key] = value
-        return as_py_robject(obj)
+        Rf_protect(obj)
+        Rf_protect(key)
+        Rf_protect(value)
+        try:
+            rcopy(object, obj)[rcopy(key)] = rcopy(value)
+        finally:
+            Rf_unprotect(3)
+        return obj
 
     ns = make_namespace("py", version=rapi.__version__)
     assign("py_import", py_import, ns)
@@ -183,8 +195,8 @@ def make_py_namespace():
     assign(".DollarNames.PyObject", py_names, ns)
     assign("$.PyObject", py_getattr, ns)
     assign("[.PyObject", py_getitem, ns)
-    assign("$<-.PyObject", py_setattr, ns)
-    assign("[<-.PyObject", py_setitem, ns)
+    assign("$<-.PyObject", robject(py_setattr, convert_args=False), ns)
+    assign("[<-.PyObject", robject(py_setitem, convert_args=False), ns)
     namespace_export(ns, [
         "py_import",
         "py_call",
