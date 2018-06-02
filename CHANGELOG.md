@@ -1,3 +1,20 @@
+# v0.0.12
+
+Changes since v0.0.11:
+
+  Other:
+   - use pythonapi to protect pyobject vis Py_IncRef/Py_DecRef
+   - add _convert arguemnt in rcall
+   - register py namespace
+   - py_eval, py_call, py_import etc via namespace py
+   - allow copy as PyCallable and PyObject objects
+   - allow to make invisible R function
+   - various improvements in object conversion
+
+  Contributors:
+   - Randy Lai
+
+
 # v0.0.11
 
 Changes since v0.0.7:
