@@ -16,12 +16,15 @@ _data_types = {}
 
 def typeof(t):
     if isinstance(t, type):
-        if t not in _data_types:
-            _data_types[t] = DataType(
+        try:
+            return _data_types[t]
+        except KeyError:
+            T = DataType(
                 str("DataType.{}".format(t.__name__)),
                 (type,),
                 {"t": t, "__new__": lambda cls: cls.t})
-        return _data_types[t]
+            _data_types[t] = T
+            return T
     else:
         return type(t)
 
