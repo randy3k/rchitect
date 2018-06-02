@@ -270,10 +270,9 @@ def notavaiable(*args):
 
 
 def bootstrap(libR, verbose=True):
-    from . import types
     from .types import RObject
     from .internals import _function_registry, _sexp_registry, _constant_registry
-    from .internals import R_PreserveObject, R_ReleaseObject, Rf_isNull, LENGTH, TYPEOF
+    from .internals import R_PreserveObject, R_ReleaseObject, Rf_isNull, LENGTH
     from .interface import sexp, rlang, rcall, rcopy
 
     for name, (sign, setter) in _function_registry.items():
