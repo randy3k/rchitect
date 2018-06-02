@@ -135,17 +135,15 @@ def make_py_namespace():
     def py_eval(code):
         return sexp(RClass("PyObject"), eval(code))
 
-    def py_object(*args):
-        if len(args) == 1:
-            return sexp(RClass("PyObject"), rcopy(args[0]))
-        elif len(args) == 2:
-            return sexp(RClass("PyObject"), rcopy(rcopy(object, args[0]), args[1]))
-
-    def py_print(s):
-        rcall_p(rsym("cat"), repr(s) + "\n")
-
     def py_getattr(obj, key):
         child = getattr(obj, key)
+        if callable(child):
+            return sexp(RClass("PyCallable"), child)
+        else:
+            return sexp(RClass("PyObject"), child)
+
+    def py_getitem(obj, key):
+        child = obj[key]
         if callable(child):
             return sexp(RClass("PyCallable"), child)
         else:
@@ -157,6 +155,15 @@ def make_py_namespace():
         except Exception:
             return None
 
+    def py_object(*args):
+        if len(args) == 1:
+            return sexp(RClass("PyObject"), rcopy(args[0]))
+        elif len(args) == 2:
+            return sexp(RClass("PyObject"), rcopy(rcopy(object, args[0]), args[1]))
+
+    def py_print(s):
+        rcall_p(rsym("cat"), repr(s) + "\n")
+
     ns = make_namespace("py", version=rapi.__version__)
     assign("py_import", py_import, ns)
     assign("py_call", py_call, ns)
@@ -167,6 +174,7 @@ def make_py_namespace():
     assign("print.PyObject", robject(py_print, invisible=True), ns)
     assign(".DollarNames.PyObject", py_names, ns)
     assign("$.PyObject", py_getattr, ns)
+    assign("[.PyObject", py_getitem, ns)
     namespace_export(ns, [
         "py_import",
         "py_call",
@@ -178,7 +186,8 @@ def make_py_namespace():
         ["names", "PyObject"],
         ["print", "PyObject"],
         [".DollarNames", "PyObject"],
-        ["$", "PyObject"]
+        ["$", "PyObject"],
+        ["[", "PyObject"]
     ])
 
     def reticulate_s3_methods(pkgname, pkgpath):
