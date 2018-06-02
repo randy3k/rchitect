@@ -1,6 +1,6 @@
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy, robject
 from .interface import process_events
-from .setup import Machine
+from .bootstrap import Machine
 
 
 __all__ = [
@@ -45,9 +45,6 @@ def start(
                 process_events()
 
         IPython.terminal.pt_inputhooks.register("r", inputhook)
-
-    from .namespace import register_py_namespace
-    register_py_namespace()
 
 
 def get_machine():
