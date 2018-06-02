@@ -120,6 +120,12 @@ def make_py_namespace():
     # py namespace
     import rapi
 
+    def as_py_robject(obj):
+        if callable(obj):
+            return sexp(RClass("PyCallable"), obj)
+        else:
+            return sexp(RClass("PyObject"), obj)
+
     def py_import(module):
         import importlib
         i = importlib.import_module(module)
@@ -137,17 +143,11 @@ def make_py_namespace():
 
     def py_getattr(obj, key):
         child = getattr(obj, key)
-        if callable(child):
-            return sexp(RClass("PyCallable"), child)
-        else:
-            return sexp(RClass("PyObject"), child)
+        return as_py_robject(child)
 
     def py_getitem(obj, key):
         child = obj[key]
-        if callable(child):
-            return sexp(RClass("PyCallable"), child)
-        else:
-            return sexp(RClass("PyObject"), child)
+        return as_py_robject(child)
 
     def py_names(obj, pattern=""):
         try:
@@ -164,6 +164,14 @@ def make_py_namespace():
     def py_print(s):
         rcall_p(rsym("cat"), repr(s) + "\n")
 
+    def py_setattr(obj, key, value):
+        setattr(obj, key, value)
+        return as_py_robject(obj)
+
+    def py_setitem(obj, key, value):
+        obj[key] = value
+        return as_py_robject(obj)
+
     ns = make_namespace("py", version=rapi.__version__)
     assign("py_import", py_import, ns)
     assign("py_call", py_call, ns)
@@ -175,6 +183,8 @@ def make_py_namespace():
     assign(".DollarNames.PyObject", py_names, ns)
     assign("$.PyObject", py_getattr, ns)
     assign("[.PyObject", py_getitem, ns)
+    assign("$<-.PyObject", py_setattr, ns)
+    assign("[<-.PyObject", py_setitem, ns)
     namespace_export(ns, [
         "py_import",
         "py_call",
@@ -187,10 +197,12 @@ def make_py_namespace():
         ["print", "PyObject"],
         [".DollarNames", "PyObject"],
         ["$", "PyObject"],
-        ["[", "PyObject"]
+        ["[", "PyObject"],
+        ["$<-", "PyObject"],
+        ["[<-", "PyObject"]
     ])
 
-    def reticulate_s3_methods(pkgname, pkgpath):
+    def register_reticulate_s3_methods(pkgname, pkgpath):
         def py_to_r(obj):
             pyobj = get_p("pyobj", obj)
             a = to_pyo(pyobj)
@@ -211,4 +223,4 @@ def make_py_namespace():
         register_s3_method("reticulate", "py_to_r", "rapi.types.RObject", py_to_r)
         register_s3_method("reticulate", "r_to_py", "PyObject", r_to_py)
 
-    set_hook(package_event("reticulate", "onLoad"), reticulate_s3_methods)
+    set_hook(package_event("reticulate", "onLoad"), register_reticulate_s3_methods)
