@@ -1,6 +1,6 @@
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy, robject
-from .interface import process_events
 from .bootstrap import Machine
+from .ipython_hook import register_hook
 
 
 __all__ = [
@@ -30,21 +30,7 @@ def start(
 
     m = Machine(verbose=verbose)
     m.start(arguments=arguments)
-
-    try:
-        import IPython
-        shell = IPython.get_ipython()
-    except ImportError:
-        shell = None
-
-    if shell and IPython.__version__ >= "5":
-        def inputhook(context):
-            while True:
-                if context.input_is_ready():
-                    break
-                process_events()
-
-        IPython.terminal.pt_inputhooks.register("r", inputhook)
+    register_hook()
 
 
 def get_machine():

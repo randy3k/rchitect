@@ -302,8 +302,6 @@ def bootstrap(libR, verbose=True):
             if verbose:
                 print("warning: cannot import constant {}".format(name))
 
-    types.sexpnum = lambda s: TYPEOF(s)
-
     RObject.sexp = lambda self, p: sexp(p)
     RObject.preserve = lambda self, p: R_PreserveObject(p)
     RObject.release = lambda self, p: R_ReleaseObject(p)
