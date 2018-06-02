@@ -203,7 +203,8 @@ class Machine(object):
 
     def __init__(self, rhome=None, set_default_callbacks=True, verbose=False):
 
-        Machine.instance = self
+        if not self.instance:
+            Machine.instance = self
 
         self.verbose = verbose
 
@@ -236,7 +237,7 @@ class Machine(object):
                 "--no-restore"
             ]):
 
-        if self.bootstrapped:
+        if self.instance and self.instance.bootstrapped:
             raise RuntimeError("R has been started.")
 
         initialized = cglobal("R_NilValue", self.libR).value is not None
@@ -256,10 +257,10 @@ class Machine(object):
 
             self.libR.setup_Rmainloop()
 
-        self.bootstrapped = True
-
         from .bootstrap import bootstrap
-        bootstrap(self.libR, self.verbose)
+        bootstrap(self.libR, verbose=self.verbose)
+
+        self.bootstrapped = True
 
     def run_loop(self):
         self.libR.run_Rmainloop()

@@ -46,6 +46,9 @@ def start(
 
         IPython.terminal.pt_inputhooks.register("r", inputhook)
 
+    from .namespace import register_py_namespace
+    register_py_namespace()
+
 
 def get_machine():
     return Machine.instance

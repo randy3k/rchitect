@@ -114,11 +114,12 @@ def package_event(pkg, event):
     return rcall(("base", "packageEvent"), pkg, event)
 
 
-# rapi namespace
+# py namespace
 
-def make_py_namespace():
-    # py namespace
-    import rapi
+def register_py_namespace(name=".py", version=None):
+    if not version:
+        import rapi
+        version = rapi.__version__
 
     def as_py_robject(obj):
         if callable(obj):
@@ -184,7 +185,7 @@ def make_py_namespace():
             Rf_unprotect(3)
         return obj
 
-    ns = make_namespace("py", version=rapi.__version__)
+    ns = make_namespace(name, version=version)
     assign("py_import", py_import, ns)
     assign("py_call", py_call, ns)
     assign("py_copy", py_copy, ns)
