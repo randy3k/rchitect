@@ -4,6 +4,8 @@ from ctypes import Structure
 from ctypes import sizeof
 from six import text_type
 
+from .dispatch import dispatch, DataType
+
 
 class SEXP(c_void_p):
     pass
@@ -53,16 +55,9 @@ for name in SEXPTYPE._fields:
     _sexptype_map[v] = t
 
 
+@dispatch(int)
 def sexptype(s):
-    if isinstance(s, int):
-        return _sexptype_map[s]
-    else:
-        return _sexptype_map[sexpnum(s)]
-
-
-# to be injected by bootstrap
-def sexpnum(s):
-    pass
+    return _sexptype_map[s]
 
 
 class Rcomplex(Structure):
@@ -113,5 +108,5 @@ _rclasses = {}
 
 def RClass(rcls):
     if rcls not in _rclasses:
-        _rclasses[rcls] = type(str(rcls), (type,), {})
+        _rclasses[rcls] = type(str("RClass." + rcls), (type,), {})
     return _rclasses[rcls]

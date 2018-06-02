@@ -18,7 +18,7 @@ def typeof(t):
     if isinstance(t, type):
         if t not in _data_types:
             _data_types[t] = DataType(
-                str("{}_type".format(t.__name__)),
+                str("DataType.{}".format(t.__name__)),
                 (type,),
                 {"t": t, "__new__": lambda cls: cls.t})
         return _data_types[t]

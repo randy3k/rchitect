@@ -13,7 +13,7 @@ from .internals import R_ToplevelExec
 from .internals import R_ParseVector, Rf_eval
 from .internals import Rf_PrintValue
 from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install
-from .internals import LENGTH
+from .internals import LENGTH, TYPEOF
 from .internals import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
 from .internals import Rf_GetOption1
 from .internals import Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal, Rf_ScalarComplex
@@ -372,66 +372,66 @@ def rcopy(_, s):
 
 # default conversions
 
-default = RClass("")
+default = RClass("default")
 
 
 @dispatch(typeof(default), NILSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return type(None)
 
 
 @dispatch(typeof(default), INTSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return int if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), LGLSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return bool if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), REALSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return float if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), CPLXSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return complex if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), RAWSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return bytes
 
 
 @dispatch(typeof(default), STRSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return text_type if LENGTH(s) == 1 else list
 
 
 @dispatch(typeof(default), VECSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return list if Rf_isNull(getnames_p(s)) else OrderedDict
 
 
 @dispatch(typeof(default), CLOSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return FunctionType
 
 
 @dispatch(typeof(RClass("PyObject")), EXTPTRSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return object
 
 
 @dispatch(typeof(RClass("PyCallable")), CLOSXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return object
 
 
 @dispatch(object, SEXP)
-def rcopyrule(_, s):
+def rcopytype(_, s):
     return RObject
 
 
@@ -439,10 +439,10 @@ def rcopyrule(_, s):
 def rcopy(s):
     s = sexp(s)
     for cls in rclass(s):
-        T = rcopyrule(RClass(cls), s)
+        T = rcopytype(RClass(cls), s)
         if T is not RObject:
             return rcopy(T, s)
-    T = rcopyrule(default, s)
+    T = rcopytype(default, s)
     return rcopy(T, s)
 
 
@@ -641,56 +641,69 @@ def sexp(_, f):
 
 # default conversions
 
+def sexpnum(s):
+    return TYPEOF(s)
+
+
+@dispatch(SEXP)
+def sexptype(s):
+    return sexptype(sexpnum(s))
+
+
 @dispatch(bool)
-def sexp(s):
-    return sexp(RClass("logical"), s)
+def sexpclass(s):
+    return "logical"
 
 
 @dispatch(int)
-def sexp(s):
-    return sexp(RClass("integer"), s)
+def sexpclass(s):
+    return "integer"
 
 
 @dispatch(float)
-def sexp(s):
-    return sexp(RClass("numeric"), s)
+def sexpclass(s):
+    return "numeric"
 
 
 @dispatch(complex)
-def sexp(s):
-    return sexp(RClass("complex"), s)
+def sexpclass(s):
+    return "complex"
 
 
 @dispatch(text_type)
-def sexp(s):
-    return sexp(RClass("character"), s)
+def sexpclass(s):
+    return "character"
 
 
 @dispatch(list)
-def sexp(s):
+def sexpclass(s):
     if all(isinstance(x, int) for x in s):
-        x = sexp(RClass("integer"), s)
+        return "integer"
     elif all(isinstance(x, bool) for x in s):
-        x = sexp(RClass("logical"), s)
+        return "logical"
     elif all(isinstance(x, float) for x in s):
-        x = sexp(RClass("numeric"), s)
+        return "numeric"
     elif all(isinstance(x, complex) for x in s):
-        x = sexp(RClass("complex"), s)
+        return "complex"
     elif all(isinstance(x, text_type) for x in s):
-        x = sexp(RClass("character"), s)
-    else:
-        x = sexp(RClass("list"), s)
-    return x
+        return "character"
+
+    return "list"
 
 
 @dispatch((dict, OrderedDict))
-def sexp(s):
-    return sexp(RClass("list"), s)
+def sexpclass(s):
+    return "list"
 
 
 @dispatch(Callable)
-def sexp(f, convert_args=True, invisible=False):
-    return sexp(RClass("function"), f, convert_args=convert_args, invisible=invisible)
+def sexpclass(f):
+    return "function"
+
+
+@dispatch(object)
+def sexpclass(f):
+    return "PyObject"
 
 
 @dispatch(type(None))
@@ -709,8 +722,9 @@ def sexp(r):
 
 
 @dispatch(object)
-def sexp(s):
-    return sexp(RClass("PyObject"), s)
+def sexp(s, **kwargs):
+    rcls = sexpclass(s)
+    return sexp(RClass(rcls), s, **kwargs)
 
 
 def robject(*args, **kwargs):
