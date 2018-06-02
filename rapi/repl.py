@@ -1,7 +1,6 @@
 # a simple repl loop suitable used within python console
 
 from .interface import rprint, reval_with_visible
-import sys
 from prompt_toolkit.shortcuts import prompt, create_eventloop
 from .interface import process_events
 

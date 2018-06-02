@@ -2,9 +2,6 @@ from __future__ import unicode_literals
 from ctypes import c_void_p, c_double, c_int, c_int32, c_int64
 from ctypes import Structure
 from ctypes import sizeof
-from six import text_type
-
-from .dispatch import dispatch, DataType
 
 
 class SEXP(c_void_p):
@@ -45,19 +42,17 @@ class SEXPTYPE(object):
     FREESXP = 31
     FUNSXP = 99
 
+    _sexptype_map = {}
 
-_sexptype_map = {}
+    for name in _fields:
+        v = locals()[name]
+        t = type(str(name), (SEXP,), {})
+        globals()[name] = t
+        _sexptype_map[v] = t
 
-for name in SEXPTYPE._fields:
-    v = getattr(SEXPTYPE, name)
-    t = type(str(name), (SEXP,), {})
-    globals()[name] = t
-    _sexptype_map[v] = t
-
-
-@dispatch(int)
-def sexptype(s):
-    return _sexptype_map[s]
+    @classmethod
+    def from_sexpnum(cls, num):
+        return cls._sexptype_map[num]
 
 
 class Rcomplex(Structure):
