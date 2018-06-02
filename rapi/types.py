@@ -98,10 +98,14 @@ class RObject(object):
         self.release(self.p)
 
 
-_rclasses = {}
+class RClass(object):
+    _rclasses = {}
 
-
-def RClass(rcls):
-    if rcls not in _rclasses:
-        _rclasses[rcls] = type(str("RClass." + rcls), (type,), {})
-    return _rclasses[rcls]
+    def __new__(cls, rcls):
+        try:
+            return cls._rclasses[rcls]
+        except KeyError:
+            T = type(str("RClass." + rcls), (type,), {})
+            cls._rclasses[rcls] = T
+            setattr(RClass, rcls,  T)
+            return T

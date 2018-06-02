@@ -24,6 +24,7 @@ def typeof(t):
                 (type,),
                 {"t": t, "__new__": lambda cls: cls.t})
             _data_types[t] = T
+            setattr(DataType, t.__name__, T)
             return T
     else:
         return type(t)
