@@ -3,29 +3,35 @@ from __future__ import unicode_literals
 from multipledispatch.dispatcher import Dispatcher, str_signature, MDNotImplementedError
 
 
-class DataType(type):
+class datatype(type):
+    _data_types = {}
+
+    def __new__(cls, *args):
+        if len(args) == 1:
+            t = args[0]
+            try:
+                return cls._data_types[t]
+            except KeyError:
+                T = datatype(
+                    str("datatype.{}".format(t.__name__)),
+                    (type,),
+                    {"t": t, "__new__": lambda cls: cls.t})
+                cls._data_types[t] = T
+                setattr(datatype, t.__name__, T)
+                return T
+        else:
+            return super(datatype, cls).__new__(cls, *args)
+
     def __instancecheck__(self, instance):
         return self.t == instance
 
     def __subclasscheck__(self, subclass):
-        return isinstance(subclass, DataType) and self.t == subclass.t
-
-
-_data_types = {}
+        return isinstance(subclass, datatype) and self.t == subclass.t
 
 
 def typeof(t):
     if isinstance(t, type):
-        try:
-            return _data_types[t]
-        except KeyError:
-            T = DataType(
-                str("DataType.{}".format(t.__name__)),
-                (type,),
-                {"t": t, "__new__": lambda cls: cls.t})
-            _data_types[t] = T
-            setattr(DataType, t.__name__, T)
-            return T
+        return datatype(t)
     else:
         return type(t)
 

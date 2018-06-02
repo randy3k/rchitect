@@ -28,7 +28,7 @@ from .internals import R_Visible
 from .types import SEXP, SEXPTYPE, Rcomplex, RObject, RClass
 from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
 from .types import CLOSXP, EXTPTRSXP
-from .dispatch import dispatch, typeof
+from .dispatch import dispatch, datatype
 from .externalptr import rextptr, to_pyo
 
 
@@ -254,78 +254,78 @@ def rprint(s):
 
 # r to python conversions
 
-@dispatch(typeof(type(None)), NILSXP)
+@dispatch(datatype(type(None)), NILSXP)
 def rcopy(_, s):
     return None
 
 
-@dispatch(typeof(list), NILSXP)
+@dispatch(datatype(list), NILSXP)
 def rcopy(_, s):
     return []
 
 
-@dispatch(typeof(int), INTSXP)
+@dispatch(datatype(int), INTSXP)
 def rcopy(_, s):
     return INTEGER(s)[0]
 
 
-@dispatch(typeof(list), INTSXP)
+@dispatch(datatype(list), INTSXP)
 def rcopy(_, s):
     return [INTEGER(s)[i] for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(bool), LGLSXP)
+@dispatch(datatype(bool), LGLSXP)
 def rcopy(_, s):
     return bool(LOGICAL(s)[0])
 
 
-@dispatch(typeof(list), LGLSXP)
+@dispatch(datatype(list), LGLSXP)
 def rcopy(_, s):
     return [bool(LOGICAL(s)[i]) for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(float), REALSXP)
+@dispatch(datatype(float), REALSXP)
 def rcopy(_, s):
     return REAL(s)[0]
 
 
-@dispatch(typeof(list), REALSXP)
+@dispatch(datatype(list), REALSXP)
 def rcopy(_, s):
     return [REAL(s)[i] for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(complex), CPLXSXP)
+@dispatch(datatype(complex), CPLXSXP)
 def rcopy(_, s):
     z = COMPLEX(s)[0]
     return complex(z.r, z.i)
 
 
-@dispatch(typeof(list), CPLXSXP)
+@dispatch(datatype(list), CPLXSXP)
 def rcopy(_, s):
     return [complex(COMPLEX(s)[i].r, COMPLEX(s)[i].i) for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(bytes), RAWSXP)
+@dispatch(datatype(bytes), RAWSXP)
 def rcopy(_, s):
     return string_at(RAW(s), LENGTH(s))
 
 
-@dispatch(typeof(text_type), STRSXP)
+@dispatch(datatype(text_type), STRSXP)
 def rcopy(_, s):
     return Rf_translateCharUTF8(STRING_ELT(s, 0)).decode("utf-8")
 
 
-@dispatch(typeof(list), STRSXP)
+@dispatch(datatype(list), STRSXP)
 def rcopy(_, s):
     return [Rf_translateCharUTF8(STRING_ELT(s, i)).decode("utf-8") for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(list), VECSXP)
+@dispatch(datatype(list), VECSXP)
 def rcopy(_, s):
     return [rcopy(VECTOR_ELT(s, i)) for i in range(LENGTH(s))]
 
 
-@dispatch(typeof(OrderedDict), VECSXP)
+@dispatch(datatype(OrderedDict), VECSXP)
 def rcopy(_, s):
     ret = OrderedDict()
     names = rnames(s)
@@ -334,24 +334,24 @@ def rcopy(_, s):
     return ret
 
 
-@dispatch(typeof(FunctionType), CLOSXP)
+@dispatch(datatype(FunctionType), CLOSXP)
 def rcopy(_, s):
     def _(*args, **kwargs):
         return rcopy(rcall(s, *args, **kwargs))
     return _
 
 
-@dispatch(typeof(object), EXTPTRSXP)
+@dispatch(datatype(object), EXTPTRSXP)
 def rcopy(_, s):
     return to_pyo(s).value
 
 
-@dispatch(typeof(object), CLOSXP)
+@dispatch(datatype(object), CLOSXP)
 def rcopy(_, s):
     return to_pyo(getattrib_p(s, "py_object")).value
 
 
-@dispatch(typeof(RObject), SEXP)
+@dispatch(datatype(RObject), SEXP)
 def rcopy(_, s):
     return RObject(sexp(s))
 
@@ -365,7 +365,7 @@ def rcopy(t, r):
         return ret
 
 
-@dispatch(typeof(RObject), RObject)
+@dispatch(datatype(RObject), RObject)
 def rcopy(_, s):
     return s
 
@@ -375,57 +375,57 @@ def rcopy(_, s):
 default = RClass("default")
 
 
-@dispatch(typeof(default), NILSXP)
+@dispatch(datatype(default), NILSXP)
 def rcopytype(_, s):
     return type(None)
 
 
-@dispatch(typeof(default), INTSXP)
+@dispatch(datatype(default), INTSXP)
 def rcopytype(_, s):
     return int if LENGTH(s) == 1 else list
 
 
-@dispatch(typeof(default), LGLSXP)
+@dispatch(datatype(default), LGLSXP)
 def rcopytype(_, s):
     return bool if LENGTH(s) == 1 else list
 
 
-@dispatch(typeof(default), REALSXP)
+@dispatch(datatype(default), REALSXP)
 def rcopytype(_, s):
     return float if LENGTH(s) == 1 else list
 
 
-@dispatch(typeof(default), CPLXSXP)
+@dispatch(datatype(default), CPLXSXP)
 def rcopytype(_, s):
     return complex if LENGTH(s) == 1 else list
 
 
-@dispatch(typeof(default), RAWSXP)
+@dispatch(datatype(default), RAWSXP)
 def rcopytype(_, s):
     return bytes
 
 
-@dispatch(typeof(default), STRSXP)
+@dispatch(datatype(default), STRSXP)
 def rcopytype(_, s):
     return text_type if LENGTH(s) == 1 else list
 
 
-@dispatch(typeof(default), VECSXP)
+@dispatch(datatype(default), VECSXP)
 def rcopytype(_, s):
     return list if Rf_isNull(getnames_p(s)) else OrderedDict
 
 
-@dispatch(typeof(default), CLOSXP)
+@dispatch(datatype(default), CLOSXP)
 def rcopytype(_, s):
     return FunctionType
 
 
-@dispatch(typeof(RClass("PyObject")), EXTPTRSXP)
+@dispatch(datatype(RClass("PyObject")), EXTPTRSXP)
 def rcopytype(_, s):
     return object
 
 
-@dispatch(typeof(RClass("PyCallable")), CLOSXP)
+@dispatch(datatype(RClass("PyCallable")), CLOSXP)
 def rcopytype(_, s):
     return object
 
@@ -462,37 +462,37 @@ def rcopy(r):
 
 # python to r conversions
 
-@dispatch(typeof(RClass("NULL")), type(None))
+@dispatch(datatype(RClass("NULL")), type(None))
 def sexp(_, n):
     return R_NilValue
 
 
-@dispatch(typeof(RClass("logical")), bool)
+@dispatch(datatype(RClass("logical")), bool)
 def sexp(_, s):
     return rlogical_p(s)
 
 
-@dispatch(typeof(RClass("integer")), int)
+@dispatch(datatype(RClass("integer")), int)
 def sexp(_, s):
     return rint_p(s)
 
 
-@dispatch(typeof(RClass("numeric")), float)
+@dispatch(datatype(RClass("numeric")), float)
 def sexp(_, s):
     return rdouble_p(s)
 
 
-@dispatch(typeof(RClass("complex")), complex)
+@dispatch(datatype(RClass("complex")), complex)
 def sexp(_, s):
     return sexp(Rf_ScalarComplex(Rcomplex(r=s.real, i=s.imag)))
 
 
-@dispatch(typeof(RClass("character")), text_type)
+@dispatch(datatype(RClass("character")), text_type)
 def sexp(_, s):
     return rstring_p(s)
 
 
-@dispatch(typeof(RClass("raw")), bytes)
+@dispatch(datatype(RClass("raw")), bytes)
 def sexp(_, s):
     n = len(s)
     x = Rf_protect(Rf_allocVector(SEXPTYPE.RAWSXP, n))
@@ -504,7 +504,7 @@ def sexp(_, s):
     return sexp(x)
 
 
-@dispatch(typeof(RClass("logical")), list)
+@dispatch(datatype(RClass("logical")), list)
 def sexp(_, s):
     n = len(s)
     x = Rf_protect(Rf_allocVector(SEXPTYPE.LGLSXP, n))
@@ -516,7 +516,7 @@ def sexp(_, s):
     return sexp(x)
 
 
-@dispatch(typeof(RClass("numeric")), list)
+@dispatch(datatype(RClass("numeric")), list)
 def sexp(_, s):
     n = len(s)
     x = Rf_protect(Rf_allocVector(SEXPTYPE.REALSXP, n))
@@ -528,7 +528,7 @@ def sexp(_, s):
     return sexp(x)
 
 
-@dispatch(typeof(RClass("complex")), list)
+@dispatch(datatype(RClass("complex")), list)
 def sexp(_, s):
     n = len(s)
     x = Rf_protect(Rf_allocVector(SEXPTYPE.CPLXSXP, n))
@@ -543,7 +543,7 @@ def sexp(_, s):
     return sexp(x)
 
 
-@dispatch(typeof(RClass("character")), list)
+@dispatch(datatype(RClass("character")), list)
 def sexp(_, s):
     n = len(s)
     x = Rf_protect(Rf_allocVector(SEXPTYPE.STRSXP, n))
@@ -557,7 +557,7 @@ def sexp(_, s):
     return sexp(x)
 
 
-@dispatch(typeof(RClass("list")), list)
+@dispatch(datatype(RClass("list")), list)
 def sexp(_, s):
     n = len(s)
     x = Rf_protect(Rf_allocVector(SEXPTYPE.VECSXP, n))
@@ -569,7 +569,7 @@ def sexp(_, s):
     return sexp(x)
 
 
-@dispatch(typeof(RClass("list")), (dict, OrderedDict))
+@dispatch(datatype(RClass("list")), (dict, OrderedDict))
 def sexp(_, s):
     v = Rf_protect(sexp(RClass("list"), list(s.values())))
     try:
@@ -611,7 +611,7 @@ def rapi_callback(exptr, arglist, _convert):
         Rf_error(str(e).encode("utf-8"))
 
 
-@dispatch(typeof(RClass("function")), Callable)
+@dispatch(datatype(RClass("function")), Callable)
 def sexp(_, f, convert_args=True, invisible=False):
     fextptr = rextptr(f)
     dotlist = rlang_p("list", R_DotsSymbol)
@@ -623,14 +623,14 @@ def sexp(_, f, convert_args=True, invisible=False):
     return res
 
 
-@dispatch(typeof(RClass("PyObject")), object)
+@dispatch(datatype(RClass("PyObject")), object)
 def sexp(_, s):
     p = rextptr(s)
     setclass(p, "PyObject")
     return p
 
 
-@dispatch(typeof(RClass("PyCallable")), Callable)
+@dispatch(datatype(RClass("PyCallable")), Callable)
 def sexp(_, f):
     p = Rf_protect(sexp(f))
     setattrib(p, "py_object", sexp(RClass("PyObject"), f))
