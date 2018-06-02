@@ -48,4 +48,4 @@ def start(
 
 
 def get_machine():
-    return Machine()
+    return Machine.instance

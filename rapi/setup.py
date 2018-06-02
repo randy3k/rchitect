@@ -197,18 +197,13 @@ def setup_win32(libR, args):
 
 
 class Machine(object):
-    _instance = None
+    instance = None
     libR = None
     bootstrapped = False
 
-    def __new__(cls, *args, **kwargs):
-        if cls._instance:
-            return cls._instance
-        else:
-            cls._instance = super(Machine, cls).__new__(cls)
-            return cls._instance
-
     def __init__(self, rhome=None, set_default_callbacks=True, verbose=False):
+
+        Machine.instance = self
 
         self.verbose = verbose
 
