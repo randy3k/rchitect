@@ -586,15 +586,16 @@ def sexp_dots():
     return s
 
 
-@CFUNCTYPE(SEXP, SEXP, SEXP, SEXP)
-def rapi_callback(exptr, arglist, _convert):
-    convert = rcopy(bool, sexp(_convert))
+@CFUNCTYPE(SEXP, SEXP, SEXP, SEXP, SEXP)
+def rapi_callback(exptr, arglist, _convert_args, _convert_return):
+    convert_args = rcopy(bool, sexp(_convert_args))
+    convert_return = rcopy(bool, sexp(_convert_return))
     f = to_pyo(exptr).value
     args = []
     kwargs = {}
     names = rnames(arglist)
     try:
-        if convert:
+        if convert_args:
             for i in range(LENGTH(arglist)):
                 if names and names[i]:
                     kwargs[names[i]] = rcopy(VECTOR_ELT(arglist, i))
@@ -606,16 +607,19 @@ def rapi_callback(exptr, arglist, _convert):
                     kwargs[names[i]] = sexp(VECTOR_ELT(arglist, i))
                 else:
                     args.append(sexp(VECTOR_ELT(arglist, i)))
-        return sexp(f(*args, **kwargs)).value
+        if convert_return:
+            return sexp(f(*args, **kwargs)).value
+        else:
+            return sexp(RClass("PyObject"), f(*args, **kwargs)).value
     except Exception as e:
         Rf_error(str(e).encode("utf-8"))
 
 
 @dispatch(datatype(RClass("function")), Callable)
-def sexp(_, f, convert_args=True, invisible=False):
+def sexp(_, f, convert_args=True, convert_return=True, invisible=False):
     fextptr = rextptr(f)
     dotlist = rlang_p("list", R_DotsSymbol)
-    body = rlang_p(".Call", "rapi_callback", fextptr, dotlist, convert_args)
+    body = rlang_p(".Call", "rapi_callback", fextptr, dotlist, convert_args, convert_return)
     if invisible:
         body = rlang_p("invisible", body)
     lang = rlang_p(rsym("function"), sexp_dots(), body)
@@ -631,8 +635,8 @@ def sexp(_, s):
 
 
 @dispatch(datatype(RClass("PyCallable")), Callable)
-def sexp(_, f):
-    p = Rf_protect(sexp(f))
+def sexp(_, f, convert_return=False):
+    p = Rf_protect(sexp(RClass("function"), f, convert_return=convert_return))
     setattrib(p, "py_object", sexp(RClass("PyObject"), f))
     setclass(p, ["PyCallable", "PyObject"])
     Rf_unprotect(1)
