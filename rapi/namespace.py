@@ -6,7 +6,7 @@ from six import text_type
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
-from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib, sexp
+from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib, sexp, as_py_robject
 from .types import RClass, SEXPTYPE
 from .externalptr import to_pyo
 
@@ -120,12 +120,6 @@ def register_py_namespace(name=".py", version=None):
     if not version:
         import rapi
         version = rapi.__version__
-
-    def as_py_robject(obj):
-        if callable(obj):
-            return sexp(RClass("PyCallable"), obj)
-        else:
-            return sexp(RClass("PyObject"), obj)
 
     def py_import(module):
         import importlib

@@ -586,6 +586,13 @@ def sexp_dots():
     return s
 
 
+def as_py_robject(obj):
+    if callable(obj):
+        return sexp(RClass("PyCallable"), obj)
+    else:
+        return sexp(RClass("PyObject"), obj)
+
+
 @CFUNCTYPE(SEXP, SEXP, SEXP, SEXP, SEXP)
 def rapi_callback(exptr, arglist, _convert_args, _convert_return):
     convert_args = rcopy(bool, sexp(_convert_args))
@@ -610,7 +617,8 @@ def rapi_callback(exptr, arglist, _convert_args, _convert_return):
         if convert_return:
             return sexp(f(*args, **kwargs)).value
         else:
-            return sexp(RClass("PyObject"), f(*args, **kwargs)).value
+            ret = f(*args, **kwargs)
+            return as_py_robject(ret).value
     except Exception as e:
         Rf_error(str(e).encode("utf-8"))
 
