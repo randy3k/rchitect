@@ -134,10 +134,10 @@ def register_py_namespace(name=".py", version=None):
     def py_eval(code):
         return eval(code)
 
-    def py_getattr(obj, key):
+    def py_get_attr(obj, key):
         return getattr(obj, key)
 
-    def py_getitem(obj, key):
+    def py_get_item(obj, key):
         return obj[key]
 
     def py_names(obj, pattern=""):
@@ -155,7 +155,7 @@ def register_py_namespace(name=".py", version=None):
     def py_print(s):
         rcall_p(rsym("cat"), repr(s) + "\n")
 
-    def py_setattr(obj, key, value):
+    def py_set_attr(obj, key, value):
         Rf_protect(obj)
         Rf_protect(key)
         Rf_protect(value)
@@ -165,7 +165,7 @@ def register_py_namespace(name=".py", version=None):
             Rf_unprotect(3)
         return obj
 
-    def py_setitem(obj, key, value):
+    def py_set_item(obj, key, value):
         Rf_protect(obj)
         Rf_protect(key)
         Rf_protect(value)
@@ -176,32 +176,32 @@ def register_py_namespace(name=".py", version=None):
         return obj
 
     ns = make_namespace(name, version=version)
-    assign("py_import", robject("PyCallable", py_import), ns)
-    assign("py_call", robject("PyCallable", py_call), ns)
-    assign("py_copy", py_copy, ns)
-    assign("py_eval", robject("PyCallable", py_eval), ns)
-    assign("py_getattr", robject("PyCallable", py_getattr), ns)
-    assign("py_getitem", robject("PyCallable", py_getitem), ns)
+    assign("import", py_import, ns)
+    assign("py_call", py_call, ns)
+    assign("py_copy", robject(py_copy, convert_return=True), ns)
+    assign("py_eval", py_eval, ns)
+    assign("py_get_attr", py_get_attr, ns)
+    assign("py_get_item", py_get_item, ns)
     assign("py_object", robject(py_object, convert_args=False), ns)
-    assign("py_setattr", robject(py_setattr, convert_args=False), ns)
-    assign("py_setitem", robject(py_setitem, convert_args=False), ns)
-    assign("names.PyObject", py_names, ns)
+    assign("py_set_attr", robject(py_set_attr, convert_args=False), ns)
+    assign("py_set_item", robject(py_set_item, convert_args=False), ns)
+    assign("names.PyObject", robject(py_names, convert_return=True), ns)
     assign("print.PyObject", robject(py_print, invisible=True), ns)
-    assign(".DollarNames.PyObject", py_names, ns)
-    assign("$.PyObject", robject("PyCallable", py_getattr), ns)
-    assign("[.PyObject", robject("PyCallable", py_getitem), ns)
-    assign("$<-.PyObject", robject(py_setattr, convert_args=False), ns)
-    assign("[<-.PyObject", robject(py_setitem, convert_args=False), ns)
+    assign(".DollarNames.PyObject", robject(py_names, convert_return=True), ns)
+    assign("$.PyObject", robject(py_get_attr, convert_return=True), ns)
+    assign("[.PyObject", robject(py_get_item, convert_return=True), ns)
+    assign("$<-.PyObject", robject(py_set_attr, convert_args=False), ns)
+    assign("[<-.PyObject", robject(py_set_item, convert_args=False), ns)
     namespace_export(ns, [
-        "py_import",
+        "import",
         "py_call",
         "py_copy",
         "py_eval",
-        "py_getattr",
-        "py_getitem",
+        "py_get_attr",
+        "py_get_item",
         "py_object",
-        "py_setattr",
-        "py_setitem"
+        "py_set_attr",
+        "py_set_item"
     ])
     register_s3_methods(ns, [
         ["names", "PyObject"],

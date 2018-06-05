@@ -659,8 +659,11 @@ def sexp(_, s):
 
 
 @dispatch(datatype(RClass("PyCallable")), Callable)
-def sexp(_, f, convert_return=False):
-    p = Rf_protect(sexp(RClass("function"), f, convert_return=convert_return))
+def sexp(_, f, convert_args=True, convert_return=False, invisible=False):
+    p = Rf_protect(sexp(RClass("function"), f,
+                        convert_args=convert_args,
+                        convert_return=convert_return,
+                        invisible=invisible))
     setattrib(p, "py_object", sexp(RClass("PyObject"), f))
     setclass(p, ["PyCallable", "PyObject"])
     Rf_unprotect(1)
@@ -739,7 +742,7 @@ def sexpclass(f):
 
 @dispatch(Callable)
 def sexpclass(f):
-    return "function"
+    return "PyCallable"
 
 
 @dispatch(object)
