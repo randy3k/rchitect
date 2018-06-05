@@ -313,12 +313,12 @@ def rcopy(_, s):
 
 @dispatch(datatype(text_type), STRSXP)
 def rcopy(_, s):
-    return Rf_translateCharUTF8(STRING_ELT(s, 0)).decode("utf-8")
+    return text_type(Rf_translateCharUTF8(STRING_ELT(s, 0)).decode("utf-8"))
 
 
 @dispatch(datatype(list), STRSXP)
 def rcopy(_, s):
-    return [Rf_translateCharUTF8(STRING_ELT(s, i)).decode("utf-8") for i in range(LENGTH(s))]
+    return [text_type(Rf_translateCharUTF8(STRING_ELT(s, i)).decode("utf-8")) for i in range(LENGTH(s))]
 
 
 @dispatch(datatype(list), VECSXP)
@@ -709,7 +709,7 @@ def sexpclass(s):
     return "complex"
 
 
-@dispatch(text_type)
+@dispatch(string_types)
 def sexpclass(s):
     return "character"
 
