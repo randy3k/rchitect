@@ -732,7 +732,12 @@ def sexpclass(s):
     return "list"
 
 
-@dispatch(FunctionType)
+@dispatch(type)
+def sexpclass(f):
+    return "PyClass"
+
+
+@dispatch(Callable)
 def sexpclass(f):
     return "function"
 
