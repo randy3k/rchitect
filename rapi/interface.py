@@ -587,7 +587,7 @@ def sexp_dots():
     return s
 
 
-def as_py_robject(obj):
+def as_py_class_object(obj):
     if callable(obj):
         return sexp(RClass("PyCallable"), obj)
     else:
@@ -619,7 +619,7 @@ def rapi_callback(exptr, arglist, _convert_args, _convert_return):
             return sexp(f(*args, **kwargs)).value
         else:
             ret = f(*args, **kwargs)
-            return as_py_robject(ret).value
+            return as_py_class_object(ret).value
     except Exception as e:
         Rf_error(str(e).encode("utf-8"))
 
@@ -709,7 +709,7 @@ def sexpclass(s):
     return "list"
 
 
-@dispatch(Callable)
+@dispatch(FunctionType)
 def sexpclass(f):
     return "function"
 
