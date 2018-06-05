@@ -518,6 +518,18 @@ def sexp(_, s):
     return sexp(x)
 
 
+@dispatch(datatype(RClass("integer")), list)
+def sexp(_, s):
+    n = len(s)
+    x = Rf_protect(Rf_allocVector(SEXPTYPE.INTSXP, n))
+    try:
+        for i in range(n):
+            INTEGER(x)[i] = s[i]
+    finally:
+        Rf_unprotect(1)
+    return sexp(x)
+
+
 @dispatch(datatype(RClass("numeric")), list)
 def sexp(_, s):
     n = len(s)
