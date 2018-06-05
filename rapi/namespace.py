@@ -227,7 +227,7 @@ def register_py_namespace(name=".py", version=None):
             p = id(obj)
             addr = Rf_protect(rcall_p(("reticulate", "py_eval"), str(p), convert=False))
             ret = Rf_protect(rcall_p(("reticulate", "py_call"), cast, addr, py_object))
-            value = rcall_p(("reticulate", "py_getattr"), ret, "value")
+            value = rcall_p(("reticulate", "py_get_attr"), ret, "value")
             Rf_unprotect(2)
             return value
 

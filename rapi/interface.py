@@ -1,6 +1,7 @@
 from __future__ import unicode_literals, absolute_import
 
 import sys
+import inspect
 from ctypes import py_object, byref, cast, c_void_p, c_int
 from ctypes import CFUNCTYPE, Structure, string_at
 from collections import OrderedDict
@@ -588,6 +589,8 @@ def sexp_dots():
 
 
 def as_py_class_object(obj):
+    if inspect.isclass(obj):
+        return sexp(RClass("PyClass"), obj)
     if callable(obj):
         return sexp(RClass("PyCallable"), obj)
     else:
@@ -648,6 +651,14 @@ def sexp(_, f, convert_return=False):
     p = Rf_protect(sexp(RClass("function"), f, convert_return=convert_return))
     setattrib(p, "py_object", sexp(RClass("PyObject"), f))
     setclass(p, ["PyCallable", "PyObject"])
+    Rf_unprotect(1)
+    return p
+
+
+@dispatch(datatype(RClass("PyClass")), object)
+def sexp(_, s):
+    p = Rf_protect(sexp(RClass("PyCallable"), s))
+    setclass(p, ["PyClass", "PyCallable", "PyObject"])
     Rf_unprotect(1)
     return p
 
