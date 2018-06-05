@@ -23,11 +23,11 @@ from .internals import R_NamesSymbol, R_ClassSymbol, Rf_getAttrib, Rf_setAttrib,
 from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
 from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
 from .internals import R_MissingArg, R_DotsSymbol, Rf_list1
-from .internals import R_Visible
+from .internals import R_Visible, Rf_findVarInFrame
 
 
 from .types import SEXP, SEXPTYPE, Rcomplex, RObject, RClass
-from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP
+from .types import NILSXP, INTSXP, LGLSXP, REALSXP, CPLXSXP, RAWSXP, STRSXP, VECSXP, ENVSXP
 from .types import CLOSXP, EXTPTRSXP
 from .dispatch import dispatch, datatype
 from .externalptr import rextptr, to_pyo
@@ -338,6 +338,7 @@ def rcopy(_, s):
 @dispatch(datatype(FunctionType), CLOSXP)
 def rcopy(_, s):
     r = RObject(s)
+
     def _(*args, **kwargs):
         return rcopy(rcall(r, *args, **kwargs))
     return _
@@ -351,6 +352,13 @@ def rcopy(_, s):
 @dispatch(datatype(object), CLOSXP)
 def rcopy(_, s):
     return to_pyo(getattrib_p(s, "py_object")).value
+
+
+# reticulate type
+@dispatch(datatype(object), ENVSXP)
+def rcopy(_, s):
+    ret = to_pyo(Rf_findVarInFrame(s, rsym_p("pyobj"))).value
+    return ret
 
 
 @dispatch(datatype(RObject), SEXP)
@@ -428,6 +436,11 @@ def rcopytype(_, s):
 
 
 @dispatch(datatype(RClass("PyCallable")), CLOSXP)
+def rcopytype(_, s):
+    return object
+
+
+@dispatch(datatype(RClass("python.builtin.object")), ENVSXP)
 def rcopytype(_, s):
     return object
 
@@ -653,6 +666,8 @@ def sexp(_, f, convert_args=True, convert_return=True, invisible=False):
 
 @dispatch(datatype(RClass("PyObject")), object)
 def sexp(_, s):
+    if (isinstance(s, RObject) or isinstance(s, SEXP)) and "PyObject" in rclass(s):
+        return sexp(s)
     p = rextptr(s)
     setclass(p, "PyObject")
     return p

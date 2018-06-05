@@ -1,13 +1,16 @@
-from __future__ import unicode_literals
+from __future__ import unicode_literals, absolute_import
 
-import tempfile
 import os
+import sys
+import tempfile
+import importlib
 from six import text_type
+from types import ModuleType
 
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
-from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib, sexp
-from .types import RClass, SEXPTYPE
+from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib
+from .types import SEXPTYPE
 from .externalptr import to_pyo
 
 
@@ -53,7 +56,7 @@ def make_namespace(name, version=None, lib=None):
     env = new_env(impenv)
     info = new_env(R_BaseNamespace)
     assign(".__NAMESPACE__.", info, envir=env)
-    spec = sexp([name, version])
+    spec = robject([name, version])
     assign("spec", spec, envir=info)
     setattrib(spec, R_NamesSymbol, ["name", "version"])
     exportenv = new_env(R_BaseNamespace)
@@ -122,25 +125,35 @@ def register_py_namespace(name=".py", version=None):
         version = rapi.__version__
 
     def py_import(module):
-        import importlib
         return importlib.import_module(module)
+
+    def py_import_builtins():
+        if sys.version >= "3":
+            return importlib.import_module("builtins")
+        else:
+            return importlib.import_module("__builtin__")
 
     def py_call(fun, *args, **kwargs):
         return fun(*args, **kwargs)
 
     def py_copy(*args):
-        return sexp(*args)
+        return robject(*args)
 
     def py_eval(code):
         return eval(code)
 
     def py_get_attr(obj, key):
+        if isinstance(obj, ModuleType):
+            try:
+                return importlib.import_module("{}.{}".format(obj.__name__, key))
+            except ImportError:
+                pass
         return getattr(obj, key)
 
     def py_get_item(obj, key):
         return obj[key]
 
-    def py_names(obj, pattern=""):
+    def py_names(obj):
         try:
             return list(k for k in obj.__dict__.keys() if not k.startswith("_"))
         except Exception:
@@ -148,12 +161,12 @@ def register_py_namespace(name=".py", version=None):
 
     def py_object(*args):
         if len(args) == 1:
-            return sexp(RClass("PyObject"), rcopy(args[0]))
+            return robject("PyObject", rcopy(args[0]))
         elif len(args) == 2:
-            return sexp(RClass("PyObject"), rcopy(rcopy(object, args[0]), args[1]))
+            return robject("PyObject", rcopy(rcopy(object, args[0]), args[1]))
 
-    def py_print(s):
-        rcall_p(rsym("cat"), repr(s) + "\n")
+    def py_print(r):
+        rcall_p("cat", repr(r) + "\n")
 
     def py_set_attr(obj, key, value):
         Rf_protect(obj)
@@ -177,6 +190,7 @@ def register_py_namespace(name=".py", version=None):
 
     ns = make_namespace(name, version=version)
     assign("import", py_import, ns)
+    assign("import_builtins", py_import_builtins, ns)
     assign("py_call", py_call, ns)
     assign("py_copy", robject(py_copy, convert_return=True), ns)
     assign("py_eval", py_eval, ns)
@@ -194,6 +208,7 @@ def register_py_namespace(name=".py", version=None):
     assign("[<-.PyObject", robject(py_set_item, convert_args=False), ns)
     namespace_export(ns, [
         "import",
+        "import_builtins",
         "py_call",
         "py_copy",
         "py_eval",
