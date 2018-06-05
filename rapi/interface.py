@@ -5,7 +5,7 @@ import inspect
 from ctypes import py_object, byref, cast, c_void_p, c_int
 from ctypes import CFUNCTYPE, Structure, string_at
 from collections import OrderedDict
-from six import text_type
+from six import text_type, string_types
 from types import FunctionType
 from collections import Callable
 
@@ -489,7 +489,7 @@ def sexp(_, s):
     return sexp(Rf_ScalarComplex(Rcomplex(r=s.real, i=s.imag)))
 
 
-@dispatch(datatype(RClass("character")), text_type)
+@dispatch(datatype(RClass("character")), string_types)
 def sexp(_, s):
     return rstring_p(s)
 
@@ -724,7 +724,7 @@ def sexpclass(s):
         return "numeric"
     elif all(isinstance(x, complex) for x in s):
         return "complex"
-    elif all(isinstance(x, text_type) for x in s):
+    elif all(isinstance(x, string_types) for x in s):
         return "character"
 
     return "list"
