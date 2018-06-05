@@ -336,8 +336,9 @@ def rcopy(_, s):
 
 @dispatch(datatype(FunctionType), CLOSXP)
 def rcopy(_, s):
+    r = RObject(s)
     def _(*args, **kwargs):
-        return rcopy(rcall(s, *args, **kwargs))
+        return rcopy(rcall(r, *args, **kwargs))
     return _
 
 
