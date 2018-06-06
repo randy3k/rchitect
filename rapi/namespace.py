@@ -134,6 +134,7 @@ def register_py_namespace(name=".py", version=None):
             return importlib.import_module("__builtin__")
 
     def py_call(fun, *args, **kwargs):
+        # todo: suuport .convert_args and .convert_return
         return fun(*args, **kwargs)
 
     def py_copy(*args):
