@@ -347,6 +347,20 @@ def rcopy(_, s):
     return [rcopy(VECTOR_ELT(s, i)) for i in range(LENGTH(s))]
 
 
+@dispatch(datatype(tuple), VECSXP)
+def rcopy(_, s):
+    return tuple(rcopy(list, s))
+
+
+@dispatch(datatype(dict), VECSXP)
+def rcopy(_, s):
+    ret = dict()
+    names = rnames(s)
+    for i in range(LENGTH(s)):
+        ret[names[i]] = rcopy(VECTOR_ELT(s, i))
+    return ret
+
+
 @dispatch(datatype(OrderedDict), VECSXP)
 def rcopy(_, s):
     ret = OrderedDict()
@@ -609,7 +623,7 @@ def sexp(_, s):
     return sexp(x)
 
 
-@dispatch(datatype(RClass("list")), list)
+@dispatch(datatype(RClass("list")), (list, tuple))
 def sexp(_, s):
     n = len(s)
     x = Rf_protect(Rf_allocVector(SEXPTYPE.VECSXP, n))
@@ -770,7 +784,7 @@ def sexpclass(s):
     return "list"
 
 
-@dispatch((dict, OrderedDict))
+@dispatch((tuple, dict, OrderedDict))
 def sexpclass(s):
     return "list"
 

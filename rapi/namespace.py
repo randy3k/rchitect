@@ -188,6 +188,24 @@ def register_py_namespace(name=".py", version=None):
             Rf_unprotect(3)
         return obj
 
+    def py_dict(**kwargs):
+        narg = len(kwargs)
+        for key in kwargs:
+            Rf_protect(kwargs[key])
+        try:
+            return {key: rcopy(kwargs[key]) for key in kwargs}
+        finally:
+            Rf_unprotect(narg)
+
+    def py_tuple(*args):
+        narg = len(args)
+        for a in args:
+            Rf_protect(a)
+        try:
+            return tuple([rcopy(a) for a in args])
+        finally:
+            Rf_unprotect(narg)
+
     ns = make_namespace(name, version=version)
     assign("import", py_import, ns)
     assign("import_builtins", py_import_builtins, ns)
@@ -199,6 +217,8 @@ def register_py_namespace(name=".py", version=None):
     assign("py_object", robject(py_object, convert_args=False), ns)
     assign("py_set_attr", robject(py_set_attr, convert_args=False), ns)
     assign("py_set_item", robject(py_set_item, convert_args=False), ns)
+    assign("dict", robject(py_dict, convert_args=False), ns)
+    assign("tuple", robject(py_tuple, convert_args=False), ns)
     assign("names.PyObject", robject(py_names, convert_return=True), ns)
     assign("print.PyObject", robject(py_print, invisible=True), ns)
     assign(".DollarNames.PyObject", robject(py_names, convert_return=True), ns)
@@ -216,7 +236,9 @@ def register_py_namespace(name=".py", version=None):
         "py_get_item",
         "py_object",
         "py_set_attr",
-        "py_set_item"
+        "py_set_item",
+        "dict",
+        "tuple"
     ])
     register_s3_methods(ns, [
         ["names", "PyObject"],
