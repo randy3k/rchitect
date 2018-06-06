@@ -142,6 +142,11 @@ def reval_with_visible(string, env=R_GlobalEnv):
 
 
 def rlang_p(*args, **kwargs):
+    if "_convert_args" in kwargs:
+        _convert_args = kwargs["_convert_args"]
+        del kwargs["_convert_args"]
+    else:
+        _convert_args = True
     nprotect = 0
     for a in args:
         if isinstance(a, SEXP):
@@ -167,13 +172,22 @@ def rlang_p(*args, **kwargs):
             SETCAR(s, rsym_p(*fname))
         else:
             ValueError("unexpected first argument")
-        for a in args[1:]:
-            s = CDR(s)
-            SETCAR(s, sexp(a))
-        for k, v in kwargs.items():
-            s = CDR(s)
-            SETCAR(s, sexp(v))
-            SET_TAG(s, Rf_install(k.encode("utf-8")))
+        if _convert_args:
+            for a in args[1:]:
+                s = CDR(s)
+                SETCAR(s, sexp(a))
+            for k, v in kwargs.items():
+                s = CDR(s)
+                SETCAR(s, sexp(v))
+                SET_TAG(s, Rf_install(k.encode("utf-8")))
+        else:
+            for a in args[1:]:
+                s = CDR(s)
+                SETCAR(s, sexp_py_object(a))
+            for k, v in kwargs.items():
+                s = CDR(s)
+                SETCAR(s, sexp_py_object(v))
+                SET_TAG(s, Rf_install(k.encode("utf-8")))
         ret = sexp(t)
     finally:
         Rf_unprotect(nprotect)
@@ -185,15 +199,22 @@ def rlang(*args, **kwargs):
 
 
 def rcall_p(*args, **kwargs):
-    return rexec_p(Rf_eval, rlang_p(*args, **kwargs), R_GlobalEnv)
+    if "_envir" in kwargs and kwargs["_envir"]:
+        envir = kwargs["_envir"]
+        del kwargs["_envir"]
+        return rexec_p(Rf_eval, rlang_p(*args, **kwargs), envir)
+    else:
+        return rexec_p(Rf_eval, rlang_p(*args, **kwargs), R_GlobalEnv)
 
 
 def rcall(*args, **kwargs):
-    if "_convert" in kwargs and kwargs["_convert"]:
-        del kwargs["_convert"]
-        return rcopy(rcall_p(*args, **kwargs))
-    else:
-        return RObject(rcall_p(*args, **kwargs))
+    if "_convert_return" in kwargs:
+        _convert_return = kwargs["_convert_return"]
+        del kwargs["_convert_return"]
+        if _convert_return:
+            return rcopy(rcall_p(*args, **kwargs))
+
+    return RObject(rcall_p(*args, **kwargs))
 
 
 def rsym_p(s, t=None):
@@ -336,11 +357,15 @@ def rcopy(_, s):
 
 
 @dispatch(datatype(FunctionType), CLOSXP)
-def rcopy(_, s):
+def rcopy(_, s, convert_args=True, convert_return=True, envir=R_GlobalEnv):
     r = RObject(s)
 
     def _(*args, **kwargs):
-        return rcopy(rcall(r, *args, **kwargs))
+        return rcall(
+            r, *args, **kwargs,
+            _convert_args=convert_args,
+            _convert_return=convert_return,
+            _envir=envir)
     return _
 
 
@@ -367,8 +392,8 @@ def rcopy(_, s):
 
 
 @dispatch(object, RObject)
-def rcopy(t, r):
-    ret = rcopy(t, sexp(r))
+def rcopy(t, r, **kwargs):
+    ret = rcopy(t, sexp(r), **kwargs)
     if isinstance(ret, SEXP):
         return RObject(ret)
     else:
@@ -451,19 +476,19 @@ def rcopytype(_, s):
 
 
 @dispatch(SEXP)
-def rcopy(s):
+def rcopy(s, **kwargs):
     s = sexp(s)
     for cls in rclass(s):
         T = rcopytype(RClass(cls), s)
         if T is not RObject:
-            return rcopy(T, s)
+            return rcopy(T, s, **kwargs)
     T = rcopytype(default, s)
-    return rcopy(T, s)
+    return rcopy(T, s, **kwargs)
 
 
 @dispatch(RObject)
-def rcopy(r):
-    ret = rcopy(sexp(r))
+def rcopy(r, **kwargs):
+    ret = rcopy(sexp(r), **kwargs)
     if isinstance(ret, SEXP):
         return RObject(ret)
     else:
@@ -613,7 +638,7 @@ def sexp_dots():
     return s
 
 
-def as_py_class_object(obj):
+def sexp_py_object(obj):
     if inspect.isclass(obj):
         return sexp(RClass("PyClass"), obj)
     if callable(obj):
@@ -647,7 +672,7 @@ def rapi_callback(exptr, arglist, _convert_args, _convert_return):
             return sexp(f(*args, **kwargs)).value
         else:
             ret = f(*args, **kwargs)
-            return as_py_class_object(ret).value
+            return sexp_py_object(ret).value
     except Exception as e:
         Rf_error(str(e).encode("utf-8"))
 
