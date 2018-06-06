@@ -362,10 +362,10 @@ def rcopy(_, s, convert_args=True, convert_return=True, envir=R_GlobalEnv):
 
     def _(*args, **kwargs):
         return rcall(
-            r, *args, **kwargs,
+            r, *args,
             _convert_args=convert_args,
             _convert_return=convert_return,
-            _envir=envir)
+            _envir=envir, **kwargs)
     return _
 
 
