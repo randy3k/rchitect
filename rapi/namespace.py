@@ -207,6 +207,9 @@ def register_py_namespace(name=".py", version=None):
         finally:
             Rf_unprotect(narg)
 
+    def py_unicode(obj):
+        return text_type(obj)
+
     ns = make_namespace(name, version=version)
     assign("import", py_import, ns)
     assign("import_builtins", py_import_builtins, ns)
@@ -218,6 +221,7 @@ def register_py_namespace(name=".py", version=None):
     assign("py_object", robject(py_object, convert_args=False), ns)
     assign("py_set_attr", robject(py_set_attr, convert_args=False), ns)
     assign("py_set_item", robject(py_set_item, convert_args=False), ns)
+    assign("py_unicode", py_unicode, ns)
     assign("dict", robject(py_dict, convert_args=False), ns)
     assign("tuple", robject(py_tuple, convert_args=False), ns)
     assign("names.PyObject", robject(py_names, convert_return=True), ns)
@@ -238,6 +242,7 @@ def register_py_namespace(name=".py", version=None):
         "py_object",
         "py_set_attr",
         "py_set_item",
+        "py_unicode",
         "dict",
         "tuple"
     ])
