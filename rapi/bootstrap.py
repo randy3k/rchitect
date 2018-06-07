@@ -309,9 +309,11 @@ def bootstrap(libR, verbose=True):
         output = rcall("capture.output", rlang("print", self.p))
         name = "<class 'RObject{{{}}}'>\n".format(str(type(self.p).__name__))
         if not Rf_isNull(sexp(output)) and LENGTH(sexp(output)) > 0:
-            return name + "\n".join(rcopy(list, output))
-        else:
-            return name
+            try:
+                return name + "\n".join(rcopy(list, output))
+            except Exception:
+                pass
+        return name
 
     RObject.__repr__ = _repr
 
