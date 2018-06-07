@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from rapi import rcopy, reval
+from rapi import rcopy, reval, rstring
 
 
 def test_number():
@@ -9,4 +9,5 @@ def test_number():
 
 
 def test_unicode():
-    assert rcopy(reval("'α'")) == "α"
+    assert rcopy(rstring("β")) == "β"
+    assert rcopy(rstring("你")) == "你"
