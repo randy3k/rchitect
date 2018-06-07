@@ -7,14 +7,15 @@ import importlib
 from six import text_type
 from types import ModuleType
 
-from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace, R_NamespaceRegistry
+from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace
+from .internals import R_NamespaceRegistry, R_GlobalEnv
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
 from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib
 from .types import SEXPTYPE
 from .externalptr import to_pyo
 
 
-def new_env(parent, hash=True):
+def new_env(parent=R_GlobalEnv, hash=True):
     return rcall(("base", "new.env"), parent=parent, hash=hash)
 
 
