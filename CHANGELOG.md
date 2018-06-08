@@ -1,3 +1,18 @@
+# v0.0.13
+
+Changes since v0.0.12:
+
+  A lot of refactoring
+
+  Other:
+   - py_get_item, py_get_attr, py_set_attr and py_set_item
+   - added PyClass
+   - add missing list to INTSXP
+
+  Contributors:
+   - Randy Lai
+
+
 # v0.0.12
 
 Changes since v0.0.11:
