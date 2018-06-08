@@ -1,3 +1,14 @@
+# v0.0.14
+
+Changes since v0.0.13:
+
+   - rename rversion2 to rversion
+   - support r-devel
+
+  Contributors:
+   - Randy Lai
+
+
 # v0.0.13
 
 Changes since v0.0.12:
