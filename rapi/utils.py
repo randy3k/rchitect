@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from ctypes import PyDLL, c_void_p, c_char_p, cast, cdll
 import os
 import sys
+import ctypes
 import re
 import subprocess
 from distutils.version import LooseVersion
@@ -121,3 +122,60 @@ def ensure_path(rhome):
                 msvcrt._putenv("PATH={}".format(path).encode("utf-8"))
         except Exception:
             pass
+
+
+UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe")
+
+
+def rconsole2str(buf):
+    ret = ""
+    m = UTFPATTERN.search(buf)
+    while m:
+        a, b = m.span()
+        ret += system2utf8(buf[:a]) + m.group(1).decode("utf-8", "backslashreplace")
+        buf = buf[b:]
+        m = UTFPATTERN.search(buf)
+    ret += system2utf8(buf)
+    return ret
+
+
+if sys.platform == "win32":
+    mbtowc = ctypes.cdll.msvcrt.mbtowc
+    mbtowc.argtypes = [
+        ctypes.POINTER(ctypes.c_wchar),
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.c_size_t]
+    mbtowc.restype = ctypes.c_int
+
+    wctomb = ctypes.cdll.msvcrt.wctomb
+    wctomb.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.c_wchar]
+    wctomb.restype = ctypes.c_int
+
+    def system2utf8(buf):
+        wcbuf = ctypes.create_unicode_buffer(1)
+        text = ""
+        while buf:
+            n = mbtowc(wcbuf, buf, len(buf))
+            if n <= 0:
+                break
+            text += wcbuf[0]
+            buf = buf[n:]
+        return text
+
+    def utf8tosystem(text):
+        s = ctypes.create_string_buffer(10)
+        buf = b""
+        for c in text:
+            n = wctomb(s, c)
+            if n > 0:
+                buf += s[:n]
+            else:
+                buf += "\\u{{{}}}".format(hex(ord(c))[2:]).encode("ascii")
+        return buf
+
+else:
+    def system2utf8(buf):
+        return buf.decode("utf-8", "backslashreplace")
+
+    def utf8tosystem(text):
+        return text.encode("utf-8", "backslashreplace")
