@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from ctypes import PyDLL, c_void_p, c_char_p, cast, cdll
 import os
 import sys
-import ctypes
 import re
 import subprocess
 from distutils.version import LooseVersion
@@ -74,7 +73,7 @@ def find_libR(rhome):
     return PyDLL(str(libRpath))
 
 
-def rversion(libR):
+def _rversion(libR):
     """
     Only work after initialization
     """
@@ -96,7 +95,9 @@ def rversion(libR):
     return version
 
 
-def rversion2(rhome):
+def rversion(rhome=None):
+    if not rhome:
+        rhome = which_rhome()
     try:
         output = subprocess.check_output(
             [os.path.join(rhome, "bin", "R"), "--version"],
@@ -108,7 +109,9 @@ def rversion2(rhome):
     return version
 
 
-def ensure_path(rhome):
+def ensure_path(rhome=None):
+    if not rhome:
+        rhome = which_rhome()
     if sys.platform.startswith("win"):
         libR_dir = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386")
 
@@ -140,6 +143,8 @@ def rconsole2str(buf):
 
 
 if sys.platform == "win32":
+    import ctypes
+
     mbtowc = ctypes.cdll.msvcrt.mbtowc
     mbtowc.argtypes = [
         ctypes.POINTER(ctypes.c_wchar),
