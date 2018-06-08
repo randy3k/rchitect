@@ -95,6 +95,10 @@ def _rversion(libR):
     return version
 
 
+R_RELEASE = re.compile(r"R version ([0-9]+\.[0-9]+\.[0-9]+)")
+R_DEVEL = re.compile(r"R Under development \(unstable\) \(([^)]*)\)")
+
+
 def rversion(rhome=None):
     if not rhome:
         rhome = which_rhome()
@@ -102,7 +106,9 @@ def rversion(rhome=None):
         output = subprocess.check_output(
             [os.path.join(rhome, "bin", "R"), "--version"],
             stderr=subprocess.STDOUT).decode("utf-8").strip()
-        m = re.match(r"R version ([0-9]+\.[0-9]+\.[0-9]+)", output)
+        m = R_RELEASE.match(output)
+        if not m:
+            m = R_DEVEL.match(output)
         version = LooseVersion(m.group(1))
     except Exception as e:
         version = LooseVersion("1000.0.0")
