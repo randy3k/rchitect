@@ -263,11 +263,10 @@ def register_py_namespace(name=".py", version=None):
             a = to_pyo(pyobj)
             return a.value
 
-        ctypes = rcall(("reticulate", "import"), "ctypes")
-        cast = rcall("$", ctypes, "cast")
-        py_object = rcall("$", ctypes, "py_object")
-
         def r_to_py(obj):
+            ctypes = rcall(("reticulate", "import"), "ctypes")
+            cast = rcall("$", ctypes, "cast")
+            py_object = rcall("$", ctypes, "py_object")
             p = id(obj)
             addr = Rf_protect(rcall_p(("reticulate", "py_eval"), str(p), convert=False))
             ret = Rf_protect(rcall_p(("reticulate", "py_call"), cast, addr, py_object))
