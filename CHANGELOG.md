@@ -1,10 +1,12 @@
+# v0.0.16
+
+  use RTLD_GLOBAL to open libR
+
 # v0.0.15
 
   - bug fix for r_to_py
 
 # v0.0.14
-
-Changes since v0.0.13:
 
    - rename rversion2 to rversion
    - support r-devel
@@ -14,8 +16,6 @@ Changes since v0.0.13:
 
 
 # v0.0.13
-
-Changes since v0.0.12:
 
   A lot of refactoring
 
@@ -30,7 +30,6 @@ Changes since v0.0.12:
 
 # v0.0.12
 
-Changes since v0.0.11:
 
   Other:
    - use pythonapi to protect pyobject vis Py_IncRef/Py_DecRef
@@ -46,8 +45,6 @@ Changes since v0.0.11:
 
 
 # v0.0.11
-
-Changes since v0.0.7:
 
   Other:
    - use Rf_translateCharUTF8
@@ -65,7 +62,6 @@ Changes since v0.0.7:
 
 # v0.0.7
 
-Changes since v0.0.6:
 
   Other:
    - simplify R_ReadConsole
@@ -77,7 +73,6 @@ Changes since v0.0.6:
 
 # v0.0.6
 
-Changes since v0.0.5:
    - switch to circleci
    - python 2 fixes
    - add unicode test
