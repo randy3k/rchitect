@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from ctypes import PyDLL, c_void_p, c_char_p, cast, cdll
+from ctypes import PyDLL, c_void_p, c_char_p, cast, cdll, RTLD_GLOBAL
 import os
 import sys
 import re
@@ -70,7 +70,10 @@ def find_libR(rhome):
     if not os.path.exists(libRpath):
         raise RuntimeError("Cannot locate R share library.")
 
-    return PyDLL(str(libRpath))
+    if RTLD_GLOBAL:
+        return PyDLL(str(libRpath), mode=RTLD_GLOBAL)
+    else:
+        return PyDLL(str(libRpath))
 
 
 def _rversion(libR):
