@@ -297,7 +297,7 @@ def bootstrap(libR, verbose=True):
     for name, (var, vtype) in _constant_registry.items():
         try:
             var.set_constant(cglobal(name, libR, vtype))
-        except Exception as e:
+        except Exception:
             if verbose:
                 print("warning: cannot import constant {}".format(name))
 
