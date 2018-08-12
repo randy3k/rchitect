@@ -46,6 +46,32 @@ rcopy(reticulate_obj)
 ```
 
 
+## Very minimal API
+
+- `reval` - evaluate an R expression in the global environment
+
+```py
+a = reval("1")
+```
+
+- `rcopy` - convert any RObject returned by `reval` to its python type
+
+```py
+b = rcopy(a)
+```
+
+- `robject` - convert any python object to its R type
+
+```py
+c = robject(b)
+```
+
+- `rcall` - call an R function. Arguments are converted to RObjects implicitly.
+
+```py
+d = rcall("sum", [1, 2, 3])
+```
+
 ## R Eventloop in IPython
 
 When running interactively in IPython, R events such as showing graphical 
