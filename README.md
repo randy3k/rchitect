@@ -32,6 +32,20 @@ At stated above, `rpy2` requires tool chains to install which makes it not porta
 I am the same developer behind the Julia package [`RCall.jl`](https://github.com/JuliaInterop/RCall.jl) which allows Julia to communicate with R. `rapi` and `RCall.jl` share a very similar design. For example, `rcopy(reval("1"))` works for both `rapi` and `RCall.jl`.
  
 
+5. `rapi` is compatible with [`reticulate`](https://github.com/rstudio/reticulate)
+
+Objects can be converted between `rapi` and `reticulate`.
+
+```py
+import rapi.namespace
+rapi.namespace.register_py_namespace()  # may not required in the future
+
+reval("library(reticulate)");
+reticulate_obj = reval("r_to_py(1)")
+rcopy(reticulate_obj)
+```
+
+
 ## R Eventloop in IPython
 
 When running interactively in IPython, R events such as showing graphical 
