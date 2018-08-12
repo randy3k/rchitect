@@ -257,24 +257,29 @@ def register_py_namespace(name=".py", version=None):
         ["[<-", "PyObject"]
     ])
 
-    def register_reticulate_s3_methods(pkgname, pkgpath):
-        def py_to_r(obj):
-            pyobj = get_p("pyobj", obj)
-            a = to_pyo(pyobj)
-            return a.value
+    set_hook(package_event("reticulate", "onLoad"), lambda x, y: register_reticulate_s3_methods())
 
-        def r_to_py(obj):
-            ctypes = rcall(("reticulate", "import"), "ctypes")
-            cast = rcall("$", ctypes, "cast")
-            py_object = rcall("$", ctypes, "py_object")
-            p = id(obj)
-            addr = Rf_protect(rcall_p(("reticulate", "py_eval"), str(p), convert=False))
-            ret = Rf_protect(rcall_p(("reticulate", "py_call"), cast, addr, py_object))
-            value = rcall_p(("reticulate", "py_get_attr"), ret, "value")
-            Rf_unprotect(2)
-            return value
 
-        register_s3_method("reticulate", "py_to_r", "rapi.types.RObject", py_to_r)
-        register_s3_method("reticulate", "r_to_py", "PyObject", r_to_py)
+def register_reticulate_s3_methods():
+    def py_to_r(obj):
+        pyobj = get_p("pyobj", obj)
+        a = to_pyo(pyobj)
+        return a.value
 
-    set_hook(package_event("reticulate", "onLoad"), register_reticulate_s3_methods)
+    def r_to_py(obj):
+        ctypes = rcall(("reticulate", "import"), "ctypes")
+        cast = rcall("$", ctypes, "cast")
+        py_object = rcall("$", ctypes, "py_object")
+        p = id(obj)
+        addr = Rf_protect(rcall_p(("reticulate", "py_eval"), str(p), convert=False))
+        ret = Rf_protect(rcall_p(("reticulate", "py_call"), cast, addr, py_object))
+        value = rcall_p(("reticulate", "py_get_attr"), ret, "value")
+        Rf_unprotect(2)
+        return value
+
+    register_s3_method(
+        "reticulate", "py_to_r", "rapi.types.RObject",
+        robject(py_to_r, convert_args=False))
+    register_s3_method(
+        "reticulate", "r_to_py", "PyObject",
+        robject(r_to_py, convert_args=False))

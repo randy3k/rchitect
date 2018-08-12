@@ -42,26 +42,42 @@ At stated above, `rpy2` requires tool chains to install which makes it not porta
 I am the same developer behind the Julia package [`RCall.jl`](https://github.com/JuliaInterop/RCall.jl) which allows Julia to communicate with R. `rapi` and `RCall.jl` share a very similar design. For example, `rcopy(reval("1"))` works for both `rapi` and `RCall.jl`.
  
 
-5. `rapi` is compatible with [`reticulate`](https://github.com/rstudio/reticulate)
+5. `rapi` is compatible with [`reticulate`](https://github.com/rstudio/reticulate). Objects can be converted seamlessly between `rapi` and `reticulate`.
 
-Objects can be converted between `rapi` and `reticulate`.
-
+Python Side
 ```py
-import rapi.namespace
-rapi.namespace.register_py_namespace()  # may not required in the future
-
+import rapi
+rapi.start()
+from rapi import rcopy, robject, reval, rcall
 reval("library(reticulate)");
-reticulate_obj = reval("r_to_py(1)")
-rcopy(reticulate_obj)
+py_object = reval("r_to_py(LETTERS)")
+rcopy(py_object)
+```
+
+R side
+```r
+library(reticulate)
+
+py_run_string("import rapi; from rapi import reval")
+# the next line is needed for the moment
+py_run_string("import rapi.namespace; rapi.namespace.register_reticulate_s3_methods()")
+r_object = py_eval("reval('new.env()')")
+py_to_r(r_object)
 ```
 
 
 ## Very minimal API
 
+```py
+import rapi
+rapi.start()
+from rapi import rcopy, robject, reval, rcall
+```
+
 - `reval` - evaluate an R expression in the global environment
 
 ```py
-a = reval("1")
+a = reval("1:5")
 ```
 
 - `rcopy` - convert any RObject returned by `reval` to its python type
@@ -76,10 +92,10 @@ b = rcopy(a)
 c = robject(b)
 ```
 
-- `rcall` - call an R function. Arguments are converted to RObjects implicitly.
+- `rcall` - call an R function. Python objects are converted to RObjects implicitly.
 
 ```py
-d = rcall("sum", [1, 2, 3])
+d = rcall("sum", c)
 ```
 
 ## R Eventloop in IPython
