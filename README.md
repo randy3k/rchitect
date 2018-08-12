@@ -11,6 +11,16 @@ rapi.start()
 rcopy(reval("R.version"))
 ```
 
+## Installation
+
+```sh
+# install released version
+pip install -U rapi
+
+# or the development version
+pip install -U git+https://github.com/randy3k/rapi
+```
+
 ## Why?
 
 Why another R interface when there is [`rpy2`](https://rpy2.readthedocs.io/)?
