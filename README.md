@@ -57,7 +57,6 @@ class Foo():
     pass
 
 foo = Foo()
-# the next line is needed for the moment
 rcall("r_to_py", robject(foo))
 ```
 
@@ -67,7 +66,6 @@ library(reticulate)
 py_run_string("import rapi")
 py_run_string("rapi.start()")
 py_run_string("from rapi import *")
-# the next line is needed for the moment
 r_object = py_eval("reval('LETTERS')")
 py_to_r(r_object)
 
