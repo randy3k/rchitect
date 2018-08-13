@@ -49,6 +49,9 @@ Python Side
 import rapi
 rapi.start()
 from rapi import *
+import os
+import sys
+os.environ["RETICULATE_PYTHON"] = sys.executable
 reval("library(reticulate)");
 py_object = reval("r_to_py(LETTERS)")
 rcopy(py_object)
