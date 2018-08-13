@@ -32,6 +32,7 @@ init:
 
 install:
   - ps: Bootstrap
+  - R.exe -e "install.packages('reticulate', repo = '"https://cloud.r-project.org"')"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "%CMD_IN_ENV% python -m pip install --upgrade setuptools pip"
   - "%CMD_IN_ENV% pip install -e .[test]"
