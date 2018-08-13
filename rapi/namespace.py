@@ -10,7 +10,7 @@ from types import ModuleType
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace
 from .internals import R_NamespaceRegistry, R_GlobalEnv
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
-from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib
+from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib, RObject
 from .types import SEXPTYPE
 from .externalptr import to_pyo
 
@@ -271,7 +271,7 @@ def register_reticulate_s3_methods():
         cast = rcall("$", ctypes, "cast")
         py_object = rcall("$", ctypes, "py_object")
         p = id(obj)
-        addr = Rf_protect(rcall_p(("reticulate", "py_eval"), str(p)))
+        addr = Rf_protect(rcall_p(("reticulate", "py_eval"), str(p), convert=False))
         ret = Rf_protect(rcall_p(("reticulate", "py_call"), cast, addr, py_object))
         value = rcall_p(("reticulate", "py_get_attr"), ret, "value")
         Rf_unprotect(2)
@@ -282,4 +282,4 @@ def register_reticulate_s3_methods():
         robject(py_to_r, convert_args=False, convert_return=True))
     register_s3_method(
         "reticulate", "r_to_py", "PyObject",
-        robject(r_to_py, convert_args=True))
+        robject(r_to_py, convert_args=True, convert_return=True))
