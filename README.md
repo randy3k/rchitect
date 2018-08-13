@@ -57,11 +57,10 @@ rcopy(py_object)
 R side
 ```r
 library(reticulate)
-
 py_run_string("import rapi; from rapi import reval")
 # the next line is needed for the moment
 py_run_string("import rapi.namespace; rapi.namespace.register_reticulate_s3_methods()")
-r_object = py_eval("reval('new.env()')")
+r_object = py_eval("reval('LETTERS')")
 py_to_r(r_object)
 ```
 
