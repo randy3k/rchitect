@@ -259,6 +259,9 @@ class Machine(object):
 
         bootstrap(self.libR, verbose=self.verbose)
 
+        import rapi.namespace
+        rapi.namespace.reticulate_event_handler()
+
         self.bootstrapped = True
 
     def run_loop(self):

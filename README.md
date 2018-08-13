@@ -48,7 +48,7 @@ Python Side
 ```py
 import rapi
 rapi.start()
-from rapi import rcopy, robject, reval, rcall
+from rapi import *
 reval("library(reticulate)");
 py_object = reval("r_to_py(LETTERS)")
 rcopy(py_object)
@@ -58,16 +58,16 @@ class Foo():
 
 foo = Foo()
 # the next line is needed for the moment
-import rapi.namespace; rapi.namespace.register_reticulate_s3_methods()
 rcall("r_to_py", robject(foo))
 ```
 
 R side
 ```r
 library(reticulate)
-py_run_string("import rapi; from rapi import reval, robject")
+py_run_string("import rapi")
+py_run_string("rapi.start()")
+py_run_string("from rapi import *")
 # the next line is needed for the moment
-py_run_string("import rapi.namespace; rapi.namespace.register_reticulate_s3_methods()")
 r_object = py_eval("reval('LETTERS')")
 py_to_r(r_object)
 

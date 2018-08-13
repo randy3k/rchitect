@@ -10,7 +10,7 @@ from types import ModuleType
 from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace
 from .internals import R_NamespaceRegistry, R_GlobalEnv
 from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
-from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib, RObject
+from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib
 from .types import SEXPTYPE
 from .externalptr import to_pyo
 
@@ -257,8 +257,6 @@ def register_py_namespace(name=".py", version=None):
         ["[<-", "PyObject"]
     ])
 
-    set_hook(package_event("reticulate", "onLoad"), lambda x, y: register_reticulate_s3_methods())
-
 
 def register_reticulate_s3_methods():
     def py_to_r(obj):
@@ -283,3 +281,10 @@ def register_reticulate_s3_methods():
     register_s3_method(
         "reticulate", "r_to_py", "PyObject",
         robject(r_to_py, convert_args=True, convert_return=True))
+
+
+def reticulate_event_handler():
+    if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
+        register_reticulate_s3_methods()
+    else:
+        set_hook(package_event("reticulate", "onLoad"), lambda x, y: register_reticulate_s3_methods())
