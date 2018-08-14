@@ -3,11 +3,12 @@ version: 2
 jobs:
   test-r-3.4.4-py2:
     docker:
-      - image: rocker/r-ver:3.4.4
+      - image: rocker/tidyverse:3.4.4
     steps:
       - run: |
           apt-get update
           apt-get install git curl python python-pip -y
+      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip install -e .[test]
       - run: |
@@ -15,11 +16,12 @@ jobs:
           pytest
   test-r-release-py2:
     docker:
-      - image: rocker/r-ver
+      - image: rocker/tidyverse
     steps:
       - run: |
           apt-get update
           apt-get install git curl python python-pip -y
+      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip install -e .[test]
       - run: |
@@ -27,11 +29,12 @@ jobs:
           pytest
   test-r-devel-py2:
     docker:
-      - image: rocker/r-ver:devel
+      - image: rocker/tidyverse:devel
     steps:
       - run: |
           apt-get update
           apt-get install git curl python python-pip -y
+      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip install -e .[test]
       - run: |
@@ -39,11 +42,12 @@ jobs:
           pytest
   test-r-3.4.4-py3:
     docker:
-      - image: rocker/r-ver:3.4.4
+      - image: rocker/tidyverse:3.4.4
     steps:
       - run: |
           apt-get update
           apt-get install git curl python3 python3-pip -y
+      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip3 install -e .[test]
       - run: |
@@ -51,11 +55,12 @@ jobs:
           pytest
   test-r-release-py3:
     docker:
-      - image: rocker/r-ver
+      - image: rocker/tidyverse
     steps:
       - run: |
           apt-get update
           apt-get install git curl python3 python3-pip -y
+      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip3 install -e .[test]
       - run: |
@@ -63,11 +68,12 @@ jobs:
           pytest
   test-r-devel-py3:
     docker:
-      - image: rocker/r-ver:devel
+      - image: rocker/tidyverse:devel
     steps:
       - run: |
           apt-get update
           apt-get install git curl python3 python3-pip -y
+      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip3 install -e .[test]
       - run: |
@@ -88,8 +94,6 @@ jobs:
       - run: |
           python setup.py sdist
           twine upload dist/*
-
-
 workflows:
   version: 2
   build:
