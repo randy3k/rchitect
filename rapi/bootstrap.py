@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import sys
 
 from ctypes import c_int, c_size_t, c_char, c_char_p, c_void_p, cast, pointer
-from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
+from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure, PyDLL
 
 from .types import SEXP
 from .utils import which_rhome, find_libR, ensure_path, ccall, cglobal
@@ -240,7 +240,8 @@ class Machine(object):
         if self.instance and self.instance.bootstrapped:
             raise RuntimeError("R has been started.")
 
-        initialized = cglobal("R_NilValue", self.libR).value is not None
+        initialized = cglobal("R_NilValue", self.libR).value is not None or \
+            cglobal("R_NilValue", PyDLL(None)).value is not None
 
         if not initialized:
             argn = len(arguments)
