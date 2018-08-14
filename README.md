@@ -46,9 +46,19 @@ I am the same developer behind the Julia package [`RCall.jl`](https://github.com
 
 Python Side
 ```py
+# some preparation work
+# Unix users may need this PR: https://github.com/rstudio/reticulate/pull/279
+# Windows + Python 2.7 users may need this PR: https://github.com/rstudio/reticulate/pull/335
+# See also https://github.com/randy3k/rtichoke#how-to-specify-r_home-location
+import os
+import sys
+os.environ["RETICULATE_PYTHON"] = sys.executable
+os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
+
 import rapi
 rapi.start()
 from rapi import *
+
 reval("library(reticulate)");
 py_object = reval("r_to_py(LETTERS)")
 rcopy(py_object)
