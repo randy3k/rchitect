@@ -6,7 +6,7 @@ from ctypes import c_int, c_size_t, c_char, c_char_p, c_void_p, cast, pointer
 from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
 
 from .types import SEXP
-from .utils import which_rhome, find_libR, ensure_path, ccall, cglobal
+from .utils import which_rhome, find_libR, find_libRgraphapp, ensure_path, ccall, cglobal
 
 
 callback_dict = {
@@ -149,7 +149,7 @@ def setup_posix(libR):
     set_posix_cb_ptr(libR, "R_PolledEvents", "R_PolledEvents")
 
 
-def setup_win32(libR, args):
+def setup_win32(libR, rhome, args):
     SA_NORESTORE = 0
     SA_RESTORE = 1
     # SA_DEFAULT = 2
@@ -192,6 +192,13 @@ def setup_win32(libR, args):
 
     libR.R_SetParams(pointer(rstart))
 
+    try:
+        libRgraphapp = find_libRgraphapp(rhome)
+        libRgraphapp.GA_initapp(0, 0)
+        libR.readconsolecfg()
+    except RuntimeError:
+        print("Cannot locate Rgraphapp share library.")
+
     # prevent gc
     RStart.rstart = rstart
 
@@ -214,6 +221,7 @@ class Machine(object):
         ensure_path(rhome)
         libR = find_libR(rhome)
 
+        self.rhome = rhome
         self.libR = libR
 
         if set_default_callbacks:
@@ -249,7 +257,7 @@ class Machine(object):
                 argv[i] = c_char_p(a.encode('utf-8'))
 
             if sys.platform.startswith("win"):
-                setup_win32(self.libR, arguments)
+                setup_win32(self.libR, self.rhome, arguments)
                 self.libR.R_set_command_line_arguments(argn, argv)
             else:
                 self.libR.Rf_initialize_R(argn, argv)

@@ -76,6 +76,19 @@ def find_libR(rhome):
         return PyDLL(str(libRpath))
 
 
+def find_libRgraphapp(rhome):
+    libRdir = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386")
+    libRgraphapppath = os.path.join(libRdir, "Rgraphapp.dll")
+
+    if not os.path.exists(libRgraphapppath):
+        raise RuntimeError("Cannot locate Rgraphapp share library.")
+
+    if RTLD_GLOBAL:
+        return PyDLL(str(libRgraphapppath), mode=RTLD_GLOBAL)
+    else:
+        return PyDLL(str(libRgraphapppath))
+
+
 def _rversion(libR):
     """
     Only work after initialization
