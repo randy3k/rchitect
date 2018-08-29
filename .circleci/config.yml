@@ -7,7 +7,7 @@ jobs:
     steps:
       - run: |
           apt-get update
-          apt-get install git curl python python-pip -y
+          apt-get install git ssh curl python python-pip -y
       - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip install -e .[test]
@@ -20,7 +20,7 @@ jobs:
     steps:
       - run: |
           apt-get update
-          apt-get install git curl python python-pip -y
+          apt-get install git ssh curl python python-pip -y
       - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip install -e .[test]
@@ -33,7 +33,7 @@ jobs:
     steps:
       - run: |
           apt-get update
-          apt-get install git curl python python-pip -y
+          apt-get install git ssh curl python python-pip -y
       - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip install -e .[test]
@@ -46,7 +46,7 @@ jobs:
     steps:
       - run: |
           apt-get update
-          apt-get install git curl python3 python3-pip -y
+          apt-get install git ssh curl python3 python3-pip -y
       - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip3 install -e .[test]
@@ -59,7 +59,7 @@ jobs:
     steps:
       - run: |
           apt-get update
-          apt-get install git curl python3 python3-pip -y
+          apt-get install git ssh curl python3 python3-pip -y
       - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip3 install -e .[test]
@@ -72,7 +72,7 @@ jobs:
     steps:
       - run: |
           apt-get update
-          apt-get install git curl python3 python3-pip -y
+          apt-get install git ssh curl python3 python3-pip -y
       - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
       - checkout
       - run: pip3 install -e .[test]
