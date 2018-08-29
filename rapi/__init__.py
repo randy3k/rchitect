@@ -16,7 +16,7 @@ __all__ = [
     "robject"
 ]
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 
 def start(
