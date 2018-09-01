@@ -66,6 +66,8 @@ def find_libR(rhome):
         libRpath = os.path.join(rhome, "lib", "libR.dylib")
     elif sys.platform.startswith("linux"):
         libRpath = os.path.join(rhome, "lib", "libR.so")
+    elif sys.platform.startswith("freebsd"):
+        libRpath = os.path.join(rhome, "lib", "libR.so")
 
     if not os.path.exists(libRpath):
         raise RuntimeError("Cannot locate R share library.")
