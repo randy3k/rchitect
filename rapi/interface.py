@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, absolute_import
 
+import os
 import sys
 import inspect
 from ctypes import py_object, byref, cast, c_void_p, c_int
@@ -907,7 +908,7 @@ def setclass(s, classes):
 def _process_events():
     if sys.platform == "win32" or sys.platform == "darwin":
         R_ProcessEvents()
-    if sys.platform.startswith("linux") or sys.platform == "darwin":
+    if sys.platform.startswith("linux") or sys.platform == "darwin" or os.name == "posix":
         what = R_checkActivity(0, 1)
         if what:
             R_runHandlers(R_InputHandlers, what)
