@@ -42,7 +42,32 @@ At stated above, `rpy2` requires tool chains to install which makes it not porta
 I am the same developer behind the Julia package [`RCall.jl`](https://github.com/JuliaInterop/RCall.jl) which allows Julia to communicate with R. `rapi` and `RCall.jl` share a very similar design. For example, `rcopy(reval("1"))` works for both `rapi` and `RCall.jl`.
  
 
-5. `rapi` is compatible with [`reticulate`](https://github.com/rstudio/reticulate). Objects can be converted seamlessly between `rapi` and `reticulate`.
+5. `rapi` is compatible with [`reticulate`](https://github.com/rstudio/reticulate). Objects can be converted seamlessly between `rapi` and `reticulate`. Check the section for `reticuate` below.
+
+## FAQ
+
+Sometimes, `rapi` may fail to open the shared library.
+
+- On Linux
+
+First, try to expose R to PATH.
+```sh
+export R_HOME=/usr/local/lib/R
+```
+Note that it should be the path to `R_HOME`, not the path to the R binary. The
+folder should contain a file called `COPYING`. In some cases, you may need to
+futher specify `LD_LIBRARY_PATH`,
+
+```sh
+$ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
+```
+
+- On Windows
+
+Make sure that the path(s) to `R.exe` and `R.dll` is in the `PATH` variable.
+
+
+## reticulate
 
 Python Side
 ```py
