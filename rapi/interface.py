@@ -167,7 +167,7 @@ def rlang_p(*args, **kwargs):
             SETCAR(s, fname)
         elif isinstance(fname, RObject):
             SETCAR(s, fname.p)
-        elif isinstance(fname, text_type):
+        elif isinstance(fname, string_types):
             SETCAR(s, rsym_p(fname))
         elif isinstance(fname, tuple) and len(fname) == 2:
             SETCAR(s, rsym_p(*fname))
