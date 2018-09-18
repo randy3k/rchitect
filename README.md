@@ -75,6 +75,8 @@ Python Side
 # Unix users may need this PR: https://github.com/rstudio/reticulate/pull/279
 # Windows + Python 2.7 users may need this PR: https://github.com/rstudio/reticulate/pull/335
 # See also https://github.com/randy3k/rtichoke#how-to-specify-r_home-location
+from __future__ import unicode_literals
+
 import os
 import sys
 os.environ["RETICULATE_PYTHON"] = sys.executable
@@ -88,11 +90,12 @@ reval("library(reticulate)");
 py_object = reval("r_to_py(LETTERS)")
 rcopy(py_object)
 
-class Foo():
+class Foo(object):
     pass
 
 foo = Foo()
 rcall("r_to_py", robject(foo))
+
 ```
 
 R side
@@ -104,7 +107,7 @@ py_run_string("from rapi import *")
 r_object = py_eval("reval('LETTERS')")
 py_to_r(r_object)
 
-py_run_string("class Foo(): pass")
+py_run_string("class Foo(object): pass")
 py_run_string("foo = Foo()")
 py_object = py_eval("robject(foo)")
 r_to_py(py_to_r(py_object))
@@ -114,6 +117,7 @@ r_to_py(py_to_r(py_object))
 ## Very minimal API
 
 ```py
+from __future__ import unicode_literals  # python 2 compatibility
 import rapi
 rapi.start()
 from rapi import rcopy, robject, reval, rcall
