@@ -69,7 +69,6 @@ Make sure that the path(s) to `R.exe` and `R.dll` is in the `PATH` variable.
 ## Very minimal API
 
 ```py
-from __future__ import unicode_literals  # python 2 compatibility
 import rapi
 rapi.start()
 from rapi import rcopy, robject, reval, rcall
@@ -115,7 +114,6 @@ Python Side
 # Unix users may need this PR: https://github.com/rstudio/reticulate/pull/279
 # Windows + Python 2.7 users may need this PR: https://github.com/rstudio/reticulate/pull/335
 # See also https://github.com/randy3k/rtichoke#how-to-specify-r_home-location
-from __future__ import unicode_literals
 
 import os
 import sys
