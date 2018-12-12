@@ -1,7 +1,7 @@
 # a simple repl loop suitable used within python console
 
 from .interface import rprint, reval_with_visible
-from prompt_toolkit.shortcuts import prompt, create_eventloop
+from prompt_toolkit.shortcuts import prompt
 from .interface import process_events
 
 
@@ -18,10 +18,12 @@ def inputhook(context):
 def repl_r():
     while True:
         try:
-            text = prompt("> ", eventloop=create_eventloop(inputhook=inputhook))
+            text = prompt("> ", inputhook=inputhook)
             result = reval_with_visible(text)
             if result["visible"]:
                 rprint(result["value"])
+        except RuntimeError as e:
+            raise e
         except EOFError:
             break
         except KeyboardInterrupt:
