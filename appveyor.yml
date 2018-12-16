@@ -26,6 +26,10 @@ environment:
      R_VERSION: "devel"
      USE_RTOOLS: true
 
+matrix:
+  allow_failures:
+    - R_VERSION: "devel"
+
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
   # https://github.com/rstudio/reticulate/blob/master/appveyor.yml
