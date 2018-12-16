@@ -268,8 +268,8 @@ class Machine(object):
         bootstrap(self.libR, verbose=self.verbose)
 
         import rapi.namespace
-        rapi.namespace.pythonapi_environment()
-        rapi.namespace.reticulate_event_handler()
+        rapi.namespace.set_hook_for_reticulate()
+        rapi.namespace.inject_pytools_environment()
 
         self.bootstrapped = True
 

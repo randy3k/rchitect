@@ -6,8 +6,12 @@ from six import text_type
 from types import ModuleType
 
 from .internals import R_GlobalEnv, Rf_protect, Rf_unprotect
-from .interface import rcopy, robject, rcall_p, rcall, rsym
+from .interface import rcopy, robject, rcall_p, rcall, rsym, setoption
 from .externalptr import to_pyo
+
+
+def get_p(name, envir):
+    return rcall_p(("base", "get"), name, envir=envir)
 
 
 def new_env(parent=R_GlobalEnv, hash=True):
@@ -22,7 +26,11 @@ def package_event(pkg, event):
     return rcall(("base", "packageEvent"), pkg, event)
 
 
-def pythonapi_environment():
+def register_s3_method(generic, cls, fun, envir):
+    rcall(("base", "registerS3method"), generic, cls, fun, envir)
+
+
+def inject_pytools_environment(register_s3_methods=False):
 
     # py namespace
     def py_import(module):
@@ -115,6 +123,8 @@ def pythonapi_environment():
         rcall(("base", "assign"), name, value, envir=envir)
 
     e = new_env()
+    setoption("pytools_environment", e)
+
     assign("import", py_import, e)
     assign("import_builtins", py_import_builtins, e)
     assign("py_call", py_call, e)
@@ -136,19 +146,21 @@ def pythonapi_environment():
     assign("$<-.PyObject", robject(py_set_attr, convert_args=False), e)
     assign("[<-.PyObject", robject(py_set_item, convert_args=False), e)
 
-    assign(".pythonapi", e, R_GlobalEnv)
+    def register():
+        register_s3_method("names", "PyObject", get_p("names.PyObject", e), e)
+        register_s3_method("print", "PyObject", get_p("print.PyObject", e), e)
+        register_s3_method(".DollarNames", "PyObject", get_p(".DollarNames.PyObject", e), e)
+        register_s3_method("$", "PyObject", get_p("$.PyObject", e), e)
+        register_s3_method("[", "PyObject", get_p("[.PyObject", e), e)
+        register_s3_method("$<-", "PyObject", get_p("$<-.PyObject", e), e)
+        register_s3_method("[<-", "PyObject", get_p("[<-.PyObject", e), e)
+
+    assign("register", register, e)
+    if register_s3_methods:
+        register()
 
 
 def register_reticulate_s3_methods():
-    def get_p(name, envir):
-        return rcall_p(("base", "get"), name, envir=envir)
-
-    def register_s3_method(pkg, generic, cls, fun):
-        rcall(
-            ("base", "registerS3method"),
-            generic, cls, fun,
-            envir=rcall(rsym("asNamespace"), pkg))
-
     def py_to_r(obj):
         pyobj = get_p("pyobj", obj)
         a = to_pyo(pyobj)
@@ -165,15 +177,18 @@ def register_reticulate_s3_methods():
         Rf_unprotect(2)
         return value
 
+    reticulatens = rcall(rsym("asNamespace"), "reticulate")
     register_s3_method(
-        "reticulate", "py_to_r", "rapi.types.RObject",
-        robject(py_to_r, convert_args=False, convert_return=True))
+        "py_to_r", "rapi.types.RObject",
+        robject(py_to_r, convert_args=False, convert_return=True),
+        reticulatens)
     register_s3_method(
-        "reticulate", "r_to_py", "PyObject",
-        robject(r_to_py, convert_args=True, convert_return=True))
+        "r_to_py", "PyObject",
+        robject(r_to_py, convert_args=True, convert_return=True),
+        reticulatens)
 
 
-def reticulate_event_handler():
+def set_hook_for_reticulate():
 
     if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
         register_reticulate_s3_methods()
