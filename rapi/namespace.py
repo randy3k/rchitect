@@ -1,113 +1,17 @@
 from __future__ import unicode_literals, absolute_import
 
-import os
 import sys
-import tempfile
 import importlib
 from six import text_type
 from types import ModuleType
 
-from .internals import R_NameSymbol, R_NamesSymbol, R_BaseNamespace
-from .internals import R_NamespaceRegistry, R_GlobalEnv
-from .internals import Rf_allocMatrix, SET_STRING_ELT, Rf_mkChar, Rf_protect, Rf_unprotect
-from .interface import rcopy, robject, rcall_p, rcall, reval, rsym, setattrib
-from .types import SEXPTYPE
+from .internals import R_GlobalEnv, Rf_protect, Rf_unprotect
+from .interface import rcopy, robject, rcall_p, rcall, rsym
 from .externalptr import to_pyo
 
 
 def new_env(parent=R_GlobalEnv, hash=True):
     return rcall(("base", "new.env"), parent=parent, hash=hash)
-
-
-def assign(name, value, envir):
-    rcall(("base", "assign"), name, value, envir=envir)
-
-
-def get_p(name, envir):
-    return rcall_p(("base", "get"), name, envir=envir)
-
-
-def get(name, envir):
-    return rcall(("base", "get"), name, envir=envir)
-
-
-def set_namespace_info(ns, which, val):
-    rcall(("base", "setNamespaceInfo"), ns, which, val)
-
-
-def get_namespace_info(ns, which):
-    return rcall(("base", "getNamespaceInfo"), ns, which)
-
-
-# mirror https://github.com/wch/r-source/blob/trunk/src/library/base/R/namespace.R
-def make_namespace(name, version=None, lib=None):
-    if not version:
-        version = "0.0.1"
-    else:
-        version = text_type(version)
-    if not lib:
-        lib = os.path.join(tempfile.mkdtemp(), name)
-        os.makedirs(lib)
-        description = os.path.join(lib, "DESCRIPTION")
-        with open(description, "w") as f:
-            f.write("Package: {}\n".format(name))
-            f.write("Version: {}\n".format(version))
-    impenv = new_env(R_BaseNamespace)
-    setattrib(impenv, R_NameSymbol, "imports:{}".format(name))
-    env = new_env(impenv)
-    info = new_env(R_BaseNamespace)
-    assign(".__NAMESPACE__.", info, envir=env)
-    spec = robject([name, version])
-    assign("spec", spec, envir=info)
-    setattrib(spec, R_NamesSymbol, ["name", "version"])
-    exportenv = new_env(R_BaseNamespace)
-    set_namespace_info(env, "exports", exportenv)
-    dimpenv = new_env(R_BaseNamespace)
-    setattrib(dimpenv, R_NameSymbol, "lazydata:{}".format(name))
-    set_namespace_info(env, "lazydata", dimpenv)
-    set_namespace_info(env, "imports", {"base": True})
-    set_namespace_info(env, "path", lib)
-    set_namespace_info(env, "dynlibs", None)
-    set_namespace_info(env, "S3methods", reval("matrix(NA_character_, 0L, 3L)"))
-    s3methodstableenv = new_env(R_BaseNamespace)
-    assign(".__S3MethodsTable__.", s3methodstableenv, envir=env)
-    assign(name, env, envir=R_NamespaceRegistry)
-    return env
-
-
-def seal_namespace(ns):
-    sealed = rcopy(rcall(("base", "environmentIsLocked"), ns))
-    if sealed:
-        name = rcopy(rcall(("base", "getNamespaceName"), ns))
-        raise Exception("namespace {} is already sealed".format(name))
-    rcall(("base", "lockEnvironment"), ns, True)
-    parent = rcall(("base", "parent.env"), ns)
-    rcall(("base", "lockEnvironment"), parent, True)
-
-
-def namespace_export(ns, vs):
-    rcall(rsym("base", "namespaceExport"), ns, vs)
-
-
-def register_s3_methods(ns, methods):
-    name = rcopy(get_namespace_info(ns, "spec"))[0]
-    m = Rf_protect(Rf_allocMatrix(SEXPTYPE.STRSXP, len(methods), 3))
-    for i in range(len(methods)):
-        generic = methods[i][0]
-        cls = methods[i][1]
-        SET_STRING_ELT(m, 0 * len(methods) + i, Rf_mkChar(generic.encode("utf-8")))
-        SET_STRING_ELT(m, 1 * len(methods) + i, Rf_mkChar(cls.encode("utf-8")))
-        SET_STRING_ELT(m, 2 * len(methods) + i, Rf_mkChar((generic + "." + cls).encode("utf-8")))
-
-    rcall(("base", "registerS3methods"), m, name, ns)
-    Rf_unprotect(1)
-
-
-def register_s3_method(pkg, generic, cls, fun):
-    rcall(
-        ("base", "registerS3method"),
-        generic, cls, fun,
-        envir=rcall(rsym("asNamespace"), pkg))
 
 
 def set_hook(event, fun):
@@ -118,13 +22,9 @@ def package_event(pkg, event):
     return rcall(("base", "packageEvent"), pkg, event)
 
 
-# py namespace
+def pythonapi_environment():
 
-def register_py_namespace(name=".py", version=None):
-    if not version:
-        import rapi
-        version = rapi.__version__
-
+    # py namespace
     def py_import(module):
         return importlib.import_module(module)
 
@@ -211,54 +111,44 @@ def register_py_namespace(name=".py", version=None):
     def py_unicode(obj):
         return text_type(obj)
 
-    ns = make_namespace(name, version=version)
-    assign("import", py_import, ns)
-    assign("import_builtins", py_import_builtins, ns)
-    assign("py_call", py_call, ns)
-    assign("py_copy", robject(py_copy, convert_return=True), ns)
-    assign("py_eval", py_eval, ns)
-    assign("py_get_attr", py_get_attr, ns)
-    assign("py_get_item", py_get_item, ns)
-    assign("py_object", robject(py_object, convert_args=False), ns)
-    assign("py_set_attr", robject(py_set_attr, convert_args=False), ns)
-    assign("py_set_item", robject(py_set_item, convert_args=False), ns)
-    assign("py_unicode", py_unicode, ns)
-    assign("dict", robject(py_dict, convert_args=False), ns)
-    assign("tuple", robject(py_tuple, convert_args=False), ns)
-    assign("names.PyObject", robject(py_names, convert_return=True), ns)
-    assign("print.PyObject", robject(py_print, invisible=True), ns)
-    assign(".DollarNames.PyObject", robject(py_names, convert_return=True), ns)
-    assign("$.PyObject", robject(py_get_attr, convert_return=True), ns)
-    assign("[.PyObject", robject(py_get_item, convert_return=True), ns)
-    assign("$<-.PyObject", robject(py_set_attr, convert_args=False), ns)
-    assign("[<-.PyObject", robject(py_set_item, convert_args=False), ns)
-    namespace_export(ns, [
-        "import",
-        "import_builtins",
-        "py_call",
-        "py_copy",
-        "py_eval",
-        "py_get_attr",
-        "py_get_item",
-        "py_object",
-        "py_set_attr",
-        "py_set_item",
-        "py_unicode",
-        "dict",
-        "tuple"
-    ])
-    register_s3_methods(ns, [
-        ["names", "PyObject"],
-        ["print", "PyObject"],
-        [".DollarNames", "PyObject"],
-        ["$", "PyObject"],
-        ["[", "PyObject"],
-        ["$<-", "PyObject"],
-        ["[<-", "PyObject"]
-    ])
+    def assign(name, value, envir):
+        rcall(("base", "assign"), name, value, envir=envir)
+
+    e = new_env()
+    assign("import", py_import, e)
+    assign("import_builtins", py_import_builtins, e)
+    assign("py_call", py_call, e)
+    assign("py_copy", robject(py_copy, convert_return=True), e)
+    assign("py_eval", py_eval, e)
+    assign("py_get_attr", py_get_attr, e)
+    assign("py_get_item", py_get_item, e)
+    assign("py_object", robject(py_object, convert_args=False), e)
+    assign("py_set_attr", robject(py_set_attr, convert_args=False), e)
+    assign("py_set_item", robject(py_set_item, convert_args=False), e)
+    assign("py_unicode", py_unicode, e)
+    assign("dict", robject(py_dict, convert_args=False), e)
+    assign("tuple", robject(py_tuple, convert_args=False), e)
+    assign("names.PyObject", robject(py_names, convert_return=True), e)
+    assign("print.PyObject", robject(py_print, invisible=True), e)
+    assign(".DollarNames.PyObject", robject(py_names, convert_return=True), e)
+    assign("$.PyObject", robject(py_get_attr, convert_return=True), e)
+    assign("[.PyObject", robject(py_get_item, convert_return=True), e)
+    assign("$<-.PyObject", robject(py_set_attr, convert_args=False), e)
+    assign("[<-.PyObject", robject(py_set_item, convert_args=False), e)
+
+    assign(".pythonapi", e, R_GlobalEnv)
 
 
 def register_reticulate_s3_methods():
+    def get_p(name, envir):
+        return rcall_p(("base", "get"), name, envir=envir)
+
+    def register_s3_method(pkg, generic, cls, fun):
+        rcall(
+            ("base", "registerS3method"),
+            generic, cls, fun,
+            envir=rcall(rsym("asNamespace"), pkg))
+
     def py_to_r(obj):
         pyobj = get_p("pyobj", obj)
         a = to_pyo(pyobj)
@@ -284,7 +174,11 @@ def register_reticulate_s3_methods():
 
 
 def reticulate_event_handler():
+
     if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
         register_reticulate_s3_methods()
     else:
-        set_hook(package_event("reticulate", "onLoad"), lambda x, y: register_reticulate_s3_methods())
+        set_hook(
+            package_event("reticulate", "onLoad"),
+            lambda x, y: register_reticulate_s3_methods()
+        )
