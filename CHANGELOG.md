@@ -1,3 +1,9 @@
+# v0.1 - v0.1.4
+
+   - do not register py namespace automatically
+   - support reticulate
+   - GA_initapp via graphapp
+
 # v0.0.16
 
   use RTLD_GLOBAL to open libR
