@@ -155,7 +155,7 @@ def inject_pytools_environment(register_s3_methods=False):
         register_s3_method("$<-", "PyObject", get_p("$<-.PyObject", e), e)
         register_s3_method("[<-", "PyObject", get_p("[<-.PyObject", e), e)
 
-    assign("register", register, e)
+    assign("register", robject(register, invisible=True), e)
     if register_s3_methods:
         register()
 
