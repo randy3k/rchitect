@@ -37,7 +37,7 @@ init:
 install:
   - ps: Bootstrap
   - R.exe -e "install.packages('devtools', repo = '"https://cloud.r-project.org"')"
-  - R.exe -e "devtools::install_github('randy3k/reticulate@windows')"
+  - R.exe -e "devtools::install_github('rstudio/reticulate#335')"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "%CMD_IN_ENV% python -m pip install --upgrade setuptools pip"
   - "%CMD_IN_ENV% pip install -e .[test]"
