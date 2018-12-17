@@ -30,7 +30,7 @@ def register_s3_method(generic, cls, fun, envir):
     rcall(("base", "registerS3method"), generic, cls, fun, envir)
 
 
-def inject_pytools_environment(register_s3_methods=False):
+def inject_rchitect_environment(register_s3_methods=False):
 
     # py namespace
     def py_import(module):
@@ -123,7 +123,7 @@ def inject_pytools_environment(register_s3_methods=False):
         rcall(("base", "assign"), name, value, envir=envir)
 
     e = new_env()
-    setoption("pytools_environment", e)
+    setoption("rchitect_environment", e)
 
     assign("import", py_import, e)
     assign("import_builtins", py_import_builtins, e)
@@ -179,7 +179,7 @@ def register_reticulate_s3_methods():
 
     reticulatens = rcall(rsym("asNamespace"), "reticulate")
     register_s3_method(
-        "py_to_r", "rapi.types.RObject",
+        "py_to_r", "rchitect.types.RObject",
         robject(py_to_r, convert_args=False, convert_return=True),
         reticulatens)
     register_s3_method(

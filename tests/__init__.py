@@ -1,3 +1,3 @@
-import rapi
+import rchitect
 
-rapi.start()
+rchitect.start()

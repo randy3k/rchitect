@@ -663,7 +663,7 @@ def sexp_py_object(obj):
 
 
 @CFUNCTYPE(SEXP, SEXP, SEXP, SEXP, SEXP)
-def rapi_callback(exptr, arglist, _convert_args, _convert_return):
+def rchitect_callback(exptr, arglist, _convert_args, _convert_return):
     convert_args = rcopy(bool, sexp(_convert_args))
     convert_return = rcopy(bool, sexp(_convert_return))
     f = to_pyo(exptr).value
@@ -696,7 +696,7 @@ def rapi_callback(exptr, arglist, _convert_args, _convert_return):
 def sexp(_, f, convert_args=True, convert_return=True, invisible=False):
     fextptr = rextptr(f)
     dotlist = rlang_p("list", R_DotsSymbol)
-    body = rlang_p(".Call", "rapi_callback", fextptr, dotlist, convert_args, convert_return)
+    body = rlang_p(".Call", "rchitect_callback", fextptr, dotlist, convert_args, convert_return)
     if invisible:
         body = rlang_p("invisible", body)
     lang = rlang_p(rsym("function"), sexp_dots(), body)

@@ -21,7 +21,7 @@ __version__ = '0.1.4'
 
 def start(
         arguments=[
-            "rapi",
+            "rchitect",
             "--quiet",
             "--no-save",
             "--no-restore"

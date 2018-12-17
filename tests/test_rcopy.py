@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from rapi import rcopy, reval, rstring
+from rchitect import rcopy, reval, rstring
 
 
 def test_number():

@@ -239,7 +239,7 @@ class Machine(object):
         callback_dict[name] = func
 
     def start(self, arguments=[
-                "rapi",
+                "rchitect",
                 "--quiet",
                 "--no-save",
                 "--no-restore"
@@ -267,9 +267,9 @@ class Machine(object):
 
         bootstrap(self.libR, verbose=self.verbose)
 
-        import rapi.namespace
-        rapi.namespace.set_hook_for_reticulate()
-        rapi.namespace.inject_pytools_environment()
+        import rchitect.namespace
+        rchitect.namespace.set_hook_for_reticulate()
+        rchitect.namespace.inject_rchitect_environment()
 
         self.bootstrapped = True
 
@@ -330,10 +330,10 @@ def bootstrap(libR, verbose=True):
     RObject.__repr__ = _repr
 
     from .internals import R_CallMethodDef, R_getEmbeddingDllInfo, R_registerRoutines
-    from .interface import rapi_callback
+    from .interface import rchitect_callback
 
     dll = R_getEmbeddingDllInfo()
     CallEntries = (R_CallMethodDef * 2)()
-    CallEntries[0] = R_CallMethodDef(b"rapi_callback", cast(rapi_callback, c_void_p), 4)
+    CallEntries[0] = R_CallMethodDef(b"rchitect_callback", cast(rchitect_callback, c_void_p), 4)
     CallEntries[1] = R_CallMethodDef(None, None, 0)
     R_registerRoutines(dll, None, CallEntries, None, None)

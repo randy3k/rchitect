@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from rapi import rcopy, rcall, robject
+from rchitect import rcopy, rcall, robject
 
 
 def test_lambda():

@@ -16,7 +16,7 @@ _constant_registry = {}
 
 
 def noop(*args):
-    raise RuntimeError("rapi not yet ready")
+    raise RuntimeError("rchitect not yet ready")
 
 
 def _make_closure(name, sign):
@@ -30,7 +30,7 @@ def _make_closure(name, sign):
 
     f.__name__ = str(name)
     f.__qualname__ = str(name)
-    f.__module__ = str('rapi.internals')
+    f.__module__ = str('rchitect.internals')
     return f, setter
 
 

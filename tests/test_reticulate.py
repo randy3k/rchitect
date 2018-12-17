@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from rapi import reval, rcopy, rcall, robject
+from rchitect import reval, rcopy, rcall, robject
 import string
 
 import os
@@ -19,7 +19,7 @@ class Foo():
     pass
 
 
-def test_r_to_py_rapi_object():
+def test_r_to_py_rchitect_object():
     reval("library(reticulate)")
     foo = Foo()
     x = rcall("r_to_py", robject(foo))

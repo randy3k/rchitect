@@ -21,11 +21,11 @@ def get_version(package):
 
 
 setup(
-    name='rapi',
+    name='rchitect',
     author='Randy Lai',
     author_email="randy.cs.lai@gmail.com",
-    version=get_version("rapi"),
-    url='https://github.com/randy3k/rapi',
+    version=get_version("rchitect"),
+    url='https://github.com/randy3k/rchitect',
     description='A minimal R API for Python',
     long_description=get_long_description(),
     long_description_content_type="text/markdown",

@@ -1,6 +1,6 @@
 __pycache__
 *.pyc
 dist/
-rapi.egg-info/
+rchitect.egg-info/
 .eggs/
 .pytest_cache/
