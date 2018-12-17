@@ -1,3 +1,7 @@
+# v0.2.0
+
+  - rebanded as `rchitect`
+
 # v0.1 - v0.1.4
 
    - do not register py namespace automatically
