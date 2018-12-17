@@ -26,7 +26,7 @@ setup(
     author_email="randy.cs.lai@gmail.com",
     version=get_version("rchitect"),
     url='https://github.com/randy3k/rchitect',
-    description='A minimal R API for Python',
+    description='Interoperate R with Python',
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     packages=find_packages('.'),
