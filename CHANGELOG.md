@@ -1,6 +1,6 @@
 # v0.2.0
 
-  - rebanded as `rchitect`
+  - rebranded as `rchitect`
 
 # v0.1 - v0.1.4
 
