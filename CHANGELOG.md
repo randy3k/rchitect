@@ -1,3 +1,7 @@
+# v0.2.1
+
+  - exclude tests module
+
 # v0.2.0
 
   - rebranded as `rchitect`
