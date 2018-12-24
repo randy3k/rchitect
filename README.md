@@ -27,7 +27,7 @@ Why another R interface when there is [`rpy2`](https://rpy2.readthedocs.io/)?
 
 1. `rchitect` is 100% python
 
-`rchitect` is primarily used by [`rtichoke`](https://github.com/randy3k/rtichoke) which is an alternate R console. `rpy2` was not an option because it requires compilations and who wants to compile!?
+`rchitect` is primarily used by [`radian`](https://github.com/randy3k/radian) which is an alternate R console. `rpy2` was not an option because it requires compilations and who wants to compile!?
 
 2. `rchitect` is portable
 
@@ -113,7 +113,7 @@ Python Side
 # some preparation work
 # Unix users may need this PR: https://github.com/rstudio/reticulate/pull/279
 # Windows + Python 2.7 users may need this PR: https://github.com/rstudio/reticulate/pull/335
-# See also https://github.com/randy3k/rtichoke#how-to-specify-r_home-location
+# See also https://github.com/randy3k/radian#how-to-specify-r_home-location
 
 import os
 import sys
