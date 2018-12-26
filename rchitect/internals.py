@@ -26,7 +26,12 @@ def _make_closure(name, sign):
         _f[0] = g
 
     def f(*args):
-        return _f[0](*args)
+        try:
+            return _f[0](*args)
+        except RuntimeError:
+            from rchitect import start
+            start()
+            return _f[0](*args)
 
     f.__name__ = str(name)
     f.__qualname__ = str(name)
