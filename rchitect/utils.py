@@ -58,7 +58,7 @@ def which_rhome():
     return rhome
 
 
-def find_libR(rhome):
+def load_libR(rhome):
     if sys.platform.startswith("win"):
         libRdir = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386")
         libRpath = os.path.join(libRdir, "R.dll")
@@ -76,7 +76,7 @@ def find_libR(rhome):
         return PyDLL(str(libRpath))
 
 
-def find_libRgraphapp(rhome):
+def load_libRgraphapp(rhome):
     libRdir = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386")
     libRgraphapppath = os.path.join(libRdir, "Rgraphapp.dll")
 

@@ -6,7 +6,7 @@ from ctypes import c_int, c_size_t, c_char, c_char_p, c_void_p, cast, pointer
 from ctypes import POINTER, CFUNCTYPE, PYFUNCTYPE, Structure
 
 from .types import SEXP
-from .utils import which_rhome, find_libR, find_libRgraphapp, ensure_path, ccall, cglobal
+from .utils import which_rhome, load_libR, load_libRgraphapp, ensure_path, ccall, cglobal
 
 
 callback_dict = {
@@ -193,7 +193,7 @@ def setup_win32(libR, rhome, args):
     libR.R_SetParams(pointer(rstart))
 
     try:
-        libRgraphapp = find_libRgraphapp(rhome)
+        libRgraphapp = load_libRgraphapp(rhome)
         libRgraphapp.GA_initapp(0, 0)
         libR.readconsolecfg()
     except RuntimeError:
@@ -203,7 +203,7 @@ def setup_win32(libR, rhome, args):
     RStart.rstart = rstart
 
 
-class Machine(object):
+class RSession(object):
     instance = None
     libR = None
     bootstrapped = False
@@ -211,7 +211,7 @@ class Machine(object):
     def __init__(self, rhome=None, set_default_callbacks=True, verbose=False):
 
         if not self.instance:
-            Machine.instance = self
+            RSession.instance = self
 
         self.verbose = verbose
 
@@ -219,7 +219,7 @@ class Machine(object):
             rhome = which_rhome()
 
         ensure_path(rhome)
-        libR = find_libR(rhome)
+        libR = load_libR(rhome)
 
         self.rhome = rhome
         self.libR = libR
@@ -246,7 +246,7 @@ class Machine(object):
             ]):
 
         if self.instance and self.instance.bootstrapped:
-            raise RuntimeError("R has been started.")
+            raise RuntimeError("R session has been started.")
 
         initialized = cglobal("R_NilValue", self.libR).value is not None
 

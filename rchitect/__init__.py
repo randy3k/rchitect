@@ -1,5 +1,5 @@
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy, robject
-from .bootstrap import Machine
+from .bootstrap import RSession
 from .ipython_hook import register_hook
 
 
@@ -28,10 +28,15 @@ def start(
         ],
         verbose=True):
 
-    m = Machine(verbose=verbose)
+    m = RSession(verbose=verbose)
     m.start(arguments=arguments)
     register_hook()
 
 
-def get_machine():
-    return Machine.instance
+def get_session():
+    return RSession.instance
+
+
+# backward compatability
+Machine = RSession
+get_machine = get_session
