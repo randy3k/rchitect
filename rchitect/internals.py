@@ -30,7 +30,7 @@ def _make_closure(name, sign):
             return _f[0](*args)
         except RuntimeError:
             from rchitect import start
-            start()
+            start(verbose=False)
             return _f[0](*args)
 
     f.__name__ = str(name)
