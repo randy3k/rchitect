@@ -94,13 +94,6 @@ c = robject(b)
 d = rcall("sum", c)
 ```
 
-## R Eventloop in IPython
-
-When running interactively in IPython, R events such as showing graphical 
-devices could be handled by the `r` eventloop. Simply enter in IPython
-```
-%gui r
-```
 
 ## reticulate
 

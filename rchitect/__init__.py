@@ -3,7 +3,6 @@ import sys
 
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy, robject
 from .bootstrap import RSession
-from .ipython_hook import register_hook
 
 
 __all__ = [
@@ -36,7 +35,16 @@ def start(
 
     m = RSession(verbose=verbose)
     m.start(arguments=arguments)
-    register_hook()
+
+
+try:
+    if hasattr(sys, "ps1"):
+        import IPython
+        if IPython.__version__ >= "5":
+            from .ipython_hook import register_hook
+            register_hook()
+except ImportError:
+    pass
 
 
 def get_session():
