@@ -1,3 +1,6 @@
+import os
+import sys
+
 from .interface import rexec, rparse, reval, rprint, rlang, rcall, rsym, rstring, rcopy, robject
 from .bootstrap import RSession
 from .ipython_hook import register_hook
@@ -27,6 +30,9 @@ def start(
             "--no-restore"
         ],
         verbose=True):
+
+    os.environ["RETICULATE_PYTHON"] = sys.executable
+    os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
 
     m = RSession(verbose=verbose)
     m.start(arguments=arguments)
