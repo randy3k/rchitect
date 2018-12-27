@@ -5,9 +5,7 @@
 [![pypi](https://img.shields.io/pypi/v/rchitect.svg)](https://pypi.org/project/rchitect/)
 
 ```py
-import rchitect
-from rchitect import rcopy, reval
-rchitect.start()
+from rchitect import *
 rcopy(reval("R.version"))
 ```
 
@@ -69,9 +67,7 @@ Make sure that the path(s) to `R.exe` and `R.dll` is in the `PATH` variable.
 ## Very minimal API
 
 ```py
-import rchitect
-rchitect.start()
-from rchitect import rcopy, robject, reval, rcall
+from rchitect import *
 ```
 
 - `reval` - evaluate an R expression in the global environment
@@ -115,13 +111,6 @@ Python Side
 # Windows + Python 2.7 users may need this PR: https://github.com/rstudio/reticulate/pull/335
 # See also https://github.com/randy3k/radian#how-to-specify-r_home-location
 
-import os
-import sys
-os.environ["RETICULATE_PYTHON"] = sys.executable
-os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
-
-import rchitect
-rchitect.start()
 from rchitect import *
 
 reval("library(reticulate)");
@@ -139,8 +128,6 @@ rcall("r_to_py", robject(foo))
 R side
 ```r
 library(reticulate)
-py_run_string("import rchitect")
-py_run_string("rchitect.start()")
 py_run_string("from rchitect import *")
 r_object = py_eval("reval('LETTERS')")
 py_to_r(r_object)
