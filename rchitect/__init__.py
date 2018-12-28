@@ -21,6 +21,16 @@ __all__ = [
 __version__ = '0.2.1'
 
 
+try:
+    gui_flag = "RCHITECT_ENABLE_IPYTHON_GUI"
+    if hasattr(sys, "ps1") and (gui_flag not in os.environ or os.environ[gui_flag] != "0"):
+        from .ipython_hook import register_hook, enable_gui
+        register_hook()
+        enable_gui()
+except ImportError:
+    pass
+
+
 def start(
         arguments=[
             "rchitect",
@@ -30,21 +40,8 @@ def start(
         ],
         verbose=True):
 
-    os.environ["RETICULATE_PYTHON"] = sys.executable
-    os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
-
     m = RSession(verbose=verbose)
     m.start(arguments=arguments)
-
-
-try:
-    if hasattr(sys, "ps1"):
-        import IPython
-        if IPython.__version__ >= "5":
-            from .ipython_hook import register_hook
-            register_hook()
-except ImportError:
-    pass
 
 
 def get_session():

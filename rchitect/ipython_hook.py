@@ -22,3 +22,14 @@ def register_hook():
                 process_events()
 
         IPython.terminal.pt_inputhooks.register("r", inputhook)
+
+
+def enable_gui():
+    try:
+        if hasattr(sys, "ps1"):
+            import IPython
+            shell = IPython.get_ipython()
+            if shell:
+                shell.enable_gui('r')
+    except ImportError:
+        pass

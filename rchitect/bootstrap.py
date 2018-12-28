@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import sys
 
 from ctypes import c_int, c_size_t, c_char, c_char_p, c_void_p, cast, pointer
@@ -266,12 +267,23 @@ class RSession(object):
             self.libR.setup_Rmainloop()
 
         bootstrap(self.libR, verbose=self.verbose)
+        self.bootstrapped = True
+
+        self.run_hooks()
+
+    def run_hooks(self):
+        reticulate_flag = "RCHITECT_ENABLE_RETICULATE_HOOK"
+        inject_env_flag = "RCHITECT_INJECT_ENVIRONMENT"
 
         import rchitect.namespace
-        rchitect.namespace.set_hook_for_reticulate()
-        rchitect.namespace.inject_rchitect_environment()
 
-        self.bootstrapped = True
+        if reticulate_flag not in os.environ or os.environ[reticulate_flag] != "0":
+            os.environ["RETICULATE_PYTHON"] = sys.executable
+            os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
+            rchitect.namespace.set_hook_for_reticulate()
+
+        if inject_env_flag not in os.environ or os.environ[inject_env_flag] != "0":
+            rchitect.namespace.inject_rchitect_environment()
 
     def run_loop(self):
         self.libR.run_Rmainloop()
