@@ -204,96 +204,11 @@ def setup_win32(libR, rhome, args):
     RStart.rstart = rstart
 
 
-class RSession(object):
-    instance = None
-    libR = None
-    bootstrapped = False
-
-    def __init__(self, rhome=None, set_default_callbacks=True, verbose=False):
-
-        if not self.instance:
-            RSession.instance = self
-
-        self.verbose = verbose
-
-        if not rhome:
-            rhome = which_rhome()
-
-        ensure_path(rhome)
-        libR = load_libR(rhome)
-
-        self.rhome = rhome
-        self.libR = libR
-
-        if set_default_callbacks:
-            from . import callbacks
-            self.set_callback("R_ShowMessage", callbacks.show_message)
-            self.set_callback("R_ReadConsole", callbacks.read_console)
-            self.set_callback("R_WriteConsoleEx", callbacks.write_console_ex)
-            self.set_callback("R_Busy", callbacks.busy)
-            self.set_callback("R_PolledEvents", callbacks.polled_events)
-            self.set_callback("R_YesNoCancel", callbacks.ask_yes_no_cancel)
-
-    def set_callback(self, name, func):
-        if name not in callback_dict:
-            raise ValueError("method not found")
-        callback_dict[name] = func
-
-    def start(self, arguments=[
-                "rchitect",
-                "--quiet",
-                "--no-save",
-                "--no-restore"
-            ]):
-
-        if self.instance and self.instance.bootstrapped:
-            raise RuntimeError("R session has been started.")
-
-        initialized = cglobal("R_NilValue", self.libR).value is not None
-
-        if not initialized:
-            argn = len(arguments)
-            argv = (c_char_p * argn)()
-            for i, a in enumerate(arguments):
-                argv[i] = c_char_p(a.encode('utf-8'))
-
-            if sys.platform.startswith("win"):
-                setup_win32(self.libR, self.rhome, arguments)
-                self.libR.R_set_command_line_arguments(argn, argv)
-            else:
-                self.libR.Rf_initialize_R(argn, argv)
-                setup_posix(self.libR)
-
-            self.libR.setup_Rmainloop()
-
-        bootstrap(self.libR, verbose=self.verbose)
-        self.bootstrapped = True
-
-        self.run_hooks()
-
-    def run_hooks(self):
-        reticulate_flag = "RCHITECT_ENABLE_RETICULATE_HOOK"
-        inject_env_flag = "RCHITECT_INJECT_ENVIRONMENT"
-
-        import rchitect.namespace
-
-        if reticulate_flag not in os.environ or os.environ[reticulate_flag] != "0":
-            os.environ["RETICULATE_PYTHON"] = sys.executable
-            os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
-            rchitect.namespace.set_hook_for_reticulate()
-
-        if inject_env_flag not in os.environ or os.environ[inject_env_flag] != "0":
-            rchitect.namespace.inject_rchitect_environment()
-
-    def run_loop(self):
-        self.libR.run_Rmainloop()
-
-
 def notavaiable(*args):
     raise NotImplementedError("method not avaiable")
 
 
-def bootstrap(libR, verbose=True):
+def _bootstrap(libR, verbose=True):
     from .types import RObject
     from .internals import _function_registry, _sexp_registry, _constant_registry
     from .internals import R_PreserveObject, R_ReleaseObject, Rf_isNull, LENGTH
@@ -349,3 +264,90 @@ def bootstrap(libR, verbose=True):
     CallEntries[0] = R_CallMethodDef(b"rchitect_callback", cast(rchitect_callback, c_void_p), 4)
     CallEntries[1] = R_CallMethodDef(None, None, 0)
     R_registerRoutines(dll, None, CallEntries, None, None)
+
+
+class RSession(object):
+    instance = None
+    libR = None
+    bootstrapped = False
+
+    def __init__(self, rhome=None, set_default_callbacks=True, verbose=False):
+
+        if not self.instance:
+            RSession.instance = self
+
+        self.verbose = verbose
+
+        if not rhome:
+            rhome = which_rhome()
+
+        ensure_path(rhome)
+        libR = load_libR(rhome)
+
+        self.rhome = rhome
+        self.libR = libR
+
+        if set_default_callbacks:
+            from . import callbacks
+            self.set_callback("R_ShowMessage", callbacks.show_message)
+            self.set_callback("R_ReadConsole", callbacks.read_console)
+            self.set_callback("R_WriteConsoleEx", callbacks.write_console_ex)
+            self.set_callback("R_Busy", callbacks.busy)
+            self.set_callback("R_PolledEvents", callbacks.polled_events)
+            self.set_callback("R_YesNoCancel", callbacks.ask_yes_no_cancel)
+
+    def set_callback(self, name, func):
+        if name not in callback_dict:
+            raise ValueError("method not found")
+        callback_dict[name] = func
+
+    def bootstrap(self, arguments):
+        if self.instance and self.instance.bootstrapped:
+            raise RuntimeError("R session has been started.")
+
+        initialized = cglobal("R_NilValue", self.libR).value is not None
+
+        if not initialized:
+            argn = len(arguments)
+            argv = (c_char_p * argn)()
+            for i, a in enumerate(arguments):
+                argv[i] = c_char_p(a.encode('utf-8'))
+
+            if sys.platform.startswith("win"):
+                setup_win32(self.libR, self.rhome, arguments)
+                self.libR.R_set_command_line_arguments(argn, argv)
+            else:
+                self.libR.Rf_initialize_R(argn, argv)
+                setup_posix(self.libR)
+
+            self.libR.setup_Rmainloop()
+
+        _bootstrap(self.libR, verbose=self.verbose)
+        self.bootstrapped = True
+
+    def run_hooks(self):
+        reticulate_flag = "RCHITECT_ENABLE_RETICULATE_HOOK"
+        inject_env_flag = "RCHITECT_INJECT_ENVIRONMENT"
+
+        import rchitect.namespace
+
+        if reticulate_flag not in os.environ or os.environ[reticulate_flag] != "0":
+            os.environ["RETICULATE_PYTHON"] = sys.executable
+            os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
+            rchitect.namespace.set_hook_for_reticulate()
+
+        if inject_env_flag not in os.environ or os.environ[inject_env_flag] != "0":
+            rchitect.namespace.inject_rchitect_environment()
+
+    def start(self, arguments=[
+                "rchitect",
+                "--quiet",
+                "--no-save",
+                "--no-restore"
+            ]):
+
+        self.bootstrap(arguments)
+        self.run_hooks()
+
+    def run_loop(self):
+        self.libR.run_Rmainloop()
