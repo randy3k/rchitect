@@ -1,3 +1,10 @@
+# v0.2.2
+
+   - start machine with default settings automatically
+   - set reticulate env variables automatically
+   - register hook automatically for ipython repl
+
+
 # v0.2.1
 
   - exclude tests module
