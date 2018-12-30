@@ -23,10 +23,10 @@ def repl_r():
             if result["visible"]:
                 rprint(result["value"])
         except RuntimeError as e:
-            raise e
+            pass
         except EOFError:
             break
         except KeyboardInterrupt:
             pass
-        except Exception:
-            pass
+        except Exception as e:
+            raise e

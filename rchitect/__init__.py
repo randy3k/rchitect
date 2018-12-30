@@ -21,13 +21,6 @@ __all__ = [
 __version__ = '0.2.3'
 
 
-IPYTHON_GUI = "RCHITECT_ENABLE_IPYTHON_GUI"
-if hasattr(sys, "ps1") and (IPYTHON_GUI not in os.environ or os.environ[IPYTHON_GUI] != "0"):
-    from .ipython_hook import register_hook, enable_gui
-    register_hook()
-    enable_gui()
-
-
 def start(
         arguments=[
             "rchitect",
@@ -48,3 +41,16 @@ def get_session():
 # backward compatability
 Machine = RSession
 get_machine = get_session
+
+
+IPYTHON_GUI = "RCHITECT_ENABLE_IPYTHON_GUI"
+if hasattr(sys, "ps1") and (IPYTHON_GUI not in os.environ or os.environ[IPYTHON_GUI] != "0"):
+    try:
+        import IPython
+        from .ipython_hook import register_hook
+        shell = IPython.get_ipython()
+        if shell:
+            register_hook()
+            shell.enable_gui('r')
+    except ImportError:
+        pass
