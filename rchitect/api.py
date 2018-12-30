@@ -12,7 +12,7 @@ Signature = namedtuple("Signature", ["cname", "restype", "argtypes"])
 
 _function_registry = {}
 _sexp_registry = {}
-_constant_registry = {}
+_variable_registry = {}
 
 
 def noop(*args):
@@ -62,7 +62,10 @@ def _assign_sexp(name):
     _sexp_registry[name] = (s, SEXP)
 
 
-class Constant(object):
+class ValueContainer(object):
+    """
+    Container for any global c variable
+    """
     @property
     def value(self):
         return self.const.value
@@ -75,10 +78,10 @@ class Constant(object):
         self.const = c
 
 
-def _assign_constant(name, vtype):
-    c = Constant()
+def _assign_variable(name, vtype):
+    c = ValueContainer()
     _assign(name, c)
-    _constant_registry[name] = (c, vtype)
+    _variable_registry[name] = (c, vtype)
 
 
 def notavaiable(*args):
@@ -105,7 +108,7 @@ def _register(libR, verbose):
             if verbose:
                 print("warning: cannot import sexp {}".format(name))
 
-    for name, (var, vtype) in _constant_registry.items():
+    for name, (var, vtype) in _variable_registry.items():
         try:
             var.set_constant(cglobal(name, libR, vtype))
         except Exception:
@@ -721,9 +724,9 @@ _assign_function("R_CheckUserInterrupt", None, [])
 
 
 if sys.platform == "win32":
-    _assign_constant("UserBreak", c_int)
+    _assign_variable("UserBreak", c_int)
 else:
-    _assign_constant("R_interrupts_pending", c_int)
+    _assign_variable("R_interrupts_pending", c_int)
 
 
 # Rdynload.h
@@ -742,4 +745,4 @@ _assign_function("R_getEmbeddingDllInfo", c_void_p, [])
 _assign_function("R_registerRoutines", c_int, [c_void_p, c_void_p, c_void_p, c_void_p, c_void_p])
 
 
-_assign_constant("R_Visible", c_int)
+_assign_variable("R_Visible", c_int)
