@@ -1,3 +1,0 @@
-import rchitect
-
-rchitect.start()
