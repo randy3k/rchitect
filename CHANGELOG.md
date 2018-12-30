@@ -1,3 +1,8 @@
+# v0.2.3
+
+   - do not depend on multipledispatch
+   - refactor bootstrap code
+
 # v0.2.2
 
    - start machine with default settings automatically
