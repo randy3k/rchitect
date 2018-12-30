@@ -10,21 +10,21 @@ from six import text_type, string_types
 from types import FunctionType
 from collections import Callable
 
-from .internals import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalEnv
-from .internals import R_ToplevelExec
-from .internals import R_ParseVector, Rf_eval
-from .internals import Rf_PrintValue
-from .internals import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install
-from .internals import LENGTH, TYPEOF
-from .internals import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
-from .internals import Rf_GetOption1
-from .internals import Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal, Rf_ScalarComplex
-from .internals import Rf_ScalarString, R_data_class
-from .internals import R_NamesSymbol, R_ClassSymbol, Rf_getAttrib, Rf_setAttrib, Rf_isNull
-from .internals import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
-from .internals import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
-from .internals import R_MissingArg, R_DotsSymbol, Rf_list1
-from .internals import R_Visible, Rf_findVarInFrame
+from .api import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalEnv
+from .api import R_ToplevelExec
+from .api import R_ParseVector, Rf_eval
+from .api import Rf_PrintValue
+from .api import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install
+from .api import LENGTH, TYPEOF
+from .api import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
+from .api import Rf_GetOption1
+from .api import Rf_ScalarLogical, Rf_ScalarInteger, Rf_ScalarReal, Rf_ScalarComplex
+from .api import Rf_ScalarString, R_data_class
+from .api import R_NamesSymbol, R_ClassSymbol, Rf_getAttrib, Rf_setAttrib, Rf_isNull
+from .api import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
+from .api import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
+from .api import R_MissingArg, R_DotsSymbol, Rf_list1
+from .api import R_Visible, Rf_findVarInFrame
 
 
 from .types import SEXP, SEXPTYPE, Rcomplex, RObject, RClass

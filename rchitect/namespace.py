@@ -5,7 +5,7 @@ import importlib
 from six import text_type
 from types import ModuleType
 
-from .internals import R_GlobalEnv, Rf_protect, Rf_unprotect
+from .api import R_GlobalEnv, Rf_protect, Rf_unprotect
 from .interface import rcopy, robject, rcall_p, rcall, rsym, setoption
 from .externalptr import to_pyo
 

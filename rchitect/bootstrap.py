@@ -204,41 +204,13 @@ def setup_win32(libR, rhome, args):
     RStart.rstart = rstart
 
 
-def notavaiable(*args):
-    raise NotImplementedError("method not avaiable")
-
-
 def _bootstrap(libR, verbose=True):
     from .types import RObject
-    from .internals import _function_registry, _sexp_registry, _constant_registry
-    from .internals import R_PreserveObject, R_ReleaseObject, Rf_isNull, LENGTH
+    from .api import _register
+    from .api import R_PreserveObject, R_ReleaseObject, Rf_isNull, LENGTH
     from .interface import sexp, rlang, rcall, rcopy
 
-    for name, (sign, setter) in _function_registry.items():
-        try:
-            f = getattr(libR, sign.cname)
-            f.restype = sign.restype
-            if sign.argtypes is not None:
-                f.argtypes = sign.argtypes
-            setter(f)
-        except Exception:
-            setter(notavaiable)
-            if verbose:
-                print("warning: cannot import function {}".format(name))
-
-    for name, (var, vtype) in _sexp_registry.items():
-        try:
-            var.value = cglobal(name, libR, vtype).value
-        except Exception:
-            if verbose:
-                print("warning: cannot import sexp {}".format(name))
-
-    for name, (var, vtype) in _constant_registry.items():
-        try:
-            var.set_constant(cglobal(name, libR, vtype))
-        except Exception:
-            if verbose:
-                print("warning: cannot import constant {}".format(name))
+    _register(libR, verbose)
 
     RObject.sexp = lambda self, p: sexp(p)
     RObject.preserve = lambda self, p: R_PreserveObject(p)
@@ -256,7 +228,7 @@ def _bootstrap(libR, verbose=True):
 
     RObject.__repr__ = _repr
 
-    from .internals import R_CallMethodDef, R_getEmbeddingDllInfo, R_registerRoutines
+    from .api import R_CallMethodDef, R_getEmbeddingDllInfo, R_registerRoutines
     from .interface import rchitect_callback
 
     dll = R_getEmbeddingDllInfo()

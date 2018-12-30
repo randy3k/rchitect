@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from ctypes import py_object, cast, CFUNCTYPE, pythonapi
-from .internals import R_MakeExternalPtr, R_ExternalPtrAddr, R_RegisterCFinalizerEx, R_NilValue
+from .api import R_MakeExternalPtr, R_ExternalPtrAddr, R_RegisterCFinalizerEx, R_NilValue
 from .types import SEXP
 
 

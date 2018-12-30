@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 
 from ctypes import c_int
-from .internals import PROTECT, UNPROTECT, Rf_mkString, R_ParseVector, R_NilValue
-from .internals import LENGTH, Rf_eval, VECTOR_ELT, Rf_error, Rf_isExpression
+from .api import PROTECT, UNPROTECT, Rf_mkString, R_ParseVector, R_NilValue
+from .api import LENGTH, Rf_eval, VECTOR_ELT, Rf_error, Rf_isExpression
 
 
 def R_ParseEvalString(buf, env):
