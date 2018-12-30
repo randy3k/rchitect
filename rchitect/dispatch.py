@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 AMBIGUITY = "Signature {} is ambiguous with {}. Define signature {} to resolve the ambiguity"
 
+
 class datatype(type):
     """
     We introduce a `datatype` function to allow different values from `datatype(str)` and
@@ -63,6 +64,7 @@ def expand_tuples(L):
 def isstrictsubclass(a, b):
     return a != b and issubclass(a, b)
 
+
 class Dispatcher(object):
     def __init__(self):
         self._cache = {}
@@ -96,7 +98,7 @@ class Dispatcher(object):
                     not any(map(isstrictsubclass, signature, types)):
                 continue
             parent = tuple(types[i] if issubclass(types[i], signature[i]) else signature[i]
-                        for i in range(len(types)))
+                           for i in range(len(types)))
             if parent not in self._ordering:
                 raise TypeError(
                     AMBIGUITY.format(
