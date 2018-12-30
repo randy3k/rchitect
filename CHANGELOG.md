@@ -1,3 +1,9 @@
+# v0.2.4
+
+   - some ipython hook fixes
+
+# v0.2.2
+
 # v0.2.3
 
    - do not depend on multipledispatch
