@@ -38,6 +38,10 @@ def get_session():
     return RSession.instance
 
 
+def is_active():
+    return get_session() is not None
+
+
 # backward compatability
 Machine = RSession
 get_machine = get_session
