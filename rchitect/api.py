@@ -118,7 +118,7 @@ def _register(libR, verbose):
 
 # TODO: use pycparser to parse Rinternals.h
 
-# mimic R.api.h
+# mimic Rinternals.h
 
 # CHAR
 _assign_function("CHAR", c_char_p, [SEXP], cname="R_CHAR")
