@@ -31,7 +31,7 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages('.', exclude=["tests"]),
     install_requires=[
-        "multipledispatch"
+        'six>=1.9.0'
     ],
     setup_requires=[
         "pytest-runner"
