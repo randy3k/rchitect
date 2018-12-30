@@ -21,14 +21,11 @@ __all__ = [
 __version__ = '0.2.3'
 
 
-try:
-    gui_flag = "RCHITECT_ENABLE_IPYTHON_GUI"
-    if hasattr(sys, "ps1") and (gui_flag not in os.environ or os.environ[gui_flag] != "0"):
-        from .ipython_hook import register_hook, enable_gui
-        register_hook()
-        enable_gui()
-except ImportError:
-    pass
+IPYTHON_GUI = "RCHITECT_ENABLE_IPYTHON_GUI"
+if hasattr(sys, "ps1") and (IPYTHON_GUI not in os.environ or os.environ[IPYTHON_GUI] != "0"):
+    from .ipython_hook import register_hook, enable_gui
+    register_hook()
+    enable_gui()
 
 
 def start(

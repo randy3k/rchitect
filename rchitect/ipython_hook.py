@@ -1,35 +1,37 @@
 from __future__ import unicode_literals
-import sys
-from .interface import process_events
 
 
 def register_hook():
+    from rchitect import get_session
+    from rchitect.interface import process_events
 
     shell = None
     try:
-        if hasattr(sys, "ps1"):
-            import IPython
-            if IPython.__version__ >= "5":
-                shell = IPython.get_ipython()
+        import IPython
+        if IPython.__version__ >= "5":
+            shell = IPython.get_ipython()
     except ImportError:
         pass
 
     if shell:
         def inputhook(context):
-            while True:
-                if context.input_is_ready():
-                    break
-                process_events()
+            rs = get_session()
+            if rs:
+                while True:
+                    if context.input_is_ready():
+                        break
+                    process_events()
 
         IPython.terminal.pt_inputhooks.register("r", inputhook)
 
 
 def enable_gui():
+    shell = None
     try:
-        if hasattr(sys, "ps1"):
-            import IPython
+        import IPython
+        if IPython.__version__ >= "5":
             shell = IPython.get_ipython()
-            if shell:
-                shell.enable_gui('r')
     except ImportError:
         pass
+    if shell:
+        shell.enable_gui('r')
