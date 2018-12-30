@@ -37,8 +37,8 @@ def start(
         ],
         verbose=True):
 
-    m = RSession(verbose=verbose)
-    m.start(arguments=arguments)
+    rs = RSession(verbose=verbose)
+    rs.start(arguments=arguments)
 
 
 def get_session():
