@@ -743,6 +743,3 @@ class R_CallMethodDef(Structure):
 _assign_function("R_getDllInfo", c_void_p, [c_char_p])
 _assign_function("R_getEmbeddingDllInfo", c_void_p, [])
 _assign_function("R_registerRoutines", c_int, [c_void_p, c_void_p, c_void_p, c_void_p, c_void_p])
-
-
-_assign_variable("R_Visible", c_int)

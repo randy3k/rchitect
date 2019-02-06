@@ -3,17 +3,14 @@ from __future__ import unicode_literals, absolute_import
 import os
 import sys
 import inspect
-from ctypes import py_object, byref, cast, c_void_p, c_int
-from ctypes import CFUNCTYPE, Structure, string_at
+from ctypes import byref, cast, py_object, c_int, c_void_p, Structure, CFUNCTYPE, string_at
 from collections import OrderedDict
 from six import text_type, string_types
 from types import FunctionType
 from collections import Callable
 
-from .api import Rf_protect, Rf_unprotect, Rf_error, R_NilValue, R_GlobalEnv
-from .api import R_ToplevelExec
-from .api import R_ParseVector, Rf_eval
-from .api import Rf_PrintValue
+from .api import Rf_protect, Rf_unprotect, R_NilValue, R_GlobalEnv
+from .api import R_ParseVector, R_tryEval, R_ToplevelExec
 from .api import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install
 from .api import LENGTH, TYPEOF
 from .api import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
@@ -24,7 +21,7 @@ from .api import R_NamesSymbol, R_ClassSymbol, Rf_getAttrib, Rf_setAttrib, Rf_is
 from .api import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
 from .api import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
 from .api import R_MissingArg, R_DotsSymbol, Rf_list1
-from .api import R_Visible, Rf_findVarInFrame
+from .api import Rf_findVarInFrame
 
 
 from .types import SEXP, SEXPTYPE, Rcomplex, RObject, RClass
@@ -35,7 +32,6 @@ from .externalptr import rextptr, to_pyo
 
 
 __all__ = [
-    "rexec",
     "rparse",
     "reval",
     "rprint",
@@ -66,7 +62,7 @@ def protectedEval(pdata_t):
     try:
         pdata.ret[0] = func(*data)
     except Exception as e:
-        Rf_error(("{}: {}".format(type(e).__name__, str(e))).encode("utf-8"))
+        pdata.ret[0] = e
 
 
 def rexec_p(func, *data):
@@ -76,7 +72,9 @@ def rexec_p(func, *data):
         cast(id(data), py_object),
         cast(id(ret), py_object))
     if R_ToplevelExec(protectedEval, byref(pdata)) == 0:
-        raise RuntimeError("rexec encountered an error")
+        raise Exception("longjmp exception")
+    if isinstance(pdata.ret[0], Exception):
+        raise pdata.ret[0]
     return sexp(pdata.ret[0])
 
 
@@ -90,10 +88,8 @@ def rexec(func, *data):
 def rparse_p(string):
     status = c_int()
     s = Rf_protect(rstring_p(string))
-    try:
-        ret = rexec_p(R_ParseVector, s, -1, status, R_NilValue)
-    finally:
-        Rf_unprotect(1)
+    ret = R_ParseVector(s, -1, status, R_NilValue)
+    Rf_unprotect(1)
     if status.value != 1:
         raise RuntimeError("rparse error")
     return sexp(ret)
@@ -104,11 +100,14 @@ def rparse(string):
 
 
 def reval_p(string, env=R_GlobalEnv):
+    status = c_int()
     expressions = Rf_protect(rparse_p(string))
     ret = R_NilValue
     try:
         for i in range(0, LENGTH(expressions)):
-            ret = rexec_p(Rf_eval, VECTOR_ELT(expressions, i), env)
+            ret = R_tryEval(VECTOR_ELT(expressions, i), env, status)
+            if status.value != 0:
+                raise RuntimeError("reval error")
     finally:
         Rf_unprotect(1)
     return sexp(ret)
@@ -118,28 +117,8 @@ def reval(string, env=R_GlobalEnv):
     return RObject(reval_p(string, env=R_GlobalEnv))
 
 
-def Rf_eval_with_visible(expression, env, visible):
-    ret = Rf_eval(expression, env)
-    visible[0] = R_Visible.value
-    return ret
-
-
-def reval_with_visible_p(string, env=R_GlobalEnv):
-    expressions = Rf_protect(rparse_p(string))
-    ret = R_NilValue
-    visible = [1]
-    try:
-        for i in range(0, LENGTH(expressions)):
-            ret = rexec_p(Rf_eval_with_visible, VECTOR_ELT(expressions, i), env, visible)
-    finally:
-        Rf_unprotect(1)
-    return {"value": sexp(ret), "visible": visible[0]}
-
-
-def reval_with_visible(string, env=R_GlobalEnv):
-    ret = reval_with_visible_p(string, env)
-    ret["value"] = RObject(ret["value"])
-    return ret
+def reval_with_visible(string):
+    pass
 
 
 def rlang_p(*args, **kwargs):
@@ -203,9 +182,15 @@ def rcall_p(*args, **kwargs):
     if "_envir" in kwargs and kwargs["_envir"]:
         envir = kwargs["_envir"]
         del kwargs["_envir"]
-        return rexec_p(Rf_eval, rlang_p(*args, **kwargs), envir)
     else:
-        return rexec_p(Rf_eval, rlang_p(*args, **kwargs), R_GlobalEnv)
+        envir = R_GlobalEnv
+
+    status = c_int()
+    val = R_tryEval(rlang_p(*args, **kwargs), envir, status)
+    if status.value != 0:
+        raise RuntimeError("rcall error.")
+
+    return sexp(val)
 
 
 def rcall(*args, **kwargs):
@@ -270,7 +255,7 @@ def rprint(s):
     s = sexp(s)
     Rf_protect(s)
     try:
-        rexec_p(Rf_PrintValue, s)
+        reval(("base", "print"), s)
     finally:
         Rf_unprotect(1)
 
@@ -689,7 +674,7 @@ def rchitect_callback(exptr, arglist, _convert_args, _convert_return):
             ret = f(*args, **kwargs)
             return sexp_py_object(ret).value
     except Exception as e:
-        Rf_error(str(e).encode("utf-8"))
+        return rcall_p(("base", "simpleError"), str(e)).value
 
 
 @dispatch(datatype(RClass("function")), Callable)
@@ -700,8 +685,9 @@ def sexp(_, f, convert_args=True, convert_return=True, invisible=False):
     if invisible:
         body = rlang_p("invisible", body)
     lang = rlang_p(rsym("function"), sexp_dots(), body)
-    res = rexec_p(Rf_eval, lang, R_GlobalEnv)
-    return res
+    status = c_int()
+    val = R_tryEval(lang, R_GlobalEnv, status)
+    return sexp(val)
 
 
 @dispatch(datatype(RClass("PyObject")), object)
@@ -915,4 +901,4 @@ def _process_events():
 
 
 def process_events():
-    rexec(_process_events)
+    rexec_p(_process_events)
