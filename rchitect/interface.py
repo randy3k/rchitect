@@ -117,10 +117,6 @@ def reval(string, env=R_GlobalEnv):
     return RObject(reval_p(string, env=R_GlobalEnv))
 
 
-def reval_with_visible(string):
-    return rcall(("base", "withVisible"), rparse(string))
-
-
 def rlang_p(*args, **kwargs):
     if "_convert_args" in kwargs:
         _convert_args = kwargs["_convert_args"]

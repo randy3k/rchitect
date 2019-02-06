@@ -1,6 +1,6 @@
 # a simple repl loop suitable used within python console
 
-from .interface import rprint, reval_with_visible
+from .interface import rprint, rcopy, reval, rcall
 from prompt_toolkit.shortcuts import prompt
 from .interface import process_events
 
@@ -19,10 +19,10 @@ def repl_r():
     while True:
         try:
             text = prompt("> ", inputhook=inputhook)
-            result = reval_with_visible(text)
-            if result["visible"]:
-                rprint(result["value"])
-        except RuntimeError as e:
+            result = reval("withVisible({{{}}})".format(text))
+            if rcopy(rcall("$", result, "visible")):
+                rprint(rcall("$", result, "value"))
+        except RuntimeError:
             pass
         except EOFError:
             break
