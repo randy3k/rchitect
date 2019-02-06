@@ -207,8 +207,8 @@ def setup_win32(libR, rhome, args):
 def _bootstrap(libR, verbose=True):
     from .types import RObject
     from .api import _register
-    from .api import R_PreserveObject, R_ReleaseObject, Rf_isNull, LENGTH
-    from .interface import sexp, rlang, rcall, rcopy
+    from .api import R_PreserveObject, R_ReleaseObject, Rf_defineVar, Rf_isNull, R_NilValue, LENGTH
+    from .interface import sexp, rlang, rcall, rcopy, rsym_p
 
     _register(libR, verbose)
 
@@ -217,7 +217,11 @@ def _bootstrap(libR, verbose=True):
     RObject.release = lambda self, p: R_ReleaseObject(p)
 
     def _repr(self):
-        output = rcall("capture.output", rlang("print", self.p))
+        new_env = rcall("new.env")
+        Rf_defineVar(rsym_p("x"), self.p, new_env.p)
+        output = rcall("capture.output", rlang(("base", "print"), rsym_p("x")), _envir=new_env)
+        Rf_defineVar(rsym_p("x"), R_NilValue, new_env.p)
+
         name = "<class 'RObject{{{}}}'>\n".format(str(type(self.p).__name__))
         if not Rf_isNull(sexp(output)) and LENGTH(sexp(output)) > 0:
             try:

@@ -10,7 +10,7 @@ from types import FunctionType
 from collections import Callable
 
 from .api import Rf_protect, Rf_unprotect, R_NilValue, R_GlobalEnv
-from .api import R_ParseVector, R_tryEval, R_tryCatchError
+from .api import R_ParseVector, R_tryEval, R_ToplevelExec
 from .api import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install
 from .api import LENGTH, TYPEOF
 from .api import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
@@ -21,7 +21,7 @@ from .api import R_NamesSymbol, R_ClassSymbol, Rf_getAttrib, Rf_setAttrib, Rf_is
 from .api import R_InputHandlers, R_ProcessEvents, R_checkActivity, R_runHandlers
 from .api import SET_STRING_ELT, SET_VECTOR_ELT, Rf_mkCharLenCE, Rf_translateCharUTF8
 from .api import R_MissingArg, R_DotsSymbol, Rf_list1
-from .api import Rf_findVarInFrame
+from .api import Rf_findVarInFrame, Rf_defineVar
 
 
 from .types import SEXP, SEXPTYPE, Rcomplex, RObject, RClass
@@ -49,32 +49,33 @@ __all__ = [
 class ProtectedEvalData(Structure):
     _fields_ = [
         ('func', py_object),
-        ('data', py_object)
+        ('data', py_object),
+        ('ret', py_object)
     ]
 
 
-@CFUNCTYPE(SEXP, c_void_p)
+@CFUNCTYPE(None, c_void_p)
 def protectedEval(pdata_t):
     pdata = ProtectedEvalData.from_address(pdata_t)
     func = pdata.func
     data = pdata.data
     try:
-        return sexp(func(*data)).value
+        pdata.ret[0] = func(*data)
     except Exception as e:
-        return rcall_p(("base", "simpleError"), str(e)).value
-
-
-@CFUNCTYPE(SEXP, SEXP, c_void_p)
-def protectedError(condition, pdata_t):
-    return condition.value
+        pdata.ret[0] = e
 
 
 def rexec_p(func, *data):
+    ret = [None]
     pdata = ProtectedEvalData(
         cast(id(func), py_object),
-        cast(id(data), py_object))
-    ret = R_tryCatchError(protectedEval, byref(pdata), protectedError, None)
-    return sexp(ret)
+        cast(id(data), py_object),
+        cast(id(ret), py_object))
+    if R_ToplevelExec(protectedEval, byref(pdata)) == 0:
+        raise Exception("longjmp exception")
+    if isinstance(pdata.ret[0], Exception):
+        raise pdata.ret[0]
+    return sexp(pdata.ret[0])
 
 
 def rexec(func, *data):
@@ -117,7 +118,7 @@ def reval(string, env=R_GlobalEnv):
 
 
 def reval_with_visible(string):
-    pass
+    return rcall(("base", "withVisible"), rparse(string))
 
 
 def rlang_p(*args, **kwargs):
@@ -179,7 +180,7 @@ def rlang(*args, **kwargs):
 
 def rcall_p(*args, **kwargs):
     if "_envir" in kwargs and kwargs["_envir"]:
-        envir = kwargs["_envir"]
+        envir = sexp(kwargs["_envir"])
         del kwargs["_envir"]
     else:
         envir = R_GlobalEnv
@@ -251,11 +252,14 @@ def rstring(s):
 
 
 def rprint(s):
+    new_env = rcall("new.env")
+    Rf_defineVar(rsym_p("x"), sexp(s), new_env.p)
     s = sexp(s)
     Rf_protect(s)
     try:
-        reval(("base", "print"), s)
+        rcall(("base", "print"), rsym("x"), _envir=new_env)
     finally:
+        Rf_defineVar(rsym_p("x"), R_NilValue, new_env.p)
         Rf_unprotect(1)
 
 
@@ -900,4 +904,7 @@ def _process_events():
 
 
 def process_events():
-    rexec_p(_process_events)
+    try:
+        rexec_p(_process_events)
+    except Exception:
+        pass
