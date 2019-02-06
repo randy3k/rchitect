@@ -10,7 +10,7 @@ from types import FunctionType
 from collections import Callable
 
 from .api import Rf_protect, Rf_unprotect, R_NilValue, R_GlobalEnv
-from .api import R_ParseVector, R_tryEval, R_ToplevelExec
+from .api import R_ParseVector, R_tryEval, R_tryCatchError
 from .api import Rf_allocVector, SETCAR, CDR, SET_TAG, Rf_install
 from .api import LENGTH, TYPEOF
 from .api import INTEGER, LOGICAL, REAL, COMPLEX, RAW, STRING_ELT, VECTOR_ELT
@@ -49,33 +49,32 @@ __all__ = [
 class ProtectedEvalData(Structure):
     _fields_ = [
         ('func', py_object),
-        ('data', py_object),
-        ('ret', py_object)
+        ('data', py_object)
     ]
 
 
-@CFUNCTYPE(None, c_void_p)
+@CFUNCTYPE(SEXP, c_void_p)
 def protectedEval(pdata_t):
     pdata = ProtectedEvalData.from_address(pdata_t)
     func = pdata.func
     data = pdata.data
     try:
-        pdata.ret[0] = func(*data)
+        return sexp(func(*data)).value
     except Exception as e:
-        pdata.ret[0] = e
+        return rcall_p(("base", "simpleError"), str(e)).value
+
+
+@CFUNCTYPE(SEXP, SEXP, c_void_p)
+def protectedError(condition, pdata_t):
+    return condition.value
 
 
 def rexec_p(func, *data):
-    ret = [None]
     pdata = ProtectedEvalData(
         cast(id(func), py_object),
-        cast(id(data), py_object),
-        cast(id(ret), py_object))
-    if R_ToplevelExec(protectedEval, byref(pdata)) == 0:
-        raise Exception("longjmp exception")
-    if isinstance(pdata.ret[0], Exception):
-        raise pdata.ret[0]
-    return sexp(pdata.ret[0])
+        cast(id(data), py_object))
+    ret = R_tryCatchError(protectedEval, byref(pdata), protectedError, None)
+    return sexp(ret)
 
 
 def rexec(func, *data):
