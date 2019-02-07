@@ -24,6 +24,7 @@ def _make_closure(name, sign):
 
     def setter(g):
         _f[0] = g
+        f.fptr = g
 
     def f(*args):
         try:
@@ -37,6 +38,7 @@ def _make_closure(name, sign):
     f.__name__ = str(name)
     f.__qualname__ = str(name)
     f.__module__ = str('rchitect.api')
+    f.fptr = None
     return f, setter
 
 
@@ -62,7 +64,7 @@ def _assign_sexp(name):
     _sexp_registry[name] = (s, SEXP)
 
 
-class ValueContainer(object):
+class _ValueContainer(object):
     """
     Container for any global c variable
     """
@@ -79,12 +81,12 @@ class ValueContainer(object):
 
 
 def _assign_variable(name, vtype):
-    c = ValueContainer()
+    c = _ValueContainer()
     _assign(name, c)
     _variable_registry[name] = (c, vtype)
 
 
-def notavaiable(*args):
+def _notavaiable(*args):
     raise NotImplementedError("method not avaiable")
 
 
@@ -97,7 +99,7 @@ def _register(libR, verbose):
                 f.argtypes = sign.argtypes
             setter(f)
         except Exception:
-            setter(notavaiable)
+            setter(_notavaiable)
             if verbose:
                 print("warning: cannot import function {}".format(name))
 
