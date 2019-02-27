@@ -23,23 +23,16 @@ pip install -U git+https://github.com/randy3k/rchitect
 
 Why another R interface when there is [`rpy2`](https://rpy2.readthedocs.io/)?
 
-1. `rchitect` is 100% python
+1. 100% python
 
-`rchitect` is primarily used by [`radian`](https://github.com/randy3k/radian) which is an alternate R console. `rpy2` was not an option because it requires compilations and who wants to compile!?
+2. portable
 
-2. `rchitect` is portable
+3. lightweight
 
-At stated above, `rpy2` requires tool chains to install which makes it not portable. `rchitect` on the other hand is lightweight and portable.
-
-3. `rchitect` is lightweight
-
-`rpy2` supports a large number of python and R packages, such as numpy, scipy, ggplot2 etc. But there are situations a user may just want to compute a simple thing from R. Additionally, I found that the interface of `rpy2` is not very discoverable.
-
-4. `rchitect` is a brother of `RCall.jl`
+4. a brother of `RCall.jl`
 
 I am the same developer behind the Julia package [`RCall.jl`](https://github.com/JuliaInterop/RCall.jl) which allows Julia to communicate with R. `rchitect` and `RCall.jl` share a very similar design. For example, `rcopy(reval("1"))` works for both `rchitect` and `RCall.jl`.
  
-
 5. `rchitect` is compatible with [`reticulate`](https://github.com/rstudio/reticulate). Objects can be converted seamlessly between `rchitect` and `reticulate`. Check the section for `reticuate` below.
 
 ## FAQ
