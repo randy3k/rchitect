@@ -17,7 +17,7 @@ char* get_dl_error_message() {
     LPVOID lpMsgBuf;
     DWORD dw = GetLastError();
 
-    DWORD length = ::FormatMessage(
+    DWORD length = FormatMessage(
         FORMAT_MESSAGE_ALLOCATE_BUFFER |
         FORMAT_MESSAGE_FROM_SYSTEM |
         FORMAT_MESSAGE_IGNORE_INSERTS,
