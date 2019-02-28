@@ -11,12 +11,14 @@
 #include <windows.h>
 #endif
 
-char* get_last_loaded_symbol();
+// begin cdef
 
-char* get_dl_error_message();
+char* _libR_last_loaded_symbol(void);
 
-int load_libR(const char* libpath);
+char* _libR_dl_error_message(void);
 
-int load_symbols();
+int _libR_load(const char* libpath);
+
+int _libR_load_symbols(void);
 
 #endif /* end of include guard: LIBR_H__ */
