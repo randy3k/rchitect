@@ -51,9 +51,9 @@ int _libR_load(const char* libpath) {
     libR_t = dlopen(libpath, RTLD_NOW|RTLD_GLOBAL);
 #endif
     if (libR_t == NULL) {
-        return false;
+        return 0;
     } else {
-        return true;
+        return 1;
     }
 }
 
@@ -65,19 +65,19 @@ int load_symbol(const char* name, void** ppSymbol) {
     *ppSymbol = dlsym(libR_t, name);
 #endif
     if (*ppSymbol == NULL) {
-        return false;
+        return 0;
     } else {
-        return true;
+        return 1;
     }
 }
 
 #define LOAD_SYMBOL_AS(name, as) \
 if (!load_symbol(#name, (void**) &as)) \
-    return false;
+    return 0;
 
 #define LOAD_SYMBOL(name) \
 if (!load_symbol(#name, (void**) &name)) {\
-    return false; \
+    return 0; \
 }
 
 int load_constant(const char* name, void** ppSymbol) {
@@ -88,22 +88,21 @@ int load_constant(const char* name, void** ppSymbol) {
     *ppSymbol = *((void**) dlsym(libR_t, name));
 #endif
     if (*ppSymbol == NULL) {
-        return false;
+        return 0;
     } else {
-        return true;
+        return 1;
     }
 }
 
 #define LOAD_CONSTANT_AS(name, as) \
 if (!load_constant(#name, (void**) &as)) \
-    return false;
+    return 0;
 
 #define LOAD_CONSTANT(name) \
 if (!load_constant(#name, (void**) &name)) \
-    return false;
+    return 0;
 
 int _libR_load_symbols() {
-
     LOAD_SYMBOL(R_CHAR);
     LOAD_SYMBOL(Rf_isNull);
     LOAD_SYMBOL(Rf_isSymbol);
@@ -178,7 +177,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_asComplex);
 
     LOAD_SYMBOL(Rf_acopy_string);
-    LOAD_SYMBOL(Rf_addMissingVarsToNewEnv);
+    // LOAD_SYMBOL(Rf_addMissingVarsToNewEnv);
     LOAD_SYMBOL(Rf_alloc3DArray);
     LOAD_SYMBOL(Rf_allocArray);
     LOAD_SYMBOL(Rf_allocFormalsList2);
@@ -254,11 +253,11 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(R_ParseEvalString);
     LOAD_SYMBOL(Rf_PrintValue);
     // LOAD_SYMBOL(Rf_printwhere);
-    LOAD_SYMBOL(Rf_readS3VarsFromFrame);
+    // LOAD_SYMBOL(Rf_readS3VarsFromFrame);
     LOAD_SYMBOL(Rf_setAttrib);
     LOAD_SYMBOL(Rf_setSVector);
     LOAD_SYMBOL(Rf_setVar);
-    LOAD_SYMBOL(Rf_stringSuffix);
+    // LOAD_SYMBOL(Rf_stringSuffix);
     LOAD_SYMBOL(Rf_str2type);
     LOAD_SYMBOL(Rf_StringBlank);
     LOAD_SYMBOL(Rf_substitute);
@@ -272,12 +271,156 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_type2str);
     LOAD_SYMBOL(Rf_type2str_nowarn);
 
+    LOAD_SYMBOL(R_tryEval);
+    LOAD_SYMBOL(R_tryEvalSilent);
+    LOAD_SYMBOL(R_curErrorBuf);
+
+    LOAD_SYMBOL(Rf_isS4);
+    LOAD_SYMBOL(Rf_asS4);
+    LOAD_SYMBOL(Rf_S3Class);
+    LOAD_SYMBOL(Rf_isBasicClass);
+
+    LOAD_SYMBOL(Rf_getCharCE);
+    LOAD_SYMBOL(Rf_mkCharCE);
+    LOAD_SYMBOL(Rf_mkCharLenCE);
+    LOAD_SYMBOL(Rf_reEnc);
+
+    LOAD_SYMBOL(R_MakeExternalPtr);
+    LOAD_SYMBOL(R_ExternalPtrAddr);
+    LOAD_SYMBOL(R_ExternalPtrTag);
+    LOAD_SYMBOL(R_ExternalPtrProtected);
+    LOAD_SYMBOL(R_ClearExternalPtr);
+    LOAD_SYMBOL(R_SetExternalPtrAddr);
+    LOAD_SYMBOL(R_SetExternalPtrTag);
+    LOAD_SYMBOL(R_SetExternalPtrProtected);
+    LOAD_SYMBOL(R_MakeExternalPtrFn);
+    LOAD_SYMBOL(R_ExternalPtrAddrFn);
+
+    LOAD_SYMBOL(R_RegisterFinalizer);
+    LOAD_SYMBOL(R_RegisterCFinalizer);
+    LOAD_SYMBOL(R_RegisterFinalizerEx);
+    LOAD_SYMBOL(R_RegisterCFinalizerEx);
+    LOAD_SYMBOL(R_RunPendingFinalizers);
+
+    LOAD_SYMBOL(R_ToplevelExec);
+    LOAD_SYMBOL(R_tryCatch);
+    LOAD_SYMBOL(R_tryCatchError);
+
+    LOAD_SYMBOL(R_RestoreHashCount);
+    LOAD_SYMBOL(R_IsPackageEnv);
+    LOAD_SYMBOL(R_PackageEnvName);
+    LOAD_SYMBOL(R_FindPackageEnv);
+    LOAD_SYMBOL(R_IsNamespaceEnv);
+    LOAD_SYMBOL(R_NamespaceEnvSpec);
+    LOAD_SYMBOL(R_FindNamespace);
+    LOAD_SYMBOL(R_LockEnvironment);
+    LOAD_SYMBOL(R_EnvironmentIsLocked);
+    LOAD_SYMBOL(R_LockBinding);
+    LOAD_SYMBOL(R_unLockBinding);
+    LOAD_SYMBOL(R_MakeActiveBinding);
+    LOAD_SYMBOL(R_BindingIsLocked);
+    LOAD_SYMBOL(R_BindingIsActive);
+    LOAD_SYMBOL(R_HasFancyBindings);
+
+    LOAD_SYMBOL(Rf_errorcall);
+    LOAD_SYMBOL(Rf_warningcall);
+
+    LOAD_SYMBOL(R_do_slot);
+    LOAD_SYMBOL(R_do_slot_assign);
+    LOAD_SYMBOL(R_has_slot);
+    LOAD_SYMBOL(R_S4_extends);
+
+    LOAD_SYMBOL(R_PreserveObject);
+    LOAD_SYMBOL(R_ReleaseObject);
+
+    LOAD_SYMBOL(R_dot_Last);
+    LOAD_SYMBOL(R_RunExitFinalizers);
+
+    LOAD_SYMBOL(R_compute_identical);
+
+    LOAD_SYMBOL(Rf_conformable);
+    LOAD_SYMBOL(Rf_elt);
+    LOAD_SYMBOL(Rf_inherits);
+    LOAD_SYMBOL(Rf_isArray);
+    LOAD_SYMBOL(Rf_isFactor);
+    LOAD_SYMBOL(Rf_isFrame);
+    LOAD_SYMBOL(Rf_isFunction);
+    LOAD_SYMBOL(Rf_isInteger);
+    LOAD_SYMBOL(Rf_isLanguage);
+    LOAD_SYMBOL(Rf_isList);
+    LOAD_SYMBOL(Rf_isMatrix);
+    LOAD_SYMBOL(Rf_isNewList);
+    LOAD_SYMBOL(Rf_isNumber);
+    LOAD_SYMBOL(Rf_isNumeric);
+    LOAD_SYMBOL(Rf_isPairList);
+    LOAD_SYMBOL(Rf_isPrimitive);
+    LOAD_SYMBOL(Rf_isTs);
+    LOAD_SYMBOL(Rf_isUserBinop);
+    LOAD_SYMBOL(Rf_isValidString);
+    LOAD_SYMBOL(Rf_isValidStringF);
+    LOAD_SYMBOL(Rf_isVector);
+    LOAD_SYMBOL(Rf_isVectorAtomic);
+    LOAD_SYMBOL(Rf_isVectorList);
+    LOAD_SYMBOL(Rf_isVectorizable);
+    LOAD_SYMBOL(Rf_lang1);
+    LOAD_SYMBOL(Rf_lang2);
+    LOAD_SYMBOL(Rf_lang3);
+    LOAD_SYMBOL(Rf_lang4);
+    LOAD_SYMBOL(Rf_lang5);
+    LOAD_SYMBOL(Rf_lang6);
+    LOAD_SYMBOL(Rf_lastElt);
+    LOAD_SYMBOL(Rf_length);
+    LOAD_SYMBOL(Rf_list1);
+    LOAD_SYMBOL(Rf_list2);
+    LOAD_SYMBOL(Rf_list3);
+    LOAD_SYMBOL(Rf_list4);
+    LOAD_SYMBOL(Rf_list5);
+    LOAD_SYMBOL(Rf_list6);
+    LOAD_SYMBOL(Rf_listAppend);
+    LOAD_SYMBOL(Rf_mkNamed);
+    LOAD_SYMBOL(Rf_mkString);
+    LOAD_SYMBOL(Rf_nlevels);
+    LOAD_SYMBOL(Rf_stringPositionTr);
+    LOAD_SYMBOL(Rf_ScalarComplex);
+    LOAD_SYMBOL(Rf_ScalarInteger);
+    LOAD_SYMBOL(Rf_ScalarLogical);
+    LOAD_SYMBOL(Rf_ScalarRaw);
+    LOAD_SYMBOL(Rf_ScalarReal);
+    LOAD_SYMBOL(Rf_ScalarString);
+    LOAD_SYMBOL(Rf_xlength);
+    LOAD_SYMBOL(XTRUELENGTH);
+    LOAD_SYMBOL(LENGTH_EX);
+    LOAD_SYMBOL(XLENGTH_EX);
+
+    LOAD_SYMBOL(R_IsNA);
+    LOAD_SYMBOL(R_IsNaN);
+    LOAD_SYMBOL(R_finite);
+
+    LOAD_SYMBOL(R_ParseVector);
+
+    LOAD_SYMBOL(vmaxget);
+    LOAD_SYMBOL(vmaxset);
+    LOAD_SYMBOL(R_gc);
+    LOAD_SYMBOL(R_gc_running);
+    LOAD_SYMBOL(R_alloc);
+    LOAD_SYMBOL(R_allocLD);
+    // LOAD_SYMBOL(R_malloc_gc);
+    // LOAD_SYMBOL(R_calloc_gc);
+    // LOAD_SYMBOL(R_realloc_gc);
+
+    LOAD_SYMBOL(Rf_error);
+    LOAD_SYMBOL(Rf_warning);
+    LOAD_SYMBOL(R_ShowMessage);
+
+    LOAD_SYMBOL(Rf_PrintVersion);
+    LOAD_SYMBOL(Rf_PrintVersion_part_1);
+    LOAD_SYMBOL(Rf_PrintVersionString);
 
     LOAD_SYMBOL(Rf_initialize_R);
     LOAD_SYMBOL(setup_Rmainloop);
     LOAD_SYMBOL(run_Rmainloop);
 
-    return true;
+    return 1;
 }
 
 int _libR_load_constants() {
@@ -333,5 +476,11 @@ int _libR_load_constants() {
     LOAD_CONSTANT(R_BlankString);
     LOAD_CONSTANT(R_BlankScalarString);
 
-    return true;
+    LOAD_CONSTANT(R_NaN);
+    LOAD_CONSTANT(R_PosInf);
+    LOAD_CONSTANT(R_NegInf);
+    LOAD_CONSTANT(R_NaReal);
+    LOAD_CONSTANT(R_NaInt);
+
+    return 1;
 }

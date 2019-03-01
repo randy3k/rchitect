@@ -2,7 +2,7 @@ from rapi._libR import ffi, lib
 from .utils import Rhome, libRpath
 
 
-def init(args=["rapi", "--slave", "--no-save"]):
+def init(args=["rapi", "--quiet", "--no-save"]):
     if not lib._libR_load(libRpath(Rhome()).encode()):
         raise Exception("cannot load R library")
     if not lib._libR_load_symbols():

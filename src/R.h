@@ -10,9 +10,12 @@
 #endif
 
 // begin cdef
+RAPI_EXTERN int R_MAJOR;
+
 typedef unsigned char Rbyte;
 
 typedef enum {Bytes, Chars, Width} nchar_type;
+typedef void * (*DL_FUNC)();
 
 typedef int R_len_t;
 
@@ -256,7 +259,7 @@ RAPI_EXTERN double (*Rf_asReal)(SEXP x);
 RAPI_EXTERN Rcomplex (*Rf_asComplex)(SEXP x);
 
 RAPI_EXTERN char * (*Rf_acopy_string)(const char *);
-RAPI_EXTERN void (*Rf_addMissingVarsToNewEnv)(SEXP, SEXP);
+// RAPI_EXTERN void (*Rf_addMissingVarsToNewEnv)(SEXP, SEXP);
 RAPI_EXTERN SEXP (*Rf_alloc3DArray)(SEXPTYPE, int, int, int);
 RAPI_EXTERN SEXP (*Rf_allocArray)(SEXPTYPE, SEXP);
 RAPI_EXTERN SEXP (*Rf_allocFormalsList2)(SEXP sym1, SEXP sym2);
@@ -332,11 +335,11 @@ RAPI_EXTERN Rboolean (*Rf_psmatch)(const char *, const char *, Rboolean);
 RAPI_EXTERN SEXP (*R_ParseEvalString)(const char *, SEXP);
 RAPI_EXTERN void (*Rf_PrintValue)(SEXP);
 // RAPI_EXTERN void (*Rf_printwhere)(void);
-RAPI_EXTERN void (*Rf_readS3VarsFromFrame)(SEXP, SEXP*, SEXP*, SEXP*, SEXP*, SEXP*, SEXP*);
+// RAPI_EXTERN void (*Rf_readS3VarsFromFrame)(SEXP, SEXP*, SEXP*, SEXP*, SEXP*, SEXP*, SEXP*);
 RAPI_EXTERN SEXP (*Rf_setAttrib)(SEXP, SEXP, SEXP);
 RAPI_EXTERN void (*Rf_setSVector)(SEXP*, int, SEXP);
 RAPI_EXTERN void (*Rf_setVar)(SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP (*Rf_stringSuffix)(SEXP, int);
+// RAPI_EXTERN SEXP (*Rf_stringSuffix)(SEXP, int);
 RAPI_EXTERN SEXPTYPE (*Rf_str2type)(const char *);
 RAPI_EXTERN Rboolean (*Rf_StringBlank)(SEXP);
 RAPI_EXTERN SEXP (*Rf_substitute)(SEXP,SEXP);
@@ -348,6 +351,185 @@ RAPI_EXTERN const char * (*Rf_type2char)(SEXPTYPE);
 RAPI_EXTERN SEXP (*Rf_type2rstr)(SEXPTYPE);
 RAPI_EXTERN SEXP (*Rf_type2str)(SEXPTYPE);
 RAPI_EXTERN SEXP (*Rf_type2str_nowarn)(SEXPTYPE);
+
+RAPI_EXTERN SEXP (*R_tryEval)(SEXP, SEXP, int *);
+RAPI_EXTERN SEXP (*R_tryEvalSilent)(SEXP, SEXP, int *);
+RAPI_EXTERN const char *(*R_curErrorBuf)();
+
+RAPI_EXTERN Rboolean (*Rf_isS4)(SEXP);
+RAPI_EXTERN SEXP (*Rf_asS4)(SEXP, Rboolean, int);
+RAPI_EXTERN SEXP (*Rf_S3Class)(SEXP);
+RAPI_EXTERN int (*Rf_isBasicClass)(const char *);
+
+typedef enum {
+    CE_NATIVE = 0,
+    CE_UTF8   = 1,
+    CE_LATIN1 = 2,
+    CE_BYTES  = 3,
+    CE_SYMBOL = 5,
+    CE_ANY    =99
+} cetype_t;
+
+RAPI_EXTERN cetype_t (*Rf_getCharCE)(SEXP);
+RAPI_EXTERN SEXP (*Rf_mkCharCE)(const char *, cetype_t);
+RAPI_EXTERN SEXP (*Rf_mkCharLenCE)(const char *, int, cetype_t);
+RAPI_EXTERN const char *(*Rf_reEnc)(const char *x, cetype_t ce_in, cetype_t ce_out, int subst);
+
+RAPI_EXTERN SEXP (*R_MakeExternalPtr)(void *p, SEXP tag, SEXP prot);
+RAPI_EXTERN void *(*R_ExternalPtrAddr)(SEXP s);
+RAPI_EXTERN SEXP (*R_ExternalPtrTag)(SEXP s);
+RAPI_EXTERN SEXP (*R_ExternalPtrProtected)(SEXP s);
+RAPI_EXTERN void (*R_ClearExternalPtr)(SEXP s);
+RAPI_EXTERN void (*R_SetExternalPtrAddr)(SEXP s, void *p);
+RAPI_EXTERN void (*R_SetExternalPtrTag)(SEXP s, SEXP tag);
+RAPI_EXTERN void (*R_SetExternalPtrProtected)(SEXP s, SEXP p);
+RAPI_EXTERN SEXP (*R_MakeExternalPtrFn)(DL_FUNC p, SEXP tag, SEXP prot);
+RAPI_EXTERN DL_FUNC (*R_ExternalPtrAddrFn)(SEXP s);
+
+typedef void (*R_CFinalizer_t)(SEXP);
+
+RAPI_EXTERN void (*R_RegisterFinalizer)(SEXP s, SEXP fun);
+RAPI_EXTERN void (*R_RegisterCFinalizer)(SEXP s, R_CFinalizer_t fun);
+RAPI_EXTERN void (*R_RegisterFinalizerEx)(SEXP s, SEXP fun, Rboolean onexit);
+RAPI_EXTERN void (*R_RegisterCFinalizerEx)(SEXP s, R_CFinalizer_t fun, Rboolean onexit);
+RAPI_EXTERN void (*R_RunPendingFinalizers)(void);
+
+RAPI_EXTERN Rboolean (*R_ToplevelExec)(void (*fun)(void *), void *data);
+RAPI_EXTERN SEXP (*R_tryCatch)(SEXP (*)(void *), void *, SEXP, SEXP (*)(SEXP, void *), void *, void (*)(void *), void *);
+RAPI_EXTERN SEXP (*R_tryCatchError)(SEXP (*)(void *), void *, SEXP (*)(SEXP, void *), void *);
+
+RAPI_EXTERN void (*R_RestoreHashCount)(SEXP rho);
+RAPI_EXTERN Rboolean (*R_IsPackageEnv)(SEXP rho);
+RAPI_EXTERN SEXP (*R_PackageEnvName)(SEXP rho);
+RAPI_EXTERN SEXP (*R_FindPackageEnv)(SEXP info);
+RAPI_EXTERN Rboolean (*R_IsNamespaceEnv)(SEXP rho);
+RAPI_EXTERN SEXP (*R_NamespaceEnvSpec)(SEXP rho);
+RAPI_EXTERN SEXP (*R_FindNamespace)(SEXP info);
+RAPI_EXTERN void (*R_LockEnvironment)(SEXP env, Rboolean bindings);
+RAPI_EXTERN Rboolean (*R_EnvironmentIsLocked)(SEXP env);
+RAPI_EXTERN void (*R_LockBinding)(SEXP sym, SEXP env);
+RAPI_EXTERN void (*R_unLockBinding)(SEXP sym, SEXP env);
+RAPI_EXTERN void (*R_MakeActiveBinding)(SEXP sym, SEXP fun, SEXP env);
+RAPI_EXTERN Rboolean (*R_BindingIsLocked)(SEXP sym, SEXP env);
+RAPI_EXTERN Rboolean (*R_BindingIsActive)(SEXP sym, SEXP env);
+RAPI_EXTERN Rboolean (*R_HasFancyBindings)(SEXP rho);
+
+RAPI_EXTERN void (*Rf_errorcall)(SEXP, const char *, ...);
+RAPI_EXTERN void (*Rf_warningcall)(SEXP, const char *, ...);
+
+RAPI_EXTERN SEXP (*R_do_slot)(SEXP obj, SEXP name);
+RAPI_EXTERN SEXP (*R_do_slot_assign)(SEXP obj, SEXP name, SEXP value);
+RAPI_EXTERN int (*R_has_slot)(SEXP obj, SEXP name);
+RAPI_EXTERN SEXP (*R_S4_extends)(SEXP klass, SEXP useTable);
+
+RAPI_EXTERN void (*R_PreserveObject)(SEXP);
+RAPI_EXTERN void (*R_ReleaseObject)(SEXP);
+
+RAPI_EXTERN void (*R_dot_Last)(void);
+RAPI_EXTERN void (*R_RunExitFinalizers)(void);
+
+RAPI_EXTERN Rboolean (*R_compute_identical)(SEXP, SEXP, int);
+
+RAPI_EXTERN Rboolean (*Rf_conformable)(SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_elt)(SEXP, int);
+RAPI_EXTERN Rboolean (*Rf_inherits)(SEXP, const char *);
+RAPI_EXTERN Rboolean (*Rf_isArray)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isFactor)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isFrame)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isFunction)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isInteger)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isLanguage)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isList)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isMatrix)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isNewList)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isNumber)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isNumeric)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isPairList)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isPrimitive)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isTs)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isUserBinop)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isValidString)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isValidStringF)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isVector)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isVectorAtomic)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isVectorList)(SEXP);
+RAPI_EXTERN Rboolean (*Rf_isVectorizable)(SEXP);
+RAPI_EXTERN SEXP     (*Rf_lang1)(SEXP);
+RAPI_EXTERN SEXP     (*Rf_lang2)(SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_lang3)(SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_lang4)(SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_lang5)(SEXP, SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_lang6)(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_lastElt)(SEXP);
+RAPI_EXTERN R_len_t  (*Rf_length)(SEXP);
+RAPI_EXTERN SEXP     (*Rf_list1)(SEXP);
+RAPI_EXTERN SEXP     (*Rf_list2)(SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_list3)(SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_list4)(SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_list5)(SEXP, SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_list6)(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_listAppend)(SEXP, SEXP);
+RAPI_EXTERN SEXP     (*Rf_mkNamed)(SEXPTYPE, const char **);
+RAPI_EXTERN SEXP     (*Rf_mkString)(const char *);
+RAPI_EXTERN int  (*Rf_nlevels)(SEXP);
+RAPI_EXTERN int  (*Rf_stringPositionTr)(SEXP, const char *);
+RAPI_EXTERN SEXP     (*Rf_ScalarComplex)(Rcomplex);
+RAPI_EXTERN SEXP     (*Rf_ScalarInteger)(int);
+RAPI_EXTERN SEXP     (*Rf_ScalarLogical)(int);
+RAPI_EXTERN SEXP     (*Rf_ScalarRaw)(Rbyte);
+RAPI_EXTERN SEXP     (*Rf_ScalarReal)(double);
+RAPI_EXTERN SEXP     (*Rf_ScalarString)(SEXP);
+RAPI_EXTERN R_xlen_t  (*Rf_xlength)(SEXP);
+RAPI_EXTERN R_xlen_t  (*XTRUELENGTH)(SEXP x);
+RAPI_EXTERN int (*LENGTH_EX)(SEXP x, const char *file, int line);
+RAPI_EXTERN R_xlen_t (*XLENGTH_EX)(SEXP x);
+
+
+// Arith.h
+RAPI_EXTERN double R_NaN;
+RAPI_EXTERN double R_PosInf;
+RAPI_EXTERN double R_NegInf;
+RAPI_EXTERN double R_NaReal;
+RAPI_EXTERN int    R_NaInt;
+RAPI_EXTERN int (*R_IsNA)(double);
+RAPI_EXTERN int (*R_IsNaN)(double);
+RAPI_EXTERN int (*R_finite)(double);
+
+
+// Parse.h
+typedef enum {
+    PARSE_NULL,
+    PARSE_OK,
+    PARSE_INCOMPLETE,
+    PARSE_ERROR,
+    PARSE_EOF
+} ParseStatus;
+
+RAPI_EXTERN SEXP (*R_ParseVector)(SEXP, int, ParseStatus *, SEXP);
+
+// Memory.h
+RAPI_EXTERN void*   (*vmaxget)(void);
+RAPI_EXTERN void    (*vmaxset)(const void *);
+
+RAPI_EXTERN void    (*R_gc)(void);
+RAPI_EXTERN int (*R_gc_running)();
+
+RAPI_EXTERN char*   (*R_alloc)(size_t, int);
+RAPI_EXTERN long double *(*R_allocLD)(size_t nelem);
+
+// RAPI_EXTERN void *  (*R_malloc_gc)(size_t);
+// RAPI_EXTERN void *  (*R_calloc_gc)(size_t, size_t);
+// RAPI_EXTERN void *  (*R_realloc_gc)(void *, size_t);
+
+// Error.h
+RAPI_EXTERN void    (*Rf_error)(const char *, ...);
+RAPI_EXTERN void    (*Rf_warning)(const char *, ...);
+RAPI_EXTERN void    (*R_ShowMessage)(const char *s);
+
+// Defn.h
+RAPI_EXTERN void (*Rf_PrintVersion)(char *, size_t len);
+RAPI_EXTERN void (*Rf_PrintVersion_part_1)(char *, size_t len);
+RAPI_EXTERN void (*Rf_PrintVersionString)(char *, size_t len);
 
 // Rembedded.h
 RAPI_EXTERN int (*Rf_initialize_R)(int ac, char **av);
