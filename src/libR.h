@@ -21,4 +21,8 @@ int _libR_load(const char* libpath);
 
 int _libR_load_symbols(void);
 
+int _libR_load_constants(void);
+
+// end cdef
+
 #endif /* end of include guard: LIBR_H__ */
