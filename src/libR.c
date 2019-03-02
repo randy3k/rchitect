@@ -412,13 +412,42 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_warning);
     LOAD_SYMBOL(R_ShowMessage);
 
+    LOAD_SYMBOL(Rf_CoercionWarning);
+    LOAD_SYMBOL(Rf_LogicalFromInteger);
+    LOAD_SYMBOL(Rf_LogicalFromReal);
+    LOAD_SYMBOL(Rf_LogicalFromComplex);
+    LOAD_SYMBOL(Rf_IntegerFromLogical);
+    LOAD_SYMBOL(Rf_IntegerFromReal);
+    LOAD_SYMBOL(Rf_IntegerFromComplex);
+    LOAD_SYMBOL(Rf_RealFromLogical);
+    LOAD_SYMBOL(Rf_RealFromInteger);
+    LOAD_SYMBOL(Rf_RealFromComplex);
+    LOAD_SYMBOL(Rf_ComplexFromLogical);
+    LOAD_SYMBOL(Rf_ComplexFromInteger);
+    LOAD_SYMBOL(Rf_ComplexFromReal);
+
+    LOAD_SYMBOL(R_ProcessEvents);
+
     LOAD_SYMBOL(Rf_PrintVersion);
     LOAD_SYMBOL(Rf_PrintVersion_part_1);
     LOAD_SYMBOL(Rf_PrintVersionString);
+    LOAD_SYMBOL(R_data_class);
+
+    LOAD_SYMBOL(R_InputHandlers)
+    LOAD_SYMBOL(R_checkActivity)
+    LOAD_SYMBOL(R_runHandlers)
+
+    LOAD_SYMBOL(R_CheckUserInterrupt);
 
     LOAD_SYMBOL(Rf_initialize_R);
     LOAD_SYMBOL(setup_Rmainloop);
     LOAD_SYMBOL(run_Rmainloop);
+
+    #ifdef _WIN32
+    LOAD_SYMBOL_AS(UserBreak, UserBreak_t)
+    #else
+    LOAD_SYMBOL_AS(R_interrupts_pending, R_interrupts_pending_t)
+    #endif
 
     return 1;
 }
@@ -481,6 +510,56 @@ int _libR_load_constants() {
     LOAD_CONSTANT(R_NegInf);
     LOAD_CONSTANT(R_NaReal);
     LOAD_CONSTANT(R_NaInt);
-
     return 1;
+}
+
+static void _set_callback(char* name, void** cb) {
+    void** p;
+    if (load_symbol(name, &p)) {
+        *p = cb;
+    } else {
+        printf("error setting callback of %s\n", name);
+    }
+}
+
+// we need to wrap cb_read_console to make it KeyboardInterrupt aware
+static int _cb_read_console(const char * p, unsigned char * buf, int buflen, int add_history) {
+    read_console_interuupted = 0;
+    int ret = _libR_callbacks.read_console(p, buf, buflen, add_history);
+    if (read_console_interuupted == 1) {
+        *R_interrupts_pending_t = 1;
+        R_CheckUserInterrupt();
+    }
+    return ret;
+}
+
+# define SET_CALLBACK(p, name) \
+    if (_libR_callbacks.name != NULL) \
+        _set_callback(p, _libR_callbacks.name)
+
+void _libR_set_callbacks() {
+    SET_CALLBACK("ptr_R_ShowMessage", show_message);
+    if (_libR_callbacks.read_console != NULL)
+        _set_callback("ptr_R_ReadConsole", &_cb_read_console);
+    SET_CALLBACK("ptr_R_WriteConsole", write_console);
+    if (_libR_callbacks.write_console_ex != NULL)
+        _set_callback("ptr_R_WriteConsole", NULL);
+        _set_callback("ptr_R_WriteConsoleEx", _libR_callbacks.write_console_ex);
+    SET_CALLBACK("ptr_R_ResetConsole", reset_console);
+    SET_CALLBACK("ptr_R_FlushConsole", flush_console);
+    SET_CALLBACK("ptr_R_ClearerrConsole", clearerr_console);
+    SET_CALLBACK("ptr_R_Busy", busy);
+    SET_CALLBACK("ptr_R_CleanUp", clean_up);
+    SET_CALLBACK("ptr_R_ShowFiles", show_files);
+    SET_CALLBACK("ptr_R_ChooseFile", choose_file);
+    SET_CALLBACK("ptr_R_EditFile", edit_file);
+    SET_CALLBACK("ptr_R_loadhistory", loadhistory);
+    SET_CALLBACK("ptr_R_savehistory", savehistory);
+    SET_CALLBACK("ptr_R_addhistory", addhistory);
+    SET_CALLBACK("ptr_R_EditFiles", edit_files);
+    SET_CALLBACK("ptr_do_selectlist", do_selectlist);
+    SET_CALLBACK("ptr_do_dataentry", do_dataentry);
+    SET_CALLBACK("ptr_do_dataviewer", do_dataviewer);
+    SET_CALLBACK("ptr_R_ProcessEvents", process_events);
+    SET_CALLBACK("R_PolledEvents", polled_events);
 }

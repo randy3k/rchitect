@@ -1,3 +1,6 @@
+import os
+import re
+import sys
 from cffi import FFI
 ffibuilder = FFI()
 
@@ -8,27 +11,36 @@ void (*setup_Rmainloop)();
 void (*run_Rmainloop)();
 """)
 
-# libR.h
-ffibuilder.cdef("""
-char* get_last_loaded_symbol();
+cwd = os.path.dirname(os.path.realpath(__file__))
+cdef_pattern = re.compile("// begin cdef([^$]*)// end cdef")
+cb_cdef_pattern = re.compile("// begin cb cdef([^$]*)// end cb cdef")
 
 char* get_dl_error_message();
 
 for header_file in ["R.h", "libR.h"]:
     with open(os.path.join(cwd, header_file), "r") as f:
         m = cdef_pattern.search(f.read(), re.M)
-        if m:
-            ffibuilder.cdef(m.group(1).replace("RAPI_EXTERN", ""))
+        ffibuilder.cdef(m.group(1).replace("RAPI_EXTERN", ""))
 
+if sys.platform.startswith("win"):
+    ffibuilder.cdef("int* UserBreak_t;")
+else:
+    ffibuilder.cdef("int* R_interrupts_pending_t;")
 
-HEADER = """
-# include "R.h"
-# include "libR.h"
-"""
+with open(os.path.join(cwd, "libR.h"), "r") as f:
+    m = cb_cdef_pattern.search(f.read(), re.M)
+    ffibuilder.cdef("""
+        extern "Python+C" {{
+            {}
+        }}
+    """.format(m.group(1)))
 
 ffibuilder.set_source(
     "rapi._libR",
-    HEADER,
+    """
+    # include "R.h"
+    # include "libR.h"
+    """,
     include_dirs=['src'],
     sources=['src/libR.c'])
 
