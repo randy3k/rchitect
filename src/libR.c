@@ -525,7 +525,7 @@ static void _set_callback(char* name, void** cb) {
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
 static int _cb_read_console(const char * p, unsigned char * buf, int buflen, int add_history) {
     read_console_interuupted = 0;
-    int ret = _libR_callbacks.read_console(p, buf, buflen, add_history);
+    int ret = cb_read_console(p, buf, buflen, add_history);
     if (read_console_interuupted == 1) {
         *R_interrupts_pending_t = 1;
         R_CheckUserInterrupt();
@@ -534,17 +534,17 @@ static int _cb_read_console(const char * p, unsigned char * buf, int buflen, int
 }
 
 # define SET_CALLBACK(p, name) \
-    if (_libR_callbacks.name != NULL) \
-        _set_callback(p, _libR_callbacks.name)
+    if (_libR_has_callback.name) \
+        _set_callback(p, &cb_ ## name)
 
 void _libR_set_callbacks() {
     SET_CALLBACK("ptr_R_ShowMessage", show_message);
-    if (_libR_callbacks.read_console != NULL)
+    if (_libR_has_callback.read_console)
         _set_callback("ptr_R_ReadConsole", &_cb_read_console);
     SET_CALLBACK("ptr_R_WriteConsole", write_console);
-    if (_libR_callbacks.write_console_ex != NULL)
+    if (_libR_has_callback.write_console_ex)
         _set_callback("ptr_R_WriteConsole", NULL);
-        _set_callback("ptr_R_WriteConsoleEx", _libR_callbacks.write_console_ex);
+        _set_callback("ptr_R_WriteConsoleEx", &cb_write_console_ex);
     SET_CALLBACK("ptr_R_ResetConsole", reset_console);
     SET_CALLBACK("ptr_R_FlushConsole", flush_console);
     SET_CALLBACK("ptr_R_ClearerrConsole", clearerr_console);

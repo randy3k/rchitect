@@ -9,7 +9,7 @@ def def_callback(name=None):
         if fname is None:
             fname = fun.__name__
         globals()[fname] = fun
-        setattr(lib._libR_callbacks, fname, getattr(lib, "cb_" + fname))
+        setattr(lib._libR_has_callback, fname, 1)
 
     return _
 

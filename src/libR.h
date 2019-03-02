@@ -13,31 +13,30 @@
 
 // begin cdef
 
-struct CallBacksList {
-    void (*suicide)(const char *);
-    void (*show_message)(const char *);
-    int  (*read_console)(const char *, unsigned char *, int, int);
-    void (*write_console)(const char *, int);
-    void (*write_console_ex)(const char *, int, int);
-    void (*reset_console)(void);
-    void (*flush_console)(void);
-    void (*clearerr_console)(void);
-    void (*busy)(int);
-    void (*clean_up)(int, int, int);
-    int  (*show_files)(int, const char **, const char **,
-                       const char *, Rboolean, const char *);
-    int  (*choose_file)(int, char *, int);
-    int  (*edit_file)(const char *);
-    void (*loadhistory)(SEXP, SEXP, SEXP, SEXP);
-    void (*savehistory)(SEXP, SEXP, SEXP, SEXP);
-    void (*addhistory)(SEXP, SEXP, SEXP, SEXP);
-    int  (*edit_files)(int, const char **, const char **, const char *);
-    SEXP (*do_selectlist)(SEXP, SEXP, SEXP, SEXP);
-    SEXP (*do_dataentry)(SEXP, SEXP, SEXP, SEXP);
-    SEXP (*do_dataviewer)(SEXP, SEXP, SEXP, SEXP);
-    void (*process_events)();
-    void (*polled_events)();
-} _libR_callbacks;
+struct HasCallBack {
+    int suicide;
+    int show_message;
+    int read_console;
+    int write_console;
+    int write_console_ex;
+    int reset_console;
+    int flush_console;
+    int clearerr_console;
+    int busy;
+    int clean_up;
+    int show_files;
+    int choose_file;
+    int edit_file;
+    int loadhistory;
+    int savehistory;
+    int addhistory;
+    int edit_files;
+    int do_selectlist;
+    int do_dataentry;
+    int do_dataviewer;
+    int process_events;
+    int polled_events;
+} _libR_has_callback;
 
 char* _libR_last_loaded_symbol(void);
 char* _libR_dl_error_message(void);
@@ -73,6 +72,7 @@ SEXP cb_do_selectlist(SEXP, SEXP, SEXP, SEXP);
 SEXP cb_do_dataentry(SEXP, SEXP, SEXP, SEXP);
 SEXP cb_do_dataviewer(SEXP, SEXP, SEXP, SEXP);
 void cb_process_events();
+void cb_polled_events();
 
 // end cb cdef
 
