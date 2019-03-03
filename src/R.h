@@ -527,31 +527,26 @@ RAPI_EXTERN void    (*Rf_warning)(const char *, ...);
 RAPI_EXTERN void    (*R_ShowMessage)(const char *s);
 
 // Defn.h
-RAPI_EXTERN void (*Rf_CoercionWarning)(int);/* warning code */
-RAPI_EXTERN int (*Rf_LogicalFromInteger)(int, int*);
-RAPI_EXTERN int (*Rf_LogicalFromReal)(double, int*);
-RAPI_EXTERN int (*Rf_LogicalFromComplex)(Rcomplex, int*);
-RAPI_EXTERN int (*Rf_IntegerFromLogical)(int, int*);
-RAPI_EXTERN int (*Rf_IntegerFromReal)(double, int*);
-RAPI_EXTERN int (*Rf_IntegerFromComplex)(Rcomplex, int*);
-RAPI_EXTERN double (*Rf_RealFromLogical)(int, int*);
-RAPI_EXTERN double (*Rf_RealFromInteger)(int, int*);
-RAPI_EXTERN double (*Rf_RealFromComplex)(Rcomplex, int*);
-RAPI_EXTERN Rcomplex (*Rf_ComplexFromLogical)(int, int*);
-RAPI_EXTERN Rcomplex (*Rf_ComplexFromInteger)(int, int*);
-RAPI_EXTERN Rcomplex (*Rf_ComplexFromReal)(double, int*);
+// RAPI_EXTERN void (*Rf_CoercionWarning)(int);/* warning code */
+// RAPI_EXTERN int (*Rf_LogicalFromInteger)(int, int*);
+// RAPI_EXTERN int (*Rf_LogicalFromReal)(double, int*);
+// RAPI_EXTERN int (*Rf_LogicalFromComplex)(Rcomplex, int*);
+// RAPI_EXTERN int (*Rf_IntegerFromLogical)(int, int*);
+// RAPI_EXTERN int (*Rf_IntegerFromReal)(double, int*);
+// RAPI_EXTERN int (*Rf_IntegerFromComplex)(Rcomplex, int*);
+// RAPI_EXTERN double (*Rf_RealFromLogical)(int, int*);
+// RAPI_EXTERN double (*Rf_RealFromInteger)(int, int*);
+// RAPI_EXTERN double (*Rf_RealFromComplex)(Rcomplex, int*);
+// RAPI_EXTERN Rcomplex (*Rf_ComplexFromLogical)(int, int*);
+// RAPI_EXTERN Rcomplex (*Rf_ComplexFromInteger)(int, int*);
+// RAPI_EXTERN Rcomplex (*Rf_ComplexFromReal)(double, int*);
 
 RAPI_EXTERN void (*R_ProcessEvents)(void);
 
-RAPI_EXTERN void (*Rf_PrintVersion)(char *, size_t len);
-RAPI_EXTERN void (*Rf_PrintVersion_part_1)(char *, size_t len);
-RAPI_EXTERN void (*Rf_PrintVersionString)(char *, size_t len);
+// RAPI_EXTERN void (*Rf_PrintVersion)(char *, size_t len);
+// RAPI_EXTERN void (*Rf_PrintVersion_part_1)(char *, size_t len);
+// RAPI_EXTERN void (*Rf_PrintVersionString)(char *, size_t len);
 RAPI_EXTERN SEXP (*R_data_class)(SEXP , Rboolean);
-
-// eventloop.h
-RAPI_EXTERN void* (*R_InputHandlers);
-RAPI_EXTERN void* (*R_checkActivity)(int usec, int ignore_stdin);
-RAPI_EXTERN void (*R_runHandlers)(void* handlers, void* mask);
 
 // Utils.h
 RAPI_EXTERN void (*R_CheckUserInterrupt)(void);
@@ -577,8 +572,8 @@ typedef struct
     int NoRenviron;
     char *rhome;
     char *home;
-    int  (*ReadConsole)(const char *, unsigned char *, int, int);
-    void (*WriteConsole)(const char *, int);
+    int  (*_ReadConsole)(const char *, unsigned char *, int, int);
+    void (*_WriteConsole)(const char *, int);
     void (*ShowMessage) (const char *);
     int (*YesNoCancel) (const char *);
     void (*Busy) (void);
@@ -608,13 +603,17 @@ RAPI_EXTERN void (*run_Rmainloop)(void);
 // R_getEmbeddingDllInfo
 // R_registerRoutines
 
-
-
 // end cdef
+
 
 #ifdef _WIN32
 RAPI_EXTERN int* UserBreak_t;
 #else
+// eventloop.h
+RAPI_EXTERN void* (*R_InputHandlers);
+RAPI_EXTERN void* (*R_checkActivity)(int usec, int ignore_stdin);
+RAPI_EXTERN void (*R_runHandlers)(void* handlers, void* mask);
+
 RAPI_EXTERN int* R_interrupts_pending_t;
 #endif
 

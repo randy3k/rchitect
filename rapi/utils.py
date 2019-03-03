@@ -2,6 +2,8 @@ import os
 import re
 import subprocess
 import sys
+import ctypes
+
 
 if sys.platform.startswith('win'):
     if sys.version_info[0] >= 3:
@@ -49,6 +51,25 @@ def libRpath(rhome):
     return path
 
 
+def ensure_path(rhome=None):
+    if not rhome:
+        rhome = Rhome()
+    if sys.platform.startswith("win"):
+        libRdir = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386")
+
+        # make sure Rblas.dll can be reached
+        try:
+            msvcrt = ctypes.cdll.msvcrt
+            msvcrt.getenv.restype = ctypes.c_char_p
+            path = msvcrt.getenv("PATH".encode("utf-8")).decode("utf-8")
+            if libRdir not in path:
+                path = libRdir + ";" + path
+                msvcrt._putenv("PATH={}".format(path).encode("utf-8"))
+        except Exception as e:
+            print(e)
+            pass
+
+
 UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe")
 
 
@@ -65,8 +86,6 @@ def rconsole2str(buf):
 
 
 if sys.platform == "win32":
-    import ctypes
-
     mbtowc = ctypes.cdll.msvcrt.mbtowc
     mbtowc.argtypes = [
         ctypes.POINTER(ctypes.c_wchar),

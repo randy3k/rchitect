@@ -2,21 +2,28 @@ import sys
 import signal
 
 from rapi._libR import ffi, lib
-from .utils import Rhome, libRpath
+from .utils import Rhome, libRpath, ensure_path
 from .callbacks import def_callback, setup_callbacks
 
 
 def init(args=["rapi", "--quiet", "--no-save"]):
-    if not lib._libR_load(libRpath(Rhome()).encode()):
+    rhome = Rhome()
+    ensure_path(rhome)
+    if not lib._libR_load(libRpath(rhome).encode()):
         raise Exception("cannot load R library")
     if not lib._libR_load_symbols():
         raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
 
     _argv = [ffi.new("char[]", a.encode()) for a in args]
     argv = ffi.new("char *[]", _argv)
-    lib.Rf_initialize_R(len(argv), argv)
-    lib.setup_Rmainloop()
-    setup_callbacks()
+
+    if sys.platform.startswith("win"):
+        lib.Rf_initialize_R(len(argv), argv)
+        lib.setup_Rmainloop()
+    else:
+        lib.Rf_initialize_R(len(argv), argv)
+        lib.setup_Rmainloop()
+        setup_callbacks()
     if not lib._libR_load_constants():
         raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
 

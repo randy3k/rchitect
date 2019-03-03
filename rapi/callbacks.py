@@ -2,7 +2,7 @@ from rapi._libR import ffi, lib
 from .utils import rconsole2str, utf8tosystem
 
 
-class CallbackDef(object):
+class Callback(object):
     suicide = None
     show_message = None
     read_console = None
@@ -29,7 +29,7 @@ class CallbackDef(object):
     def __setattr__(self, item, value):
         if item not in self:
             raise KeyError()
-        super(CallbackDef).__setattr__(self, item, value)
+        super(Callback).__setattr__(self, item, value)
 
 
 def def_callback(name=None):
@@ -37,18 +37,18 @@ def def_callback(name=None):
         fname = name
         if fname is None:
             fname = fun.__name__
-        setattr(CallbackDef, fname, fun)
+        setattr(Callback, fname, fun)
 
     return _
 
 
 def undef_callback(name):
-    setattr(CallbackDef, name, None)
+    setattr(Callback, name, None)
 
 
 def setup_callback(p, name, cb_name=None):
-    cb_name = cb_name if cb_name is not None else "cb_" + name
-    if getattr(CallbackDef, name):
+    if getattr(Callback, name):
+        cb_name = cb_name if cb_name is not None else "cb_" + name
         lib._libR_set_callback(p.encode(), ffi.addressof(lib, cb_name))
 
 
@@ -77,6 +77,12 @@ def setup_callbacks():
     setup_callback("R_PolledEvents", "polled_events")
 
 
+@ffi.def_extern()
+def cb_show_message(buf):
+    buf = rconsole2str(buf)
+    Callback.show_message(buf)
+
+
 def on_read_console_error(exception, exc_value, traceback):
     if exception == KeyboardInterrupt:
         lib.read_console_interrupted = 1
@@ -86,15 +92,9 @@ def on_read_console_error(exception, exc_value, traceback):
         print(exception, exc_value)
 
 
-@ffi.def_extern()
-def cb_show_message(buf):
-    buf = rconsole2str(buf)
-    CallbackDef.show_message(buf)
-
-
 @ffi.def_extern(error=0, onerror=on_read_console_error)
 def cb_read_console(p, buf, buflen, add_history):
-    text = CallbackDef.read_console(rconsole2str(ffi.string(p)), add_history)
+    text = Callback.read_console(rconsole2str(ffi.string(p)), add_history)
 
     code = utf8tosystem(text)
     buf = ffi.cast("char*", buf)
@@ -109,14 +109,14 @@ def cb_read_console(p, buf, buflen, add_history):
 
 @ffi.def_extern()
 def cb_write_console_ex(buf, buflen, otype):
-    CallbackDef.write_console_ex(rconsole2str(ffi.string(buf)), otype)
+    Callback.write_console_ex(rconsole2str(ffi.string(buf)), otype)
 
 
 @ffi.def_extern()
 def cb_busy(which):
-    CallbackDef.busy(which)
+    Callback.busy(which)
 
 
 @ffi.def_extern()
 def cb_clean_up(saveact, status, run_last):
-    CallbackDef.clean_up(saveact, status, run_last)
+    Callback.clean_up(saveact, status, run_last)

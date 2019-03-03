@@ -25,7 +25,12 @@ for header_file in ["R.h", "libR.h"]:
 if sys.platform.startswith("win"):
     ffibuilder.cdef("int* UserBreak_t;")
 else:
-    ffibuilder.cdef("int* R_interrupts_pending_t;")
+    ffibuilder.cdef("""
+        void* (*R_InputHandlers);
+        void* (*R_checkActivity)(int usec, int ignore_stdin);
+        void (*R_runHandlers)(void* handlers, void* mask);
+        int* R_interrupts_pending_t;
+    """)
 
 with open(os.path.join(cwd, "libR.h"), "r") as f:
     m = cb_cdef_pattern.search(f.read(), re.M)
@@ -38,7 +43,6 @@ with open(os.path.join(cwd, "libR.h"), "r") as f:
 ffibuilder.set_source(
     "rapi._libR",
     """
-    # include "R.h"
     # include "libR.h"
     """,
     include_dirs=['src'],

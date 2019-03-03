@@ -1,6 +1,7 @@
 #ifndef LIBR_H__
 #define LIBR_H__
 
+#include "R.h"
 #include <stdlib.h>
 #include <string.h>
 

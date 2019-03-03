@@ -1,6 +1,7 @@
 #define LIBR
-#include "R.h"
 #include "libR.h"
+#include "R.h"
+#include <stdio.h>
 
 static void* libR_t;
 
@@ -412,30 +413,26 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_warning);
     LOAD_SYMBOL(R_ShowMessage);
 
-    LOAD_SYMBOL(Rf_CoercionWarning);
-    LOAD_SYMBOL(Rf_LogicalFromInteger);
-    LOAD_SYMBOL(Rf_LogicalFromReal);
-    LOAD_SYMBOL(Rf_LogicalFromComplex);
-    LOAD_SYMBOL(Rf_IntegerFromLogical);
-    LOAD_SYMBOL(Rf_IntegerFromReal);
-    LOAD_SYMBOL(Rf_IntegerFromComplex);
-    LOAD_SYMBOL(Rf_RealFromLogical);
-    LOAD_SYMBOL(Rf_RealFromInteger);
-    LOAD_SYMBOL(Rf_RealFromComplex);
-    LOAD_SYMBOL(Rf_ComplexFromLogical);
-    LOAD_SYMBOL(Rf_ComplexFromInteger);
-    LOAD_SYMBOL(Rf_ComplexFromReal);
+    // LOAD_SYMBOL(Rf_CoercionWarning);
+    // LOAD_SYMBOL(Rf_LogicalFromInteger);
+    // LOAD_SYMBOL(Rf_LogicalFromReal);
+    // LOAD_SYMBOL(Rf_LogicalFromComplex);
+    // LOAD_SYMBOL(Rf_IntegerFromLogical);
+    // LOAD_SYMBOL(Rf_IntegerFromReal);
+    // LOAD_SYMBOL(Rf_IntegerFromComplex);
+    // LOAD_SYMBOL(Rf_RealFromLogical);
+    // LOAD_SYMBOL(Rf_RealFromInteger);
+    // LOAD_SYMBOL(Rf_RealFromComplex);
+    // LOAD_SYMBOL(Rf_ComplexFromLogical);
+    // LOAD_SYMBOL(Rf_ComplexFromInteger);
+    // LOAD_SYMBOL(Rf_ComplexFromReal);
 
     LOAD_SYMBOL(R_ProcessEvents);
 
-    LOAD_SYMBOL(Rf_PrintVersion);
-    LOAD_SYMBOL(Rf_PrintVersion_part_1);
-    LOAD_SYMBOL(Rf_PrintVersionString);
+    // LOAD_SYMBOL(Rf_PrintVersion);
+    // LOAD_SYMBOL(Rf_PrintVersion_part_1);
+    // LOAD_SYMBOL(Rf_PrintVersionString);
     LOAD_SYMBOL(R_data_class);
-
-    LOAD_SYMBOL(R_InputHandlers)
-    LOAD_SYMBOL(R_checkActivity)
-    LOAD_SYMBOL(R_runHandlers)
 
     LOAD_SYMBOL(R_CheckUserInterrupt);
 
@@ -450,6 +447,10 @@ int _libR_load_symbols() {
     #ifdef _WIN32
     LOAD_SYMBOL_AS(UserBreak, UserBreak_t)
     #else
+    LOAD_SYMBOL(R_InputHandlers)
+    LOAD_SYMBOL(R_checkActivity)
+    LOAD_SYMBOL(R_runHandlers)
+
     LOAD_SYMBOL_AS(R_interrupts_pending, R_interrupts_pending_t)
     #endif
 
@@ -523,7 +524,11 @@ int cb_show_message_interruptible(const char * p, unsigned char * buf, int bufle
     read_console_interrupted = 0;
     int ret = cb_read_console(p, buf, buflen, add_history);
     if (read_console_interrupted == 1) {
+#ifdef _WIN32
+        *UserBreak_t = 1;
+#else
         *R_interrupts_pending_t = 1;
+#endif
         R_CheckUserInterrupt();
     }
     return ret;
