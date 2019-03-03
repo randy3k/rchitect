@@ -13,38 +13,15 @@
 
 // begin cdef
 
-struct HasCallBack {
-    int suicide;
-    int show_message;
-    int read_console;
-    int write_console;
-    int write_console_ex;
-    int reset_console;
-    int flush_console;
-    int clearerr_console;
-    int busy;
-    int clean_up;
-    int show_files;
-    int choose_file;
-    int edit_file;
-    int loadhistory;
-    int savehistory;
-    int addhistory;
-    int edit_files;
-    int do_selectlist;
-    int do_dataentry;
-    int do_dataviewer;
-    int process_events;
-    int polled_events;
-} _libR_has_callback;
-
 char* _libR_last_loaded_symbol(void);
 char* _libR_dl_error_message(void);
 int _libR_load(const char* libpath);
 int _libR_load_symbols(void);
 int _libR_load_constants(void);
-void _libR_set_callbacks(void);
-int read_console_interuupted;
+void _libR_set_callback(char* name, void* cb);
+
+int cb_show_message_interruptible(const char *, unsigned char *, int, int);
+int read_console_interrupted;
 
 // end cdef
 

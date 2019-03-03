@@ -57,7 +57,7 @@ int _libR_load(const char* libpath) {
     }
 }
 
-int load_symbol(const char* name, void** ppSymbol) {
+static int load_symbol(const char* name, void** ppSymbol) {
     strcpy(last_loaded_symbol, name);
 #ifdef _WIN32
     *ppSymbol = (void*) GetProcAddress((HINSTANCE) libR_t, name);
@@ -80,7 +80,7 @@ if (!load_symbol(#name, (void**) &name)) {\
     return 0; \
 }
 
-int load_constant(const char* name, void** ppSymbol) {
+static int load_constant(const char* name, void** ppSymbol) {
     strcpy(last_loaded_symbol, name);
 #ifdef _WIN32
     *ppSymbol = *((void**) GetProcAddress((HINSTANCE) libR_t, name));
@@ -439,6 +439,10 @@ int _libR_load_symbols() {
 
     LOAD_SYMBOL(R_CheckUserInterrupt);
 
+    LOAD_SYMBOL(R_DefParams);
+    LOAD_SYMBOL(R_SetParams);
+    LOAD_SYMBOL(R_set_command_line_arguments);
+
     LOAD_SYMBOL(Rf_initialize_R);
     LOAD_SYMBOL(setup_Rmainloop);
     LOAD_SYMBOL(run_Rmainloop);
@@ -510,56 +514,27 @@ int _libR_load_constants() {
     LOAD_CONSTANT(R_NegInf);
     LOAD_CONSTANT(R_NaReal);
     LOAD_CONSTANT(R_NaInt);
+
     return 1;
 }
 
-static void _set_callback(char* name, void** cb) {
-    void** p;
-    if (load_symbol(name, &p)) {
-        *p = cb;
-    } else {
-        printf("error setting callback of %s\n", name);
-    }
-}
-
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
-static int _cb_read_console(const char * p, unsigned char * buf, int buflen, int add_history) {
-    read_console_interuupted = 0;
+int cb_show_message_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
+    read_console_interrupted = 0;
     int ret = cb_read_console(p, buf, buflen, add_history);
-    if (read_console_interuupted == 1) {
+    if (read_console_interrupted == 1) {
         *R_interrupts_pending_t = 1;
         R_CheckUserInterrupt();
     }
     return ret;
 }
 
-# define SET_CALLBACK(p, name) \
-    if (_libR_has_callback.name) \
-        _set_callback(p, &cb_ ## name)
 
-void _libR_set_callbacks() {
-    SET_CALLBACK("ptr_R_ShowMessage", show_message);
-    if (_libR_has_callback.read_console)
-        _set_callback("ptr_R_ReadConsole", &_cb_read_console);
-    SET_CALLBACK("ptr_R_WriteConsole", write_console);
-    if (_libR_has_callback.write_console_ex)
-        _set_callback("ptr_R_WriteConsole", NULL);
-        _set_callback("ptr_R_WriteConsoleEx", &cb_write_console_ex);
-    SET_CALLBACK("ptr_R_ResetConsole", reset_console);
-    SET_CALLBACK("ptr_R_FlushConsole", flush_console);
-    SET_CALLBACK("ptr_R_ClearerrConsole", clearerr_console);
-    SET_CALLBACK("ptr_R_Busy", busy);
-    SET_CALLBACK("ptr_R_CleanUp", clean_up);
-    SET_CALLBACK("ptr_R_ShowFiles", show_files);
-    SET_CALLBACK("ptr_R_ChooseFile", choose_file);
-    SET_CALLBACK("ptr_R_EditFile", edit_file);
-    SET_CALLBACK("ptr_R_loadhistory", loadhistory);
-    SET_CALLBACK("ptr_R_savehistory", savehistory);
-    SET_CALLBACK("ptr_R_addhistory", addhistory);
-    SET_CALLBACK("ptr_R_EditFiles", edit_files);
-    SET_CALLBACK("ptr_do_selectlist", do_selectlist);
-    SET_CALLBACK("ptr_do_dataentry", do_dataentry);
-    SET_CALLBACK("ptr_do_dataviewer", do_dataviewer);
-    SET_CALLBACK("ptr_R_ProcessEvents", process_events);
-    SET_CALLBACK("R_PolledEvents", polled_events);
+void _libR_set_callback(char* name, void* cb) {
+    void** p;
+    if (load_symbol(name, &p)) {
+        *p = cb;
+    } else {
+        printf("error setting callback of %s\n", name);
+    }
 }

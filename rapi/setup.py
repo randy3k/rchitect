@@ -3,7 +3,7 @@ import signal
 
 from rapi._libR import ffi, lib
 from .utils import Rhome, libRpath
-from .callbacks import def_callback
+from .callbacks import def_callback, setup_callbacks
 
 
 def init(args=["rapi", "--quiet", "--no-save"]):
@@ -16,7 +16,7 @@ def init(args=["rapi", "--quiet", "--no-save"]):
     argv = ffi.new("char *[]", _argv)
     lib.Rf_initialize_R(len(argv), argv)
     lib.setup_Rmainloop()
-    lib._libR_set_callbacks()
+    setup_callbacks()
     if not lib._libR_load_constants():
         raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
 
@@ -58,3 +58,8 @@ def write_console_ex(buf, otype):
 def show_message(buf):
     sys.stdout.write(buf)
     sys.stdout.flush()
+
+
+# @def_callback()
+# def clean_up(saveact, status, run_last):
+#     lib.Rstd_CleanUp(saveact, status, run_last)

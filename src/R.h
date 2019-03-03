@@ -556,6 +556,46 @@ RAPI_EXTERN void (*R_runHandlers)(void* handlers, void* mask);
 // Utils.h
 RAPI_EXTERN void (*R_CheckUserInterrupt)(void);
 
+// RStartup.h
+
+typedef struct
+{
+    Rboolean R_Quiet;
+    Rboolean R_Slave;
+    Rboolean R_Interactive;
+    Rboolean R_Verbose;
+    Rboolean LoadSiteFile;
+    Rboolean LoadInitFile;
+    Rboolean DebugInitFile;
+    int RestoreAction;
+    int SaveAction;
+    size_t vsize;
+    size_t nsize;
+    size_t max_vsize;
+    size_t max_nsize;
+    size_t ppsize;
+    int NoRenviron;
+    char *rhome;
+    char *home;
+    int  (*ReadConsole)(const char *, unsigned char *, int, int);
+    void (*WriteConsole)(const char *, int);
+    void (*ShowMessage) (const char *);
+    int (*YesNoCancel) (const char *);
+    void (*Busy) (void);
+    int CharacterMode;
+    void (*WriteConsoleEx)(const char *, int, int);
+} structRstart;
+typedef structRstart *Rstart;
+
+RAPI_EXTERN void (*R_DefParams)(Rstart);
+RAPI_EXTERN void (*R_SetParams)(Rstart);
+RAPI_EXTERN void (*R_set_command_line_arguments)(int argc, char **argv);
+
+// Rinterface.h
+
+RAPI_EXTERN int (*Rstd_CleanUp)(int saveact, int status, int RunLast);
+
+
 // Rembedded.h
 RAPI_EXTERN int (*Rf_initialize_R)(int ac, char **av);
 RAPI_EXTERN void (*setup_Rmainloop)(void);
@@ -567,6 +607,8 @@ RAPI_EXTERN void (*run_Rmainloop)(void);
 // R_getDllInfo
 // R_getEmbeddingDllInfo
 // R_registerRoutines
+
+
 
 // end cdef
 
