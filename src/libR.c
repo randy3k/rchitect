@@ -523,8 +523,9 @@ int _libR_load_constants() {
 
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
 int cb_read_console_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
+    int ret;
     read_console_interrupted = 0;
-    int ret = cb_read_console(p, buf, buflen, add_history);
+    ret = cb_read_console(p, buf, buflen, add_history);
     if (read_console_interrupted == 1) {
 #ifdef _WIN32
         *UserBreak_t = 1;

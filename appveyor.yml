@@ -1,54 +1,16 @@
-build: false
-
 environment:
-  matrix:
-   - PYTHON: "C:\\Python27-x64"
-     PYTHON_VERSION: "2.7.x"
-     PYTHON_ARCH: "64"
-     R_VERSION: "release"
-     USE_RTOOLS: true
+  TWINE_USERNAME: randy3k
 
-   - PYTHON: "C:\\Python36-x64"
-     PYTHON_VERSION: "3.6.x"
-     PYTHON_ARCH: "64"
-     R_VERSION: "release"
-     USE_RTOOLS: true
-
-   - PYTHON: "C:\\Python27-x64"
-     PYTHON_VERSION: "2.7.x"
-     PYTHON_ARCH: "64"
-     R_VERSION: "devel"
-     USE_RTOOLS: true
-
-   - PYTHON: "C:\\Python36-x64"
-     PYTHON_VERSION: "3.6.x"
-     PYTHON_ARCH: "64"
-     R_VERSION: "devel"
-     USE_RTOOLS: true
-
-matrix:
-  allow_failures:
-    - R_VERSION: "devel"
-
-init:
-  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
-  # https://github.com/rstudio/reticulate/blob/master/appveyor.yml
-  - ps: |
-        $ErrorActionPreference = "Stop"
-        Invoke-WebRequest http://raw.github.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "..\appveyor-tool.ps1"
-        Import-Module '..\appveyor-tool.ps1'
-
-install:
-  - ps: Bootstrap
-  - R.exe -e "install.packages('devtools', repo = '"https://cloud.r-project.org"')"
-  - R.exe -e "devtools::install_github('rstudio/reticulate#335')"
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - "%CMD_IN_ENV% python -m pip install --upgrade setuptools pip"
-  - "%CMD_IN_ENV% pip install -e .[test]"
-test_script:
-  - "%CMD_IN_ENV% pytest"
-
-
-# on_finish:
-#   # uncomment to enable RDP to Appveyor
-#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+build_script:
+  - pip install cibuildwheel==0.10.1
+  - cibuildwheel --output-dir wheelhouse
+  - >
+    IF "%APPVEYOR_REPO_TAG%" == "true"
+    (
+    python -m pip install twine
+    &&
+    python -m twine upload wheelhouse/*.whl
+    )
+artifacts:
+  - path: "wheelhouse\\*.whl"
+    name: Wheels

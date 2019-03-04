@@ -1,0 +1,23 @@
+language: python
+
+matrix:
+  include:
+    - sudo: required
+      services:
+        - docker
+    - os: osx
+      language: generic
+
+env:
+  global:
+    - TWINE_USERNAME=randy3k
+
+script:
+  - sudo pip install --upgrade pip
+  - sudo pip install cibuildwheel==0.10.1
+  - cibuildwheel --output-dir wheelhouse
+  - |
+    if [[ $TRAVIS_TAG ]]; then
+      sudo python -m pip install twine
+      sudo python -m twine upload wheelhouse/*.whl
+    fi
