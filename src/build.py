@@ -23,7 +23,11 @@ for header_file in ["R.h", "libR.h"]:
         ffibuilder.cdef(m.group(1).replace("RAPI_EXTERN", ""))
 
 if sys.platform.startswith("win"):
-    ffibuilder.cdef("int* UserBreak_t;")
+    ffibuilder.cdef("""
+        char *(*get_R_HOME)(void);
+        char *(*getRUser)(void);
+        int* UserBreak_t;
+    """)
 else:
     ffibuilder.cdef("""
         void* (*R_InputHandlers);

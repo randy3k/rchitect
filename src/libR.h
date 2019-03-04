@@ -21,7 +21,7 @@ int _libR_load_symbols(void);
 int _libR_load_constants(void);
 void _libR_set_callback(char* name, void* cb);
 
-int cb_show_message_interruptible(const char *, unsigned char *, int, int);
+int cb_read_console_interruptible(const char *, unsigned char *, int, int);
 int read_console_interrupted;
 
 // end cdef
@@ -51,6 +51,7 @@ SEXP cb_do_dataentry(SEXP, SEXP, SEXP, SEXP);
 SEXP cb_do_dataviewer(SEXP, SEXP, SEXP, SEXP);
 void cb_process_events();
 void cb_polled_events();
+int  cb_yes_no_cancel(const char *s);
 
 // end cb cdef
 

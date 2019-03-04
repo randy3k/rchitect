@@ -25,6 +25,7 @@ class Callback(object):
     do_dataviewer = None
     process_events = None
     polled_events = None
+    yes_no_cancel = None
 
     def __setattr__(self, item, value):
         if item not in self:
@@ -46,16 +47,64 @@ def undef_callback(name):
     setattr(Callback, name, None)
 
 
+# prevent rstart being gc'ed
+_protected = {}
+
+
+def setup_rstart(args):
+    rstart = ffi.new("Rstart")
+    _protected["rstart"] = rstart
+    SA_NORESTORE = 0
+    SA_RESTORE = 1
+    # SA_DEFAULT = 2
+    SA_NOSAVE = 3
+    SA_SAVE = 4
+    SA_SAVEASK = 5
+    # SA_SUICIDE = 6
+    lib.R_DefParams(rstart)
+    rstart.R_Quiet = "--quiet" in args
+    rstart.R_Slave = "--slave" in args
+    rstart.R_Interactive = 1
+    rstart.R_Verbose = "--verbose" in args
+    rstart.LoadSiteFile = "--no-site-file" not in args
+    rstart.LoadInitFile = "--no-init-file" not in args
+    if "--no-restore" in args:
+        rstart.RestoreAction = SA_NORESTORE
+    else:
+        rstart.RestoreAction = SA_RESTORE
+    if "--no-save" in args:
+        rstart.SaveAction = SA_NOSAVE
+    elif "--save" in args:
+        rstart.SaveAction = SA_SAVE
+    else:
+        rstart.SaveAction = SA_SAVEASK
+    rhome = ffi.new("char[]", ffi.string(lib.get_R_HOME()))
+    _protected["rhome"] = rhome
+    rstart.rhome = rhome
+    home = ffi.new("char[]", ffi.string(lib.getRUser()))
+    _protected["home"] = home
+    rstart.home = home
+    rstart._ReadConsole = ffi.addressof(lib, "cb_read_console_interruptible")
+    rstart._WriteConsole = ffi.NULL
+    rstart.CallBack = ffi.addressof(lib, "cb_polled_events")
+    rstart.ShowMessage = ffi.addressof(lib, "cb_show_message")
+    rstart.YesNoCancel = ffi.addressof(lib, "cb_yes_no_cancel")
+    rstart.Busy = ffi.addressof(lib, "cb_busy")
+    rstart.CharacterMode = 0
+    rstart.WriteConsoleEx = ffi.addressof(lib, "cb_write_console_ex")
+    lib.R_SetParams(rstart)
+
+
 def setup_callback(p, name, cb_name=None):
     if getattr(Callback, name):
         cb_name = cb_name if cb_name is not None else "cb_" + name
         lib._libR_set_callback(p.encode(), ffi.addressof(lib, cb_name))
 
 
-def setup_callbacks():
+def setup_unix_callbacks():
     setup_callback("ptr_R_Suicide", "suicide")
     setup_callback("ptr_R_ShowMessage", "show_message")
-    setup_callback("ptr_R_ReadConsole", "read_console", "cb_show_message_interruptible")
+    setup_callback("ptr_R_ReadConsole", "read_console", "cb_read_console_interruptible")
     setup_callback("ptr_R_WriteConsole", "write_console")
     setup_callback("ptr_R_WriteConsoleEx", "write_console_ex")
     setup_callback("ptr_R_ResetConsole", "reset_console")
@@ -79,8 +128,7 @@ def setup_callbacks():
 
 @ffi.def_extern()
 def cb_show_message(buf):
-    buf = rconsole2str(buf)
-    Callback.show_message(buf)
+    Callback.show_message(rconsole2str(ffi.string(buf)))
 
 
 def on_read_console_error(exception, exc_value, traceback):
@@ -120,3 +168,13 @@ def cb_busy(which):
 @ffi.def_extern()
 def cb_clean_up(saveact, status, run_last):
     Callback.clean_up(saveact, status, run_last)
+
+
+@ffi.def_extern()
+def cb_polled_events():
+    Callback.polled_events()
+
+
+@ffi.def_extern()
+def cb_yes_no_cancel(p):
+    return Callback.yes_no_cancel(rconsole2str(ffi.string(p)))

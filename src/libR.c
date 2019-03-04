@@ -445,6 +445,8 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(run_Rmainloop);
 
     #ifdef _WIN32
+    LOAD_SYMBOL(get_R_HOME)
+    LOAD_SYMBOL(getRUser)
     LOAD_SYMBOL_AS(UserBreak, UserBreak_t)
     #else
     LOAD_SYMBOL(R_InputHandlers)
@@ -520,7 +522,7 @@ int _libR_load_constants() {
 }
 
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
-int cb_show_message_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
+int cb_read_console_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
     read_console_interrupted = 0;
     int ret = cb_read_console(p, buf, buflen, add_history);
     if (read_console_interrupted == 1) {

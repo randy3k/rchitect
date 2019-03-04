@@ -574,9 +574,10 @@ typedef struct
     char *home;
     int  (*_ReadConsole)(const char *, unsigned char *, int, int);
     void (*_WriteConsole)(const char *, int);
+    void (*CallBack)(void);
     void (*ShowMessage) (const char *);
     int (*YesNoCancel) (const char *);
-    void (*Busy) (void);
+    void (*Busy) (int);
     int CharacterMode;
     void (*WriteConsoleEx)(const char *, int, int);
 } structRstart;
@@ -607,6 +608,8 @@ RAPI_EXTERN void (*run_Rmainloop)(void);
 
 
 #ifdef _WIN32
+RAPI_EXTERN char *(*get_R_HOME)(void);
+RAPI_EXTERN char *(*getRUser)(void);
 RAPI_EXTERN int* UserBreak_t;
 #else
 // eventloop.h
