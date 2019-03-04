@@ -11,12 +11,12 @@ matrix:
         - docker
     - os: osx
       language: generic
+      before_install:
+        - python2 -m pip install virtualenv
+        - python2 -m virtualenv venv
+        - source venv/bin/activate
 
 script:
-  - |
-    if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      brew install python@2 || brew upgrade python@2
-    fi
   - python -m pip install cibuildwheel==0.10.1
   - cibuildwheel --output-dir wheelhouse
   - |
