@@ -521,6 +521,8 @@ int _libR_load_constants() {
     return 1;
 }
 
+int read_console_interrupted;
+
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
 int cb_read_console_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
     int ret;
