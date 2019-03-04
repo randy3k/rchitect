@@ -31,7 +31,14 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages('.', exclude=["tests"]),
     cffi_modules=["src/build.py:ffibuilder"],
-    setup_requires=['cffi>=1.10.0'],
+    setup_requires=[
+        'cffi>=1.10.0',
+        "pytest-runner"
+    ],
     install_requires=['cffi>=1.10.0'],
-    ext_modules=[]
+    extras_require={
+        "test": [
+            "pytest"
+        ]
+    }
 )
