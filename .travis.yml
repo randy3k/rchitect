@@ -1,5 +1,9 @@
 language: python
 
+env:
+  global:
+    - TWINE_USERNAME=randy3k
+
 matrix:
   include:
     - sudo: required
@@ -8,16 +12,15 @@ matrix:
     - os: osx
       language: generic
 
-env:
-  global:
-    - TWINE_USERNAME=randy3k
-
 script:
-  - sudo pip install --upgrade pip
-  - sudo pip install cibuildwheel==0.10.1
+  - |
+    if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      brew install python@2 || brew upgrade python@2
+    fi
+  - python -m pip install cibuildwheel==0.10.1
   - cibuildwheel --output-dir wheelhouse
   - |
     if [[ $TRAVIS_TAG ]]; then
-      sudo python -m pip install twine
-      sudo python -m twine upload wheelhouse/*.whl
+      python -m pip install twine
+      python -m twine upload wheelhouse/*.whl
     fi
