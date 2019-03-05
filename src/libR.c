@@ -397,7 +397,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(R_IsNaN);
     LOAD_SYMBOL(R_finite);
 
-    LOAD_SYMBOL(R_ParseVector);
+    LOAD_SYMBOL_AS(R_ParseVector, _R_ParseVector);
 
     LOAD_SYMBOL(vmaxget);
     LOAD_SYMBOL(vmaxset);
@@ -521,14 +521,14 @@ int _libR_load_constants() {
     return 1;
 }
 
-int read_console_interrupted;
+int cb_read_console_interrupted;
 
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
 int cb_read_console_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
     int ret;
-    read_console_interrupted = 0;
+    cb_read_console_interrupted = 0;
     ret = cb_read_console(p, buf, buflen, add_history);
-    if (read_console_interrupted == 1) {
+    if (cb_read_console_interrupted == 1) {
 #ifdef _WIN32
         *UserBreak_t = 1;
 #else

@@ -505,7 +505,7 @@ typedef enum {
     PARSE_EOF
 } ParseStatus;
 
-RAPI_EXTERN SEXP (*R_ParseVector)(SEXP, int, ParseStatus *, SEXP);
+RAPI_EXTERN SEXP (*_R_ParseVector)(SEXP, int, ParseStatus *, SEXP);
 
 // Memory.h
 RAPI_EXTERN void*   (*vmaxget)(void);
@@ -572,6 +572,7 @@ typedef struct
     int NoRenviron;
     char *rhome;
     char *home;
+    // we use _ReadConsole and _WriteConsole to avoid name collision
     int  (*_ReadConsole)(const char *, unsigned char *, int, int);
     void (*_WriteConsole)(const char *, int);
     void (*CallBack)(void);

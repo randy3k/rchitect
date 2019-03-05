@@ -22,7 +22,7 @@ int _libR_load_constants(void);
 void _libR_set_callback(char* name, void* cb);
 
 int cb_read_console_interruptible(const char *, unsigned char *, int, int);
-extern int read_console_interrupted;
+extern int cb_read_console_interrupted;
 
 // end cdef
 

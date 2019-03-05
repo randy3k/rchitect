@@ -133,7 +133,7 @@ def cb_show_message(buf):
 
 def on_read_console_error(exception, exc_value, traceback):
     if exception == KeyboardInterrupt:
-        lib.read_console_interrupted = 1
+        lib.cb_read_console_interrupted = 1
     elif exception == EOFError:
         pass
     else:
