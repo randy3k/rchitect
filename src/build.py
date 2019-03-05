@@ -48,6 +48,7 @@ ffibuilder.set_source(
     "rapi._libR",
     """
     # include "libR.h"
+    # include "parse.h"
     """,
     include_dirs=['src'],
     sources=['src/libR.c', 'src/parse.c'])

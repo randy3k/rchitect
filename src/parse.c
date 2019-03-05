@@ -20,7 +20,7 @@ SEXP R_ParseVector(SEXP text, int num, ParseStatus* status, SEXP source) {
     d.num = num;
     d.status = status;
     d.source = Rf_protect(source);
-    ok = R_ToplevelExec(protectedParse, (void*) &d);
+    ok = R_ToplevelExec(protectedParse, &d);
     if (ok == FALSE) {
         *status = PARSE_ERROR;
     }
