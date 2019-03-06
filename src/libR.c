@@ -339,6 +339,7 @@ int _libR_load_symbols() {
 
     LOAD_SYMBOL(R_compute_identical);
 
+    LOAD_SYMBOL(Rf_allocVector);
     LOAD_SYMBOL(Rf_conformable);
     LOAD_SYMBOL(Rf_elt);
     LOAD_SYMBOL(Rf_inherits);

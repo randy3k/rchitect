@@ -430,6 +430,7 @@ RAPI_EXTERN void (*R_RunExitFinalizers)(void);
 
 RAPI_EXTERN Rboolean (*R_compute_identical)(SEXP, SEXP, int);
 
+RAPI_EXTERN SEXP     (*Rf_allocVector)(SEXPTYPE, R_xlen_t);
 RAPI_EXTERN Rboolean (*Rf_conformable)(SEXP, SEXP);
 RAPI_EXTERN SEXP     (*Rf_elt)(SEXP, int);
 RAPI_EXTERN Rboolean (*Rf_inherits)(SEXP, const char *);
