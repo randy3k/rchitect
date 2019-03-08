@@ -2,12 +2,12 @@ from __future__ import unicode_literals
 import sys
 import signal
 
-from rapi._libR import ffi, lib
+from rchitect._libR import ffi, lib
 from .utils import Rhome, libRpath, ensure_path
 from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
-def init(args=["rapi", "--quiet"]):
+def init(args=["rchitect", "--quiet"]):
     rhome = Rhome()
     ensure_path(rhome)
     if not lib._libR_load(libRpath(rhome).encode()):

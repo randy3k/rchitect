@@ -4,18 +4,10 @@ import sys
 from cffi import FFI
 ffibuilder = FFI()
 
-# Rembedded.h
-ffibuilder.cdef("""
-int (*Rf_initialize_R)(int ac, char **av);
-void (*setup_Rmainloop)();
-void (*run_Rmainloop)();
-""")
-
 cwd = os.path.dirname(os.path.realpath(__file__))
 cdef_pattern = re.compile("// begin cdef([^$]*)// end cdef")
 cb_cdef_pattern = re.compile("// begin cb cdef([^$]*)// end cb cdef")
 
-char* get_dl_error_message();
 
 for header_file in ["R.h", "libR.h", "parse.h"]:
     with open(os.path.join(cwd, header_file), "r") as f:
@@ -45,7 +37,7 @@ with open(os.path.join(cwd, "libR.h"), "r") as f:
     """.format(m.group(1)))
 
 ffibuilder.set_source(
-    "rapi._libR",
+    "rchitect._libR",
     """
     # include "libR.h"
     # include "parse.h"
