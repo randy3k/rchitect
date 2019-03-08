@@ -1,7 +1,46 @@
 version: 2
 
 jobs:
-  test-r-3.4.4:
+  test-r-3.4.4-py2:
+    docker:
+      - image: rocker/tidyverse:3.4.4
+    steps:
+      - run: |
+          apt-get update
+          apt-get install git ssh curl python python-pip libffi6 libffi-dev -y
+      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
+      - checkout
+      - run: pip install -e .[test]
+      - run: |
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
+          pytest
+  test-r-release-py2:
+    docker:
+      - image: rocker/tidyverse
+    steps:
+      - run: |
+          apt-get update
+          apt-get install git ssh curl python python-pip libffi6 libffi-dev -y
+      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
+      - checkout
+      - run: pip install -e .[test]
+      - run: |
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
+          pytest
+  test-r-devel-py2:
+    docker:
+      - image: rocker/tidyverse:devel
+    steps:
+      - run: |
+          apt-get update
+          apt-get install git ssh curl python python-pip libffi6 libffi-dev -y
+      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
+      - checkout
+      - run: pip install -e .[test]
+      - run: |
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
+          pytest
+  test-r-3.4.4-py3:
     docker:
       - image: rocker/tidyverse:3.4.4
     steps:
@@ -14,7 +53,7 @@ jobs:
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest
-  test-r-release:
+  test-r-release-py3:
     docker:
       - image: rocker/tidyverse
     steps:
@@ -27,7 +66,7 @@ jobs:
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest
-  test-r-devel:
+  test-r-devel-py3:
     docker:
       - image: rocker/tidyverse:devel
     steps:
@@ -59,23 +98,38 @@ workflows:
   version: 2
   build:
     jobs:
-      - test-r-3.4.4:
+      - test-r-3.4.4-py2:
           filters:
             tags:
               only: /^v.*/
-      - test-r-release:
+      - test-r-release-py2:
           filters:
             tags:
               only: /^v.*/
-      - test-r-devel:
+      - test-r-devel-py2:
+          filters:
+            tags:
+              only: /^v.*/
+      - test-r-3.4.4-py3:
+          filters:
+            tags:
+              only: /^v.*/
+      - test-r-release-py3:
+          filters:
+            tags:
+              only: /^v.*/
+      - test-r-devel-py3:
           filters:
             tags:
               only: /^v.*/
       - deploy-to-pypi:
           requires:
-            - test-r-3.4.4
-            - test-r-release
-            - test-r-devel
+            - test-r-3.4.4-py2
+            - test-r-release-py2
+            - test-r-devel-py2
+            - test-r-3.4.4-py3
+            - test-r-release-py3
+            - test-r-devel-py3
           filters:
             branches:
               ignore: /.*/
