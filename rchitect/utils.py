@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from ctypes import PyDLL, c_void_p, c_char_p, cast, cdll, RTLD_GLOBAL
 import os
 import sys
 import re

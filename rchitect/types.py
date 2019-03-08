@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
-from ctypes import c_void_p, c_double, c_int, c_int32, c_int64
-from ctypes import Structure
-from ctypes import sizeof
+
+from rchitect._libR import ffi, lib
 
 
 class SEXP(c_void_p):
