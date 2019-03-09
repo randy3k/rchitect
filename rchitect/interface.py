@@ -1,6 +1,31 @@
+from __future__ import unicode_literals
 from rchitect._libR import ffi, lib
+from .dispatch import dispatch
+from .types import RObject, SEXP, sexptype, datatype
 
-from .types import robject, sexp, is_robject, is_sexp
+
+dispatch.add_rules(type, datatype)
+dispatch.add_rules(ffi.CData, sexptype)
+
+
+@dispatch(SEXP)
+def sexp(x):
+    return x
+
+
+@dispatch(RObject)  # noqa
+def sexp(x):
+    return x.s
+
+
+@dispatch(RObject)
+def robject(x):
+    return x
+
+
+@dispatch(SEXP)  # noqa
+def robject(x):
+    return RObject(x)
 
 
 def rint_p(s):
@@ -75,9 +100,9 @@ def rparse(s):
 def reval_p(s):
     if isinstance(s, str):
         expressions = rparse_p(s)
-    elif is_robject(s) and lib.TYPEOF(sexp(s)) == lib.EXPRSXP:
+    elif isinstance(s, RObject) and lib.TYPEOF(sexp(s)) == lib.EXPRSXP:
         expressions = sexp(s)
-    elif is_sexp(s) and lib.TYPEOF(s) == lib.EXPRSXP:
+    elif isinstance(s, SEXP) and lib.TYPEOF(s) == lib.EXPRSXP:
         expressions = s
     else:
         raise TypeError("unexpected object")
@@ -102,11 +127,11 @@ def reval(s):
 def rlang_p(*args, **kwargs):
     nprotect = 0
     for a in args:
-        if is_sexp(a):
+        if isinstance(a, SEXP):
             lib.Rf_protect(a)
             nprotect += 1
     for v in kwargs.values():
-        if is_sexp(v):
+        if isinstance(v, SEXP):
             lib.Rf_protect(v)
             nprotect += 1
     nargs = len(args) + len(kwargs)
@@ -115,9 +140,9 @@ def rlang_p(*args, **kwargs):
     s = t
     try:
         fname = args[0]
-        if is_sexp(fname):
+        if isinstance(fname, SEXP):
             lib.SETCAR(s, fname)
-        elif is_robject(fname):
+        elif isinstance(fname, RObject):
             lib.SETCAR(s, sexp(fname))
         elif isinstance(fname, str):
             lib.SETCAR(s, rsym_p(fname))

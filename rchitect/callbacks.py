@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from rchitect._libR import ffi, lib
 from .utils import rconsole2str, utf8tosystem
 
