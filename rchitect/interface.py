@@ -3,6 +3,8 @@ from rchitect._libR import ffi, lib
 from .dispatch import dispatch
 from .types import RObject, SEXP, sexptype, datatype
 
+from six import string_types
+
 
 dispatch.add_rules(type, datatype)
 dispatch.add_rules(
@@ -100,7 +102,7 @@ def rparse(s):
 
 
 def reval_p(s):
-    if isinstance(s, str):
+    if isinstance(s, ):
         expressions = rparse_p(s)
     elif isinstance(s, RObject) and lib.TYPEOF(sexp(s)) == lib.EXPRSXP:
         expressions = sexp(s)
@@ -146,7 +148,7 @@ def rlang_p(*args, **kwargs):
             lib.SETCAR(s, fname)
         elif isinstance(fname, RObject):
             lib.SETCAR(s, sexp(fname))
-        elif isinstance(fname, str):
+        elif isinstance(fname, string_types):
             lib.SETCAR(s, rsym_p(fname))
         elif isinstance(fname, tuple) and len(fname) == 2:
             lib.SETCAR(s, rsym_p(*fname))
