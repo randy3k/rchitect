@@ -1,10 +1,13 @@
 from __future__ import unicode_literals
 from rchitect._libR import ffi, lib
 from .dispatch import dispatch
-from .types import RObject, SEXP, EXPRSXP, sexptype, datatype
-
+from .types import RObject, SEXP, RClass, sexptype, datatype
+from .types import NILSXP, CLOSXP, ENVSXP, LGLSXP, INTSXP, REALSXP, CPLXSXP, STRSXP, \
+    VECSXP, EXPRSXP, EXTPTRSXP, RAWSXP, S4SXP
 from contextlib import contextmanager
-from six import string_types
+from six import text_type
+from types import FunctionType
+from collections import OrderedDict
 
 
 dispatch.add_dispatch_policy(type, datatype)
@@ -128,7 +131,7 @@ def reval_p(s):
     return reval_p(unbox(s))
 
 
-@dispatch(string_types)  # noqa
+@dispatch(text_type)  # noqa
 def reval_p(s):
     return reval_p(rparse_p(s))
 
@@ -142,7 +145,7 @@ def as_call(x):
         return x
     elif isinstance(x, RObject):
         return unbox(x)
-    elif isinstance(x, string_types):
+    elif isinstance(x, text_type):
         return rsym_p(x)
     elif isinstance(x, tuple) and len(x) == 2:
         return rsym_p(*x)
@@ -208,19 +211,234 @@ def rprint(x):
     rprint(unbox(x))
 
 
+def getattrib_p(s, key):
+    return lib.Rf_getAttrib(unbox(s), rsym_p(key) if isinstance(key, text_type) else key)
+
+
+def getnames_p(s):
+    return getattrib_p(s, lib.R_NamesSymbol)
+
+
+def getnames(s):
+    return box(getnames_p(s))
+
+
+def rnames(s):
+    return rcopy(list, getnames_p(s))
+
+
+def getclass_p(s, singleString=0):
+    return lib.R_data_class(unbox(s), singleString)
+
+
+def getclass(s, singleString=0):
+    return box(getclass_p(s, singleString))
+
+
+def rclass(s, singleString=0):
+    return rcopy(text_type if singleString else list, getclass_p(s, singleString))
+
+
 # R to Py
 
-@dispatch(RObject)
-def robject(x):
-    return x
+
+@dispatch(datatype(type(None)), NILSXP)  # noqa
+def rcopy(_, s):
+    return None
+
+
+@dispatch(datatype(list), NILSXP)  # noqa
+def rcopy(_, s):
+    return []
+
+
+@dispatch(datatype(int), INTSXP)  # noqa
+def rcopy(_, s):
+    return lib.INTEGER(s)[0]
+
+
+@dispatch(datatype(list), INTSXP)  # noqa
+def rcopy(_, s):
+    return [lib.INTEGER(s)[i] for i in range(lib.Rf_length(s))]
+
+
+@dispatch(datatype(bool), LGLSXP)  # noqa
+def rcopy(_, s):
+    return bool(lib.LOGICAL(s)[0])
+
+
+@dispatch(datatype(list), LGLSXP)  # noqa
+def rcopy(_, s):
+    return [bool(lib.LOGICAL(s)[i]) for i in range(lib.Rf_length(s))]
+
+
+@dispatch(datatype(float), REALSXP)  # noqa
+def rcopy(_, s):
+    return lib.REAL(s)[0]
+
+
+@dispatch(datatype(list), REALSXP)  # noqa
+def rcopy(_, s):
+    return [lib.REAL(s)[i] for i in range(lib.Rf_length(s))]
+
+
+@dispatch(datatype(complex), CPLXSXP)  # noqa
+def rcopy(_, s):
+    z = lib.COMPLEX(s)[0]
+    return complex(z.r, z.i)
+
+
+@dispatch(datatype(list), CPLXSXP)  # noqa
+def rcopy(_, s):
+    return [complex(lib.COMPLEX(s)[i].r, lib.COMPLEX(s)[i].i) for i in range(lib.Rf_length(s))]
+
+
+def _string(s):
+    return text_type(ffi.string(lib.Rf_translateCharUTF8(s)).decode())
+
+
+@dispatch(datatype(bytes), RAWSXP)  # noqa
+def rcopy(_, s):
+    return ffi.string(lib.RAW(s), lib.Rf_length(s))
+
+
+@dispatch(datatype(text_type), STRSXP)  # noqa
+def rcopy(_, s):
+    return _string(lib.STRING_ELT(s, 0))
+
+
+@dispatch(datatype(list), STRSXP)  # noqa
+def rcopy(_, s):
+    return [_string(lib.STRING_ELT(s, i)) for i in range(lib.Rf_length(s))]
+
+
+@dispatch(datatype(list), VECSXP)  # noqa
+def rcopy(_, s):
+    return [rcopy(lib.VECTOR_ELT(s, i)) for i in range(lib.Rf_length(s))]
+
+
+@dispatch(datatype(tuple), VECSXP)  # noqa
+def rcopy(_, s):
+    return tuple(rcopy(list, s))
+
+
+@dispatch(datatype(dict), VECSXP)  # noqa
+def rcopy(_, s):
+    ret = dict()
+    names = rnames(s)
+    for i in range(lib.Rf_length(s)):
+        ret[names[i]] = rcopy(lib.VECTOR_ELT(s, i))
+    return ret
+
+
+@dispatch(datatype(OrderedDict), VECSXP)  # noqa
+def rcopy(_, s):
+    ret = OrderedDict()
+    names = rnames(s)
+    for i in range(lib.Rf_length(s)):
+        ret[names[i]] = rcopy(lib.VECTOR_ELT(s, i))
+    return ret
+
+
+@dispatch(datatype(FunctionType), CLOSXP)  # noqa
+def rcopy(_, s, _envir=None, _convert=True):
+    r = RObject(s)  # preserve the closure
+
+    def _(*args, **kwargs):
+        ret = rcall(r, *args, _envir=_envir, **kwargs)
+        if _convert:
+            return rcopy(ret)
+        else:
+            return ret
+    return _
+
+
+@dispatch(datatype(RObject), SEXP)  # noqa
+def rcopy(_, s):
+    return box(s)
+
+
+@dispatch(datatype(RObject), RObject)  # noqa
+def rcopy(_, s):
+    return s
+
+
+@dispatch(object, RObject)  # noqa
+def rcopy(t, r, **kwargs):
+    return rcopy(t, unbox(r), **kwargs)
+
+
+# default conversions
+default = RClass("default")
 
 
 @dispatch(SEXP)  # noqa
-def robject(x):
-    return RObject(x)
+def rcopy(s, **kwargs):
+    for cls in rclass(s):
+        T = rcopytype(RClass(cls), s)
+        if T is not RObject:
+            return rcopy(T, s, **kwargs)
+    T = rcopytype(default, s)
+    return rcopy(T, s, **kwargs)
+
+
+@dispatch(RObject)  # noqa
+def rcopy(r, **kwargs):
+    return rcopy(unbox(r), **kwargs)
+
+
+@dispatch(datatype(default), NILSXP)  # noqa
+def rcopytype(_, s):
+    return type(None)
+
+
+@dispatch(datatype(default), INTSXP)  # noqa
+def rcopytype(_, s):
+    return int if lib.Rf_length(s) == 1 else list
+
+
+@dispatch(datatype(default), LGLSXP)  # noqa
+def rcopytype(_, s):
+    return bool if lib.Rf_length(s) == 1 else list
+
+
+@dispatch(datatype(default), REALSXP)  # noqa
+def rcopytype(_, s):
+    return float if lib.Rf_length(s) == 1 else list
+
+
+@dispatch(datatype(default), CPLXSXP)  # noqa
+def rcopytype(_, s):
+    return complex if lib.Rf_length(s) == 1 else list
+
+
+@dispatch(datatype(default), RAWSXP)  # noqa
+def rcopytype(_, s):
+    return bytes
+
+
+@dispatch(datatype(default), STRSXP)  # noqa
+def rcopytype(_, s):
+    return text_type if lib.Rf_length(s) == 1 else list
+
+
+@dispatch(datatype(default), VECSXP)  # noqa
+def rcopytype(_, s):
+    return list if lib.Rf_isNull(getnames_p(s)) else OrderedDict
+
+
+@dispatch(datatype(default), CLOSXP)  # noqa
+def rcopytype(_, s):
+    return FunctionType
+
+
+@dispatch(object, SEXP)  # noqa
+def rcopytype(_, s):
+    return RObject
 
 
 # Py to R
+
 
 @dispatch(SEXP)
 def sexp(x):

@@ -46,7 +46,7 @@ class Dispatcher(object):
         except KeyError:
             func = self.dispatch(*types)
             if not func:
-                raise NotImplementedError("Dispatch not found for signature %s" % str(*types))
+                raise NotImplementedError("Dispatch not found for signature %s" % str(types))
             self._cache[types] = func
         return func(*args, **kwargs)
 
