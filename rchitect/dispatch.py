@@ -22,7 +22,6 @@ def expand_tuples(r):
         return [(item,) + t for t in rest for item in r[0]]
 
 
-
 def isstrictsubclass(a, b):
     return a != b and issubclass(a, b)
 
@@ -37,7 +36,7 @@ class Dispatcher(object):
         self.funcs = {}
 
     @classmethod
-    def add_rule(cls, t, typeof):
+    def add_dispatch_policy(cls, t, typeof):
         cls._typeof_mapping[t] = typeof
 
     def __call__(self, *args, **kwargs):
@@ -135,8 +134,4 @@ def dispatch(*types):
     return _
 
 
-def _add_rules(t, type_fun):
-    Dispatcher.add_rule(t, type_fun)
-
-
-dispatch.add_rules = _add_rules
+dispatch.add_dispatch_policy = Dispatcher.add_dispatch_policy
