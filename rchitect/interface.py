@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from rchitect._libR import ffi, lib
 from .dispatch import dispatch
-from .types import RObject, SEXP, sexptype, datatype
+from .types import RObject, SEXP, EXPRSXP, sexptype, datatype
 
 from six import string_types
 
@@ -101,27 +101,29 @@ def rparse(s):
     return robject(rparse_p(s))
 
 
+@dispatch(EXPRSXP)
 def reval_p(s):
-    if isinstance(s, ):
-        expressions = rparse_p(s)
-    elif isinstance(s, RObject) and lib.TYPEOF(sexp(s)) == lib.EXPRSXP:
-        expressions = sexp(s)
-    elif isinstance(s, SEXP) and lib.TYPEOF(s) == lib.EXPRSXP:
-        expressions = s
-    else:
-        raise TypeError("unexpected object")
-
-    lib.Rf_protect(expressions)
+    lib.Rf_protect(s)
     ret = lib.R_NilValue
     status = ffi.new("int[1]")
     try:
-        for i in range(0, lib.Rf_length(expressions)):
-            ret = lib.R_tryEval(lib.VECTOR_ELT(expressions, i), lib.R_GlobalEnv, status)
+        for i in range(0, lib.Rf_length(s)):
+            ret = lib.R_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
             if status[0] != 0:
                 raise RuntimeError("reval error")
     finally:
         lib.Rf_unprotect(1)
     return ret
+
+
+@dispatch(RObject)  # noqa
+def reval_p(s):
+    return reval_p(sexp(s))
+
+
+@dispatch(string_types)  # noqa
+def reval_p(s):
+    return reval_p(rparse_p(s))
 
 
 def reval(s):
@@ -171,3 +173,38 @@ def rlang_p(*args, **kwargs):
 
 def rlang(*args, **kwargs):
     return robject(rlang_p(*args, **kwargs))
+
+
+def rcall_p(*args, **kwargs):
+    if "_envir" in kwargs and kwargs["_envir"]:
+        envir = sexp(kwargs["_envir"])
+        del kwargs["_envir"]
+    else:
+        envir = lib.R_GlobalEnv
+
+    status = ffi.new("int[1]")
+    val = lib.R_tryEval(rlang_p(*args, **kwargs), envir, status)
+    if status[0] != 0:
+        raise RuntimeError("rcall error.")
+    return val
+
+
+def rcall(*args, **kwargs):
+    return RObject(rcall_p(*args, **kwargs))
+
+
+@dispatch(SEXP)
+def rprint(s):
+    new_env = rcall("new.env")
+    lib.Rf_defineVar(rsym_p("x"), sexp(s), sexp(new_env))
+    lib.Rf_protect(s)
+    try:
+        rcall(("base", "print"), rsym("x"), _envir=new_env)
+    finally:
+        lib.Rf_defineVar(rsym_p("x"), lib.R_NilValue, sexp(new_env))
+        lib.Rf_unprotect(1)
+
+
+@dispatch(RObject)  # noqa
+def rprint(x):
+    rprint(sexp(x))

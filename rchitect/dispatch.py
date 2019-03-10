@@ -5,21 +5,22 @@ from __future__ import unicode_literals
 AMBIGUITY = "Signature {} is ambiguous with {}. Define signature {} to resolve the ambiguity"
 
 
-def expand_tuples(t):
+def expand_tuples(r):
     """
     >>> expand_tuples([1, (2, 3)])
     [(1, 2), (1, 3)]
     >>> expand_tuples([1, 2])
     [(1, 2)]
     """
-    if not t:
+    if not r:
         return [()]
-    elif not isinstance(t[0], tuple):
-        rest = expand_tuples(t[1:])
-        return [(t[0],) + t for t in rest]
+    elif not isinstance(r[0], tuple):
+        rest = expand_tuples(r[1:])
+        return [(r[0],) + t for t in rest]
     else:
-        rest = expand_tuples(t[1:])
-        return [(item,) + t for t in rest for item in t[0]]
+        rest = expand_tuples(r[1:])
+        return [(item,) + t for t in rest for item in r[0]]
+
 
 
 def isstrictsubclass(a, b):
