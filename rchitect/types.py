@@ -52,7 +52,7 @@ class sexptype(type):
             return False
         if ffi.typeof(instance) != ffi.typeof('SEXP'):
             return False
-        if self.__name__ == "SEXP":
+        if self is SEXP:
             return True
         return _sexpnums[self.__name__] == lib.TYPEOF(instance)
 
@@ -60,6 +60,9 @@ class sexptype(type):
         if subclass == ffi.CData:
             return True
         return super(sexptype, self).__subclasscheck__(subclass)
+
+    def __repr__(self):
+        return self.__name__
 
 
 SEXP = sexptype("SEXP", (object, ), {})
@@ -142,3 +145,6 @@ class datatype(type):
 
     def __subclasscheck__(self, subclass):
         return isinstance(subclass, datatype) and self.t == subclass.t
+
+    def __repr__(self):
+        return "datatype({})".format(self.t.__name__)

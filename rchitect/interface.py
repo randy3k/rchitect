@@ -5,7 +5,9 @@ from .types import RObject, SEXP, sexptype, datatype
 
 
 dispatch.add_rules(type, datatype)
-dispatch.add_rules(ffi.CData, sexptype)
+dispatch.add_rules(
+    ffi.CData,
+    lambda x: sexptype(x) if ffi.typeof(x) == ffi.typeof('SEXP') else ffi.CData)
 
 
 @dispatch(SEXP)
