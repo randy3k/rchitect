@@ -5,7 +5,7 @@ from .types import RObject, SEXP, RClass, sexptype, datatype
 from .types import NILSXP, CLOSXP, ENVSXP, LGLSXP, INTSXP, REALSXP, CPLXSXP, STRSXP, \
     VECSXP, EXPRSXP, EXTPTRSXP, RAWSXP, S4SXP
 from contextlib import contextmanager
-from six import text_type
+from six import text_type, string_types
 from types import FunctionType
 from collections import OrderedDict
 
@@ -178,6 +178,7 @@ def rlang(*args, **kwargs):
 
 
 def rcall_p(*args, _envir=None, **kwargs):
+    # TODO: convert arguments
     if _envir:
         _envir = unbox(_envir)
     else:
@@ -342,6 +343,8 @@ def rcopy(_, s):
 
 @dispatch(datatype(FunctionType), CLOSXP)  # noqa
 def rcopy(_, s, _envir=None, _convert=True):
+    # TODO: convert arguments
+
     r = RObject(s)  # preserve the closure
 
     def _(*args, **kwargs):
@@ -440,11 +443,293 @@ def rcopytype(_, s):
 # Py to R
 
 
-@dispatch(SEXP)
-def sexp(x):
+# python to r conversions
+
+@dispatch(datatype(RClass("NULL")), type(None))  # noqa
+def sexp(_, n):
+    return lib.R_NilValue
+
+
+@dispatch(datatype(RClass("logical")), bool)  # noqa
+def sexp(_, s):
+    return rlogical_p(s)
+
+
+@dispatch(datatype(RClass("integer")), int)  # noqa
+def sexp(_, s):
+    return rint_p(s)
+
+
+@dispatch(datatype(RClass("numeric")), float)  # noqa
+def sexp(_, s):
+    return rdouble_p(s)
+
+
+@dispatch(datatype(RClass("complex")), complex)  # noqa
+def sexp(_, s):
+    c = ffi.new("Rcomplex")
+    c.r = s.real
+    c.i = s.imag
+    return lib.Rf_ScalarComplex(c)
+
+
+@dispatch(datatype(RClass("character")), string_types)  # noqa
+def sexp(_, s):
+    return rstring_p(s)
+
+
+@dispatch(datatype(RClass("raw")), bytes)  # noqa
+def sexp(_, s):
+    n = len(s)
+    x = lib.Rf_allocVector(lib.RAWSXP, n)
+    with protected(x):
+        p = lib.RAW(x)
+        for i in range(n):
+            p[i] = s[i]
     return x
 
 
+@dispatch(datatype(RClass("logical")), list)  # noqa
+def sexp(_, s):
+    n = len(s)
+    x = lib.Rf_allocVector(lib.LGLSXP, n)
+    with protected(x):
+        p = lib.LOGICAL(x)
+        for i in range(n):
+            p[i] = s[i]
+    return x
+
+
+@dispatch(datatype(RClass("integer")), list)  # noqa
+def sexp(_, s):
+    n = len(s)
+    x = lib.Rf_allocVector(lib.INTSXP, n)
+    with protected(x):
+        p = lib.INTEGER(x)
+        for i in range(n):
+            p[i] = s[i]
+    return x
+
+
+@dispatch(datatype(RClass("numeric")), list)  # noqa
+def sexp(_, s):
+    n = len(s)
+    x = lib.Rf_allocVector(lib.REALSXP, n)
+    with protected(x):
+        p = lib.REAL(x)
+        for i in range(n):
+            p[i] = s[i]
+    return x
+
+
+@dispatch(datatype(RClass("complex")), list)  # noqa
+def sexp(_, s):
+    n = len(s)
+    x = lib.Rf_allocVector(lib.CPLXSXP, n)
+    with protected(x):
+        p = lib.COMPLEX(x)
+        for i in range(n):
+            p[i].r = s[i].real
+            p[i].i = s[i].imag
+    return x
+
+
+@dispatch(datatype(RClass("character")), list)  # noqa
+def sexp(_, s):
+    n = len(s)
+    x = lib.Rf_allocVector(lib.STRSXP, n)
+    with protected(x):
+        for i in range(n):
+            isascii = all(ord(c) < 128 for c in s[i])
+            b = s[i].encode("utf-8")
+            lib.SET_STRING_ELT(x, i, lib.Rf_mkCharLenCE(b, len(b), 0 if isascii else 1))
+    return x
+
+
+
+@dispatch(datatype(RClass("list")), (list, tuple))  # noqa
+def sexp(_, s):
+    n = len(s)
+    x = lib.Rf_allocVector(lib.VECSXP, n)
+    with protected(x):
+        for i in range(n):
+            lib.SET_VECTOR_ELT(x, i, sexp(s[i]))
+    return x
+
+
+@dispatch(datatype(RClass("list")), (dict, OrderedDict))  # noqa
+def sexp(_, s):
+    v = sexp(RClass("list"), list(s.values()))
+    with protected(v):
+        k = sexp(RClass("character"), list(s.keys()))
+        with protected(k):
+            lib.Rf_setAttrib(v, lib.R_NamesSymbol, k)
+    return v
+
+  # noqa
+# def sexp_dots():
+#     s = Rf_protect(Rf_list1(R_MissingArg))
+#     SET_TAG(s, R_DotsSymbol)
+#     Rf_unprotect(1)
+#     return s
+
+  # noqa
+# def sexp_py_object(obj):
+#     if inspect.isclass(obj):
+#         return sexp(RClass("PyClass"), obj)
+#     if callable(obj):
+#         return sexp(RClass("PyCallable"), obj)
+#     else:
+#         return sexp(RClass("PyObject"), obj)
+
+
+# @CFUNCTYPE(SEXP, SEXP, SEXP, SEXP, SEXP)
+# def rchitect_callback(exptr, arglist, _convert_args, _convert_return):
+#     convert_args = rcopy(bool, sexp(_convert_args))
+#     convert_return = rcopy(bool, sexp(_convert_return))
+#     f = to_pyo(exptr).value
+#     args = []
+#     kwargs = {}
+#     names = rnames(arglist)
+#     try:
+#         if convert_args:
+#             for i in range(LENGTH(arglist)):
+#                 if names and names[i]:
+#                     kwargs[names[i]] = rcopy(VECTOR_ELT(arglist, i))
+#                 else:
+#                     args.append(rcopy(VECTOR_ELT(arglist, i)))
+#         else:
+#             for i in range(LENGTH(arglist)):
+#                 if names and names[i]:
+#                     kwargs[names[i]] = sexp(VECTOR_ELT(arglist, i))
+#                 else:
+#                     args.append(sexp(VECTOR_ELT(arglist, i)))
+#         if convert_return:
+#             return sexp(f(*args, **kwargs)).value
+#         else:
+#             ret = f(*args, **kwargs)
+#             return sexp_py_object(ret).value
+#     except Exception as e:
+#         return rcall_p(("base", "simpleError"), str(e)).value
+
+
+# @dispatch(datatype(RClass("function")), Callable)  # noqa
+# def sexp(_, f, convert_args=True, convert_return=True, invisible=False):
+#     fextptr = rextptr(f)
+#     dotlist = rlang_p("list", R_DotsSymbol)
+#     body = rlang_p(".Call", "rchitect_callback", fextptr, dotlist, convert_args, convert_return)
+#     if invisible:
+#         body = rlang_p("invisible", body)
+#     lang = rlang_p(rsym("function"), sexp_dots(), body)
+#     status = c_int()
+#     val = R_tryEval(lang, R_GlobalEnv, status)
+#     return sexp(val)
+
+
+# @dispatch(datatype(RClass("PyObject")), object)  # noqa
+# def sexp(_, s):
+#     if (isinstance(s, RObject) or isinstance(s, SEXP)) and "PyObject" in rclass(s):
+#         return sexp(s)
+#     p = rextptr(s)
+#     setclass(p, "PyObject")
+#     return p
+
+
+# @dispatch(datatype(RClass("PyCallable")), Callable)  # noqa
+# def sexp(_, f, convert_args=True, convert_return=False, invisible=False):
+#     p = Rf_protect(sexp(RClass("function"), f,
+#                         convert_args=convert_args,
+#                         convert_return=convert_return,
+#                         invisible=invisible))
+#     setattrib(p, "py_object", sexp(RClass("PyObject"), f))
+#     setclass(p, ["PyCallable", "PyObject"])
+#     Rf_unprotect(1)
+#     return p
+
+
+# @dispatch(datatype(RClass("PyClass")), object)  # noqa
+# def sexp(_, s):
+#     p = Rf_protect(sexp(RClass("PyCallable"), s))
+#     setclass(p, ["PyClass", "PyCallable", "PyObject"])
+#     Rf_unprotect(1)
+#     return p
+
+
+# default conversions
+
+
+@dispatch(type(None))  # noqa
+def sexp(n):
+    return lib.R_NilValue
+
+
 @dispatch(RObject)  # noqa
-def sexp(x):
-    return x.s
+def sexp(r):
+    return unbox(r)
+
+
+@dispatch(object)  # noqa
+def sexp(s, **kwargs):
+    rcls = sexpclass(s)
+    return sexp(RClass(rcls), s, **kwargs)
+
+
+@dispatch(bool)  # noqa
+def sexpclass(s):
+    return "logical"
+
+
+@dispatch(int)  # noqa
+def sexpclass(s):
+    return "integer"
+
+
+@dispatch(float)  # noqa
+def sexpclass(s):
+    return "numeric"
+
+
+@dispatch(complex)  # noqa
+def sexpclass(s):
+    return "complex"
+
+
+@dispatch(string_types)  # noqa
+def sexpclass(s):
+    return "character"
+
+
+@dispatch(list)  # noqa
+def sexpclass(s):
+    if all(isinstance(x, int) for x in s):
+        return "integer"
+    elif all(isinstance(x, bool) for x in s):
+        return "logical"
+    elif all(isinstance(x, float) for x in s):
+        return "numeric"
+    elif all(isinstance(x, complex) for x in s):
+        return "complex"
+    elif all(isinstance(x, string_types) for x in s):
+        return "character"
+
+    return "list"
+
+
+@dispatch((tuple, dict, OrderedDict))  # noqa
+def sexpclass(s):
+    return "list"
+
+
+# @dispatch(type)  # noqa
+# def sexpclass(f):
+#     return "PyClass"
+
+
+# @dispatch(Callable)  # noqa
+# def sexpclass(f):
+#     return "PyCallable"
+
+
+# @dispatch(object)  # noqa
+# def sexpclass(f):
+#     return "PyObject"
