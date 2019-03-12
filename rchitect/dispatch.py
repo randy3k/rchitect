@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+from six import raise_from
+
 # much of the following mechanism is inspired by https://github.com/mrocklin/multipledispatch
 
 
@@ -43,10 +45,10 @@ class Dispatcher(object):
         types = tuple([self.typeof(arg) for arg in args])
         try:
             func = self._cache[types]
-        except KeyError:
+        except KeyError as e:
             func = self.dispatch(*types)
             if not func:
-                raise NotImplementedError("Dispatch not found for signature %s" % str(types))
+                raise_from(NotImplementedError("Dispatch not found for signature %s" % str(types)), None)
             self._cache[types] = func
         return func(*args, **kwargs)
 

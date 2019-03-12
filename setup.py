@@ -35,7 +35,10 @@ setup(
         'cffi>=1.10.0',
         "pytest-runner"
     ],
-    install_requires=['cffi>=1.10.0'],
+    install_requires=[
+        'cffi>=1.10.0',
+        'six>=1.9.0'
+    ],
     extras_require={
         "test": [
             "pytest"

@@ -2,12 +2,13 @@ from __future__ import unicode_literals
 from rchitect._libR import ffi, lib
 from .dispatch import dispatch
 from .types import RObject, SEXP, RClass, sexptype, datatype
-from .types import NILSXP, CLOSXP, ENVSXP, LGLSXP, INTSXP, REALSXP, CPLXSXP, STRSXP, \
+from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, CPLXSXP, STRSXP, \
     VECSXP, EXPRSXP, EXTPTRSXP, RAWSXP, S4SXP
+from .types import box, unbox
 from contextlib import contextmanager
 from six import text_type, string_types
 from types import FunctionType
-from collections import OrderedDict
+from collections import OrderedDict, Callable
 
 
 dispatch.add_dispatch_policy(type, datatype)
@@ -27,24 +28,6 @@ def protected(*args):
         yield
     finally:
         lib.Rf_unprotect(nprotect)
-
-
-def box(x):
-    if isinstance(x, SEXP):
-        return RObject(x)
-    elif isinstance(x, RObject):
-        return x
-
-    raise TypeError("expect SEXP or RObject")
-
-
-def unbox(x):
-    if isinstance(x, RObject):
-        return x.s
-    elif isinstance(x, SEXP):
-        return x
-
-    raise TypeError("expect SEXP or RObject")
 
 
 def rint_p(s):
@@ -153,15 +136,16 @@ def as_call(x):
     raise TypeError("unexpected function")
 
 
-def rlang_p(*args, **kwargs):
+def rlang_p(f, *args, **kwargs):
     with protected(*args, *(kwargs.items())):
         nargs = len(args) + len(kwargs)
-        t = lib.Rf_allocVector(lib.LANGSXP, nargs)
+        t = lib.Rf_allocVector(lib.LANGSXP, nargs + 1)
+
         with protected(t):
             s = t
-            lib.SETCAR(s, as_call(args[0]))
+            lib.SETCAR(s, as_call(f))
 
-            for a in args[1:]:
+            for a in args:
                 s = lib.CDR(s)
                 lib.SETCAR(s, unbox(a))
             for k, v in kwargs.items():
@@ -177,26 +161,52 @@ def rlang(*args, **kwargs):
     return box(rlang_p(*args, **kwargs))
 
 
-def rcall_p(*args, _envir=None, **kwargs):
-    # TODO: convert arguments
+@contextmanager
+def sexp_args(args, kwargs):
+    nprotect = 0
+    try:
+        _args = []
+        for a in args:
+            _a = sexp(a)
+            if isinstance(_a, SEXP):
+                lib.Rf_protect(_a)
+                nprotect += 1
+            _args.append(_a)
+
+        _kwargs = {}
+        for k, v in kwargs.items():
+            _v = sexp(v)
+            if isinstance(_v, SEXP):
+                lib.Rf_protect(_v)
+                nprotect += 1
+            _kwargs[k] = _v
+
+        yield _args, _kwargs
+    finally:
+        lib.Rf_unprotect(nprotect)
+
+
+def rcall_p(f, *args, _envir=None, **kwargs):
     if _envir:
         _envir = unbox(_envir)
     else:
         _envir = lib.R_GlobalEnv
+
     with protected(_envir):
-        status = ffi.new("int[1]")
-        val = lib.R_tryEval(rlang_p(*args, **kwargs), _envir, status)
-        if status[0] != 0:
-            raise RuntimeError("rcall error.")
+        with sexp_args(args, kwargs) as (a, k):
+            status = ffi.new("int[1]")
+            val = lib.R_tryEval(rlang_p(f, *a, **k), _envir, status)
+            if status[0] != 0:
+                raise RuntimeError("rcall error.")
 
     return val
 
 
-def rcall(*args, **kwargs):
-    return RObject(rcall_p(*args, **kwargs))
+def rcall(*args, _convert=False, **kwargs):
+    s = rcall_p(*args, **kwargs)
+    return rcopy(s) if _convert else RObject(s)
 
 
-@dispatch(SEXP)
 def rprint(s):
     new_env = rcall("new.env")
     lib.Rf_defineVar(rsym_p("x"), unbox(s), unbox(new_env))
@@ -207,37 +217,16 @@ def rprint(s):
             lib.Rf_defineVar(rsym_p("x"), lib.R_NilValue, unbox(new_env))
 
 
-@dispatch(RObject)  # noqa
-def rprint(x):
-    rprint(unbox(x))
-
-
 def getattrib_p(s, key):
     return lib.Rf_getAttrib(unbox(s), rsym_p(key) if isinstance(key, text_type) else key)
 
 
-def getnames_p(s):
-    return getattrib_p(s, lib.R_NamesSymbol)
-
-
-def getnames(s):
-    return box(getnames_p(s))
-
-
 def rnames(s):
-    return rcopy(list, getnames_p(s))
-
-
-def getclass_p(s, singleString=0):
-    return lib.R_data_class(unbox(s), singleString)
-
-
-def getclass(s, singleString=0):
-    return box(getclass_p(s, singleString))
+    return rcopy(list, getattrib_p(s, lib.R_NamesSymbol))
 
 
 def rclass(s, singleString=0):
-    return rcopy(text_type if singleString else list, getclass_p(s, singleString))
+    return rcopy(text_type if singleString else list, lib.R_data_class(unbox(s), singleString))
 
 
 # R to Py
@@ -341,20 +330,14 @@ def rcopy(_, s):
     return ret
 
 
-@dispatch(datatype(FunctionType), CLOSXP)  # noqa
-def rcopy(_, s, _envir=None, _convert=True):
-    # TODO: convert arguments
-
+@dispatch(datatype(FunctionType), (CLOSXP, BUILTINSXP))  # noqa
+def rcopy(_, s, _envir=None):
     r = RObject(s)  # preserve the closure
 
     def _(*args, **kwargs):
-        ret = rcall(r, *args, _envir=_envir, **kwargs)
-        if _convert:
-            return rcopy(ret)
-        else:
-            return ret
-    return _
+        return rcall(r, *args, _envir=_envir, _convert=True, **kwargs)
 
+    return _
 
 @dispatch(datatype(RObject), SEXP)  # noqa
 def rcopy(_, s):
@@ -430,7 +413,7 @@ def rcopytype(_, s):
     return list if lib.Rf_isNull(getnames_p(s)) else OrderedDict
 
 
-@dispatch(datatype(default), CLOSXP)  # noqa
+@dispatch(datatype(default), (CLOSXP, BUILTINSXP))  # noqa
 def rcopytype(_, s):
     return FunctionType
 
@@ -566,12 +549,12 @@ def sexp(_, s):
             lib.Rf_setAttrib(v, lib.R_NamesSymbol, k)
     return v
 
-  # noqa
-# def sexp_dots():
-#     s = Rf_protect(Rf_list1(R_MissingArg))
-#     SET_TAG(s, R_DotsSymbol)
-#     Rf_unprotect(1)
-#     return s
+
+def sexp_dots():  # noqa
+    s = Rf_protect(Rf_list1(R_MissingArg))
+    SET_TAG(s, R_DotsSymbol)
+    Rf_unprotect(1)
+    return s
 
   # noqa
 # def sexp_py_object(obj):
@@ -613,17 +596,17 @@ def sexp(_, s):
 #         return rcall_p(("base", "simpleError"), str(e)).value
 
 
-# @dispatch(datatype(RClass("function")), Callable)  # noqa
-# def sexp(_, f, convert_args=True, convert_return=True, invisible=False):
-#     fextptr = rextptr(f)
-#     dotlist = rlang_p("list", R_DotsSymbol)
-#     body = rlang_p(".Call", "rchitect_callback", fextptr, dotlist, convert_args, convert_return)
-#     if invisible:
-#         body = rlang_p("invisible", body)
-#     lang = rlang_p(rsym("function"), sexp_dots(), body)
-#     status = c_int()
-#     val = R_tryEval(lang, R_GlobalEnv, status)
-#     return sexp(val)
+@dispatch(datatype(RClass("function")), Callable)  # noqa
+def sexp(_, f, invisible=False):
+    fextptr = rextptr(f)
+    dotlist = rlang_p("list", R_DotsSymbol)
+    body = rlang_p(".Call", "rchitect_callback", fextptr, dotlist, convert_args, convert_return)
+    if invisible:
+        body = rlang_p("invisible", body)
+    lang = rlang_p(rsym("function"), sexp_dots(), body)
+    status = c_int()
+    val = R_tryEval(lang, R_GlobalEnv, status)
+    return sexp(val)
 
 
 # @dispatch(datatype(RClass("PyObject")), object)  # noqa
@@ -725,9 +708,9 @@ def sexpclass(s):
 #     return "PyClass"
 
 
-# @dispatch(Callable)  # noqa
-# def sexpclass(f):
-#     return "PyCallable"
+@dispatch(Callable)
+def sexpclass(f):
+    return "function"
 
 
 # @dispatch(object)  # noqa

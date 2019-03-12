@@ -148,3 +148,21 @@ class datatype(type):
 
     def __repr__(self):
         return "datatype({})".format(self.t.__name__)
+
+
+def box(x):
+    if isinstance(x, SEXP):
+        return RObject(x)
+    elif isinstance(x, RObject):
+        return x
+
+    raise TypeError("expect SEXP or RObject")
+
+
+def unbox(x):
+    if isinstance(x, RObject):
+        return x.s
+    elif isinstance(x, SEXP):
+        return x
+
+    raise TypeError("expect SEXP or RObject")
