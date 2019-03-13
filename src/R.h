@@ -609,8 +609,8 @@ typedef struct {
 typedef struct _DllInfo DllInfo;
 
 typedef R_CallMethodDef R_ExternalMethodDef;
-DllInfo* (*R_getEmbeddingDllInfo)(void);
-int (*R_registerRoutines)(DllInfo*, void*, void*, void*, void*);
+RAPI_EXTERN DllInfo* (*R_getEmbeddingDllInfo)(void);
+RAPI_EXTERN int (*R_registerRoutines)(DllInfo*, void*, void*, void*, void*);
 
 
 // end cdef
