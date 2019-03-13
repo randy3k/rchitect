@@ -104,6 +104,9 @@ class RObject(object):
     def __del__(self):
         lib.R_ReleaseObject(self.s)
 
+    def __repr__(self):
+        return "RObject{{{}}}".format(str(sexptype(self.s)))
+
 
 class RClass(object):
     _rclasses = {}
