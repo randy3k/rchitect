@@ -601,10 +601,17 @@ RAPI_EXTERN void (*run_Rmainloop)(void);
 
 // Rdynload.h
 
-// R_CallMethodDef
-// R_getDllInfo
-// R_getEmbeddingDllInfo
-// R_registerRoutines
+typedef struct {
+    const char *name;
+    DL_FUNC     fun;
+    int         numArgs;
+} R_CallMethodDef;
+typedef struct _DllInfo DllInfo;
+
+typedef R_CallMethodDef R_ExternalMethodDef;
+DllInfo* (*R_getEmbeddingDllInfo)(void);
+int (*R_registerRoutines)(DllInfo*, void*, void*, void*, void*);
+
 
 // end cdef
 

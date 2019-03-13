@@ -5,6 +5,9 @@ from .types import RObject, SEXP, RClass, sexptype, datatype
 from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, CPLXSXP, STRSXP, \
     VECSXP, EXPRSXP, EXTPTRSXP, RAWSXP, S4SXP
 from .types import box, unbox
+from .xptr import new_xptr, from_xptr
+
+
 from contextlib import contextmanager
 from six import text_type, string_types
 from types import FunctionType
@@ -551,12 +554,12 @@ def sexp(_, s):
 
 
 def sexp_dots():  # noqa
-    s = Rf_protect(Rf_list1(R_MissingArg))
-    SET_TAG(s, R_DotsSymbol)
-    Rf_unprotect(1)
+    s = lib.Rf_list1(lib.R_MissingArg)
+    with protected(s):
+        lib.SET_TAG(s, lib.R_DotsSymbol)
     return s
 
-  # noqa
+
 # def sexp_py_object(obj):
 #     if inspect.isclass(obj):
 #         return sexp(RClass("PyClass"), obj)
@@ -566,47 +569,34 @@ def sexp_dots():  # noqa
 #         return sexp(RClass("PyObject"), obj)
 
 
-# @CFUNCTYPE(SEXP, SEXP, SEXP, SEXP, SEXP)
-# def rchitect_callback(exptr, arglist, _convert_args, _convert_return):
-#     convert_args = rcopy(bool, sexp(_convert_args))
-#     convert_return = rcopy(bool, sexp(_convert_return))
-#     f = to_pyo(exptr).value
-#     args = []
-#     kwargs = {}
-#     names = rnames(arglist)
-#     try:
-#         if convert_args:
-#             for i in range(LENGTH(arglist)):
-#                 if names and names[i]:
-#                     kwargs[names[i]] = rcopy(VECTOR_ELT(arglist, i))
-#                 else:
-#                     args.append(rcopy(VECTOR_ELT(arglist, i)))
-#         else:
-#             for i in range(LENGTH(arglist)):
-#                 if names and names[i]:
-#                     kwargs[names[i]] = sexp(VECTOR_ELT(arglist, i))
-#                 else:
-#                     args.append(sexp(VECTOR_ELT(arglist, i)))
-#         if convert_return:
-#             return sexp(f(*args, **kwargs)).value
-#         else:
-#             ret = f(*args, **kwargs)
-#             return sexp_py_object(ret).value
-#     except Exception as e:
-#         return rcall_p(("base", "simpleError"), str(e)).value
+@ffi.def_extern(name="_libR_xptr_callback")
+def xptr_callback(exptr, arglist):
+    f = from_xptr(exptr)
+    args = []
+    kwargs = {}
+    names = rnames(arglist)
+    try:
+        for i in range(lib.Rf_length(arglist)):
+            if names and names[i]:
+                kwargs[names[i]] = rcopy(lib.VECTOR_ELT(arglist, i))
+            else:
+                args.append(rcopy(lib.VECTOR_ELT(arglist, i)))
+        return sexp(f(*args, **kwargs))
+    except Exception as e:
+        return rcall_p(("base", "simpleError"), str(e))
 
 
 @dispatch(datatype(RClass("function")), Callable)  # noqa
 def sexp(_, f, invisible=False):
-    fextptr = rextptr(f)
-    dotlist = rlang_p("list", R_DotsSymbol)
-    body = rlang_p(".Call", "rchitect_callback", fextptr, dotlist, convert_args, convert_return)
+    fextptr = new_xptr(f)
+    dotlist = rlang("list", lib.R_DotsSymbol)
+    body = rlang(".Call", rstring_p("_libR_xptr_callback"), fextptr, dotlist)
     if invisible:
-        body = rlang_p("invisible", body)
+        body = rlang("invisible", body)
     lang = rlang_p(rsym("function"), sexp_dots(), body)
-    status = c_int()
-    val = R_tryEval(lang, R_GlobalEnv, status)
-    return sexp(val)
+    status = ffi.new("int[1]")
+    val = lib.R_tryEval(lang, lib.R_GlobalEnv, status)
+    return val
 
 
 # @dispatch(datatype(RClass("PyObject")), object)  # noqa

@@ -445,6 +445,9 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(setup_Rmainloop);
     LOAD_SYMBOL(run_Rmainloop);
 
+    LOAD_SYMBOL(R_getEmbeddingDllInfo);
+    LOAD_SYMBOL(R_registerRoutines);
+
     #ifdef _WIN32
     LOAD_SYMBOL(get_R_HOME)
     LOAD_SYMBOL(getRUser)
@@ -548,4 +551,14 @@ void _libR_set_callback(char* name, void* cb) {
     } else {
         printf("error setting callback of %s\n", name);
     }
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_libR_xptr_callback", (DL_FUNC) &_libR_xptr_callback, 2},
+    {NULL, NULL, 0}
+};
+
+void _libR_init_xptr_callback() {
+    DllInfo* dll = R_getEmbeddingDllInfo();
+    R_registerRoutines(dll, NULL, (void*) CallEntries, NULL, NULL);
 }

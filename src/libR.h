@@ -24,6 +24,8 @@ void _libR_set_callback(char* name, void* cb);
 int cb_read_console_interruptible(const char *, unsigned char *, int, int);
 extern int cb_read_console_interrupted;
 
+void _libR_init_xptr_callback();
+
 // end cdef
 
 // begin cb cdef
@@ -52,6 +54,8 @@ SEXP cb_do_dataviewer(SEXP, SEXP, SEXP, SEXP);
 void cb_process_events();
 void cb_polled_events();
 int  cb_yes_no_cancel(const char *s);
+
+SEXP _libR_xptr_callback(SEXP, SEXP);
 
 // end cb cdef
 

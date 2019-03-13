@@ -26,6 +26,7 @@ def init(args=["rchitect", "--quiet"]):
     lib.setup_Rmainloop()
     if not lib._libR_load_constants():
         raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
+    lib._libR_init_xptr_callback()
 
 
 def loop():
