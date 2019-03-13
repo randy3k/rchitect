@@ -554,7 +554,7 @@ void _libR_set_callback(char* name, void* cb) {
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_libR_xptr_callback", (DL_FUNC) &_libR_xptr_callback, 2},
+    {"_libR_xptr_callback", (DL_FUNC) &_libR_xptr_callback, 3},
     {NULL, NULL, 0}
 };
 

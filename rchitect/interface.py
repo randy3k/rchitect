@@ -5,8 +5,7 @@ from .types import RObject, SEXP, RClass, sexptype, datatype
 from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, CPLXSXP, STRSXP, \
     VECSXP, EXPRSXP, EXTPTRSXP, RAWSXP, S4SXP
 from .types import box, unbox
-from .xptr import new_xptr, from_xptr
-
+from .xptr import new_xptr, new_xptr_p, from_xptr
 
 from contextlib import contextmanager
 from six import text_type, string_types
@@ -224,12 +223,30 @@ def getattrib_p(s, key):
     return lib.Rf_getAttrib(unbox(s), rsym_p(key) if isinstance(key, text_type) else key)
 
 
+def setattrib(s, key, value):
+    with protected(s, value):
+        lib.Rf_setAttrib(unbox(s), rsym_p(key) if isinstance(key, text_type) else key, value)
+
+
+def getnames_p(s):
+    return getattrib_p(s, lib.R_NamesSymbol)
+
+
 def rnames(s):
-    return rcopy(list, getattrib_p(s, lib.R_NamesSymbol))
+    return rcopy(list, getnames_p(s))
+
+
+def getclass_p(s, singleString):
+    return lib.R_data_class(unbox(s), singleString)
+
+
+def setclass(s, classes):
+    with protected(s):
+        setattrib(s, lib.R_ClassSymbol, sexp(RClass("character"), classes))
 
 
 def rclass(s, singleString=0):
-    return rcopy(text_type if singleString else list, lib.R_data_class(unbox(s), singleString))
+    return rcopy(text_type if singleString else list, getclass_p(s, singleString))
 
 
 # R to Py
@@ -342,6 +359,19 @@ def rcopy(_, s, _envir=None):
 
     return _
 
+
+# PyObject
+@dispatch(datatype(object), EXTPTRSXP)  # noqa
+def rcopy(_, s):
+    return from_xptr(s)
+
+
+# PyCallable
+@dispatch(datatype(object), CLOSXP)  # noqa
+def rcopy(_, s):
+    return from_xptr(getattrib_p(s, "py_object"))
+
+
 @dispatch(datatype(RObject), SEXP)  # noqa
 def rcopy(_, s):
     return box(s)
@@ -416,9 +446,25 @@ def rcopytype(_, s):
     return list if lib.Rf_isNull(getnames_p(s)) else OrderedDict
 
 
-@dispatch(datatype(default), (CLOSXP, BUILTINSXP))  # noqa
+@dispatch(datatype(default), BUILTINSXP)  # noqa
 def rcopytype(_, s):
     return FunctionType
+
+
+@dispatch(datatype(default), CLOSXP)  # noqa
+def rcopytype(_, s):
+    if "PyObject" in rclass(s):
+        return object
+    else:
+        return FunctionType
+
+
+@dispatch(datatype(default), EXTPTRSXP)  # noqa
+def rcopytype(_, s):
+    if "PyObject" in rclass(s):
+        return object
+    else:
+        return RObject
 
 
 @dispatch(object, SEXP)  # noqa
@@ -430,6 +476,15 @@ def rcopytype(_, s):
 
 
 # python to r conversions
+
+def robject(*args, **kwargs):
+    if len(args) == 2 and isinstance(args[0], text_type):
+        return RObject(sexp(RClass(args[0]), args[1], **kwargs))
+    elif len(args) == 1:
+        return RObject(sexp(args[0], **kwargs))
+    else:
+        raise TypeError("wrong number of arguments or argument types")
+
 
 @dispatch(datatype(RClass("NULL")), type(None))  # noqa
 def sexp(_, n):
@@ -560,17 +615,16 @@ def sexp_dots():  # noqa
     return s
 
 
-# def sexp_py_object(obj):
-#     if inspect.isclass(obj):
-#         return sexp(RClass("PyClass"), obj)
-#     if callable(obj):
-#         return sexp(RClass("PyCallable"), obj)
-#     else:
-#         return sexp(RClass("PyObject"), obj)
+def sexp_as_py_object(obj):
+    if callable(obj):
+        return sexp(RClass("PyCallable"), obj)
+    else:
+        return sexp(RClass("PyObject"), obj)
 
 
 @ffi.def_extern(name="_libR_xptr_callback")
-def xptr_callback(exptr, arglist):
+def xptr_callback(exptr, arglist, convert):
+    convert = rcopy(bool, convert)
     f = from_xptr(exptr)
     args = []
     kwargs = {}
@@ -581,16 +635,18 @@ def xptr_callback(exptr, arglist):
                 kwargs[names[i]] = rcopy(lib.VECTOR_ELT(arglist, i))
             else:
                 args.append(rcopy(lib.VECTOR_ELT(arglist, i)))
-        return sexp(f(*args, **kwargs))
+
+        ret = f(*args, **kwargs)
+        return sexp(ret) if convert else sexp_as_py_object(ret)
     except Exception as e:
         return rcall_p(("base", "simpleError"), str(e))
 
 
 @dispatch(datatype(RClass("function")), Callable)  # noqa
-def sexp(_, f, invisible=False):
+def sexp(_, f, invisible=False, convert=True):
     fextptr = new_xptr(f)
     dotlist = rlang("list", lib.R_DotsSymbol)
-    body = rlang(".Call", rstring_p("_libR_xptr_callback"), fextptr, dotlist)
+    body = rlang(".Call", rstring("_libR_xptr_callback"), fextptr, dotlist, rlogical(convert))
     if invisible:
         body = rlang("invisible", body)
     lang = rlang_p(rsym("function"), sexp_dots(), body)
@@ -599,33 +655,21 @@ def sexp(_, f, invisible=False):
     return val
 
 
-# @dispatch(datatype(RClass("PyObject")), object)  # noqa
-# def sexp(_, s):
-#     if (isinstance(s, RObject) or isinstance(s, SEXP)) and "PyObject" in rclass(s):
-#         return sexp(s)
-#     p = rextptr(s)
-#     setclass(p, "PyObject")
-#     return p
+@dispatch(datatype(RClass("PyObject")), object)  # noqa
+def sexp(_, s):
+    if (isinstance(s, RObject) or isinstance(s, SEXP)) and "PyObject" in rclass(s):
+        return unbox(s)
+    p = new_xptr_p(s)
+    setclass(p, "PyObject")
+    return p
 
 
-# @dispatch(datatype(RClass("PyCallable")), Callable)  # noqa
-# def sexp(_, f, convert_args=True, convert_return=False, invisible=False):
-#     p = Rf_protect(sexp(RClass("function"), f,
-#                         convert_args=convert_args,
-#                         convert_return=convert_return,
-#                         invisible=invisible))
-#     setattrib(p, "py_object", sexp(RClass("PyObject"), f))
-#     setclass(p, ["PyCallable", "PyObject"])
-#     Rf_unprotect(1)
-#     return p
-
-
-# @dispatch(datatype(RClass("PyClass")), object)  # noqa
-# def sexp(_, s):
-#     p = Rf_protect(sexp(RClass("PyCallable"), s))
-#     setclass(p, ["PyClass", "PyCallable", "PyObject"])
-#     Rf_unprotect(1)
-#     return p
+@dispatch(datatype(RClass("PyCallable")), Callable)  # noqa
+def sexp(_, f, invisible=False, convert=False):
+    p = sexp(RClass("function"), f, invisible=invisible, convert=convert)
+    setattrib(p, "py_object", sexp(RClass("PyObject"), f))
+    setclass(p, ["PyCallable", "PyObject"])
+    return p
 
 
 # default conversions
@@ -693,16 +737,11 @@ def sexpclass(s):
     return "list"
 
 
-# @dispatch(type)  # noqa
-# def sexpclass(f):
-#     return "PyClass"
-
-
-@dispatch(Callable)
+@dispatch(Callable)  # noqa
 def sexpclass(f):
-    return "function"
+    return "PyCallable"
 
 
-# @dispatch(object)  # noqa
-# def sexpclass(f):
-#     return "PyObject"
+@dispatch(object)  # noqa
+def sexpclass(f):
+    return "PyObject"

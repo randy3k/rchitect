@@ -55,7 +55,7 @@ void cb_process_events();
 void cb_polled_events();
 int  cb_yes_no_cancel(const char *s);
 
-SEXP _libR_xptr_callback(SEXP, SEXP);
+SEXP _libR_xptr_callback(SEXP, SEXP, SEXP);
 
 // end cb cdef
 
