@@ -219,6 +219,27 @@ def rprint(s):
             lib.Rf_defineVar(rsym_p("x"), lib.R_NilValue, unbox(new_env))
 
 
+def _repr(self):
+    s = self.s
+    new_env = rcall("new.env")
+    lib.Rf_defineVar(rsym_p("x"), unbox(s), unbox(new_env))
+    try:
+        output = rcall("capture.output", rlang(("base", "print"), rsym_p("x")), _envir=new_env)
+    finally:
+        lib.Rf_defineVar(rsym_p("x"), lib.R_NilValue, unbox(new_env))
+
+    name = "RObject{{{}}}".format(str(sexptype(s)))
+    if not lib.Rf_isNull(unbox(output)) and lib.Rf_length(unbox(output)) > 0:
+        try:
+            return name + "\n" + "\n".join(rcopy(list, output))
+        except Exception:
+            pass
+    return name
+
+
+RObject.__repr__ = _repr
+
+
 def getattrib_p(s, key):
     return lib.Rf_getAttrib(unbox(s), rsym_p(key) if isinstance(key, text_type) else key)
 
