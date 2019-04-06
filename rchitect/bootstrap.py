@@ -146,7 +146,6 @@ def setup_posix(libR):
     set_posix_cb_ptr(libR, "ptr_do_dataentry", "do_dataentry")
     set_posix_cb_ptr(libR, "ptr_do_dataviewer", "do_dataviewer")
     set_posix_cb_ptr(libR, "ptr_R_ProcessEvents", "R_ProcessEvents")
-    set_posix_cb_ptr(libR, "ptr_do_dataviewer", "do_dataviewer")
     set_posix_cb_ptr(libR, "R_PolledEvents", "R_PolledEvents")
 
 
