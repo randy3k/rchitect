@@ -453,7 +453,6 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(getRUser)
     LOAD_SYMBOL_AS(UserBreak, UserBreak_t)
     #else
-    LOAD_SYMBOL(R_InputHandlers)
     LOAD_SYMBOL(R_checkActivity)
     LOAD_SYMBOL(R_runHandlers)
 
@@ -521,6 +520,10 @@ int _libR_load_constants() {
     LOAD_CONSTANT(R_NegInf);
     LOAD_CONSTANT(R_NaReal);
     LOAD_CONSTANT(R_NaInt);
+
+    #if !defined(_WIN32)
+    LOAD_CONSTANT(R_InputHandlers)
+    #endif
 
     return 1;
 }

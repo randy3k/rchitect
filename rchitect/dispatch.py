@@ -45,7 +45,7 @@ class Dispatcher(object):
         types = tuple([self.typeof(arg) for arg in args])
         try:
             func = self._cache[types]
-        except KeyError as e:
+        except KeyError:
             func = self.dispatch(*types)
             if not func:
                 raise_from(NotImplementedError("Dispatch not found for signature %s" % str(types)), None)

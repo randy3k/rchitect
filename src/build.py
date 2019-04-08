@@ -9,7 +9,7 @@ cdef_pattern = re.compile("// begin cdef([^$]*)// end cdef")
 cb_cdef_pattern = re.compile("// begin cb cdef([^$]*)// end cb cdef")
 
 
-for header_file in ["R.h", "libR.h", "parse.h"]:
+for header_file in ["R.h", "libR.h", "parse.h", "process_events.h"]:
     with open(os.path.join(cwd, header_file), "r") as f:
         m = cdef_pattern.search(f.read(), re.M)
         ffibuilder.cdef(m.group(1).replace("RAPI_EXTERN", ""))
@@ -41,9 +41,10 @@ ffibuilder.set_source(
     """
     # include "libR.h"
     # include "parse.h"
+    # include "process_events.h"
     """,
     include_dirs=['src'],
-    sources=['src/libR.c', 'src/parse.c'])
+    sources=['src/libR.c', 'src/parse.c', 'src/process_events.c'])
 
 if __name__ == "__main__":
     ffibuilder.compile(verbose=True)
