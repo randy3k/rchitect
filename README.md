@@ -5,6 +5,8 @@
 [![pypi](https://img.shields.io/pypi/v/rchitect.svg)](https://pypi.org/project/rchitect/)
 
 
+**rchitect is under major update at the moment**
+
 ## Installation
 
 ```sh
@@ -14,3 +16,4 @@ pip install -U rchitect
 # or the development version
 pip install -U git+https://github.com/randy3k/rchitect
 ```
+
