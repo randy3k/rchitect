@@ -7,6 +7,7 @@ from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, 
 from .types import box, unbox
 from .xptr import new_xptr, new_xptr_p, from_xptr
 
+import struct
 from contextlib import contextmanager
 from six import text_type, string_types
 from types import FunctionType
@@ -240,6 +241,24 @@ def _repr(self):
 RObject.__repr__ = _repr
 
 
+def getoption_p(key):
+    return lib.Rf_GetOption1(rsym_p(key))
+
+
+def getoption(key):
+    return box(getoption_p(key))
+
+
+def roption(key, default=None):
+    ret = rcopy(getoption_p(key))
+    return ret if ret is not None else default
+
+
+def setoption(key, value):
+    kwargs = {key: value}
+    rcall_p(("base", "options"), **kwargs)
+
+
 def getattrib_p(s, key):
     return lib.Rf_getAttrib(unbox(s), rsym_p(key) if isinstance(key, text_type) else key)
 
@@ -272,6 +291,12 @@ def rclass(s, singleString=0):
 
 def process_events():
     lib.process_events()
+
+
+def greeting():
+    info = rcopy(rcall("R.Version"))
+    return "{} -- \"{}\"\nPlatform: {} ({}-bit)\n".format(
+        info["version.string"], info["nickname"], info["platform"], 8 * struct.calcsize("P"))
 
 
 # R to Py

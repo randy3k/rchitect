@@ -141,18 +141,29 @@ def on_read_console_error(exception, exc_value, traceback):
         print(exception, exc_value)
 
 
+_code = [""]
+
+
 @ffi.def_extern(error=0, onerror=on_read_console_error)
 def cb_read_console(p, buf, buflen, add_history):
-    text = Callback.read_console(rconsole2str(ffi.string(p)), add_history)
+    # cache the code as buflen is limited to 4096
+    if _code[0]:
+        code = _code[0]
+    else:
+        text = Callback.read_console(rconsole2str(ffi.string(p)), add_history)
+        if text is None:
+            return 0
+        code = utf8tosystem(text)
+        _code[0] = code
 
-    code = utf8tosystem(text)
     buf = ffi.cast("char*", buf)
-
     nb = min(len(code), buflen - 2)
     buf[0:nb] = code[0:nb]
     if nb < buflen - 2:
         buf[nb] = b'\n'
         buf[nb + 1] = b'\x00'
+
+    _code[0] = _code[0][nb:]
     return 1
 
 

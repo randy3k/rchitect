@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 import ctypes
+from distutils.version import LooseVersion
 
 
 if sys.platform.startswith('win'):
@@ -69,6 +70,26 @@ def ensure_path(rhome=None):
         except Exception as e:
             print(e)
             pass
+
+
+R_RELEASE = re.compile(r"R version ([0-9]+\.[0-9]+\.[0-9]+)")
+R_DEVEL = re.compile(r"R Under development \(unstable\) \(([^)]*)\)")
+
+
+def rversion(rhome=None):
+    if not rhome:
+        rhome = Rhome()
+    try:
+        output = subprocess.check_output(
+            [os.path.join(rhome, "bin", "R"), "--version"],
+            stderr=subprocess.STDOUT).decode("utf-8").strip()
+        m = R_RELEASE.match(output)
+        if not m:
+            m = R_DEVEL.match(output)
+        version = LooseVersion(m.group(1))
+    except Exception:
+        version = LooseVersion("1000.0.0")
+    return version
 
 
 UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe")
