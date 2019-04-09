@@ -65,11 +65,13 @@ def read_console(p, add_history):
 @def_callback()
 def write_console_ex(buf, otype):
     if otype == 0:
-        sys.stdout.write(buf)
-        sys.stdout.flush()
+        if sys.stdout:
+            sys.stdout.write(buf)
+            sys.stdout.flush()
     else:
-        sys.stderr.write(buf)
-        sys.stderr.flush()
+        if sys.stderr:
+            sys.stderr.write(buf)
+            sys.stderr.flush()
 
 
 @def_callback()
