@@ -1,5 +1,6 @@
 # Interoperate R with Python
 
+[![Build Status](https://travis-ci.org/randy3k/rchitect.svg?branch=master)](https://travis-ci.org/randy3k/rchitect)
 [![CircleCI](https://circleci.com/gh/randy3k/rchitect/tree/master.svg?style=shield)](https://circleci.com/gh/randy3k/rchitect/tree/master)
 [![Build status](https://ci.appveyor.com/api/projects/status/4o9m8q61m755xc2a/branch/master?svg=true)](https://ci.appveyor.com/project/randy3k/rchitect/branch/master)
 [![pypi](https://img.shields.io/pypi/v/rchitect.svg)](https://pypi.org/project/rchitect/)
