@@ -206,7 +206,7 @@ def rcall_p(f, *args, _envir=None, **kwargs):
 
 def rcall(*args, _convert=False, **kwargs):
     s = rcall_p(*args, **kwargs)
-    return rcopy(s) if _convert else RObject(s)
+    return rcopy(s) if _convert else box(s)
 
 
 def rprint(s):
@@ -712,6 +712,11 @@ def sexp(_, f, invisible=False, asis=False, convert=False):
 @dispatch(type(None))  # noqa
 def sexp(n):
     return lib.R_NilValue
+
+
+@dispatch(SEXP)  # noqa
+def sexp(x):
+    return x
 
 
 @dispatch(RObject)  # noqa
