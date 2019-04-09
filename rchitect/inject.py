@@ -138,8 +138,8 @@ def inject_py_tools():
     assign(".DollarNames.PyObject", robject(py_names, convert=True), e)
     assign("$.PyObject", robject(py_get_attr, convert=True), e)
     assign("[.PyObject", robject(py_get_item, convert=True), e)
-    assign("$<-.PyObject", robject(py_set_attr, asis=True, convert=False), e)
-    assign("[<-.PyObject", robject(py_set_item, asis=True, convert=False), e)
+    assign("$<-.PyObject", robject(py_set_attr, invisible=True, asis=True, convert=False), e)
+    assign("[<-.PyObject", robject(py_set_item, invisible=True, asis=True, convert=False), e)
 
     def register():
         register_s3_method("names", "PyObject", get_p("names.PyObject", e), e)
