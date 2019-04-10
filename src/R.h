@@ -352,7 +352,7 @@ RAPI_EXTERN SEXP (*Rf_type2rstr)(SEXPTYPE);
 RAPI_EXTERN SEXP (*Rf_type2str)(SEXPTYPE);
 RAPI_EXTERN SEXP (*Rf_type2str_nowarn)(SEXPTYPE);
 
-RAPI_EXTERN SEXP (*R_tryEval)(SEXP, SEXP, int *);
+RAPI_EXTERN SEXP (*_R_tryEval)(SEXP, SEXP, int *);
 RAPI_EXTERN SEXP (*R_tryEvalSilent)(SEXP, SEXP, int *);
 RAPI_EXTERN const char *(*R_curErrorBuf)();
 
@@ -597,7 +597,7 @@ RAPI_EXTERN int (*Rstd_CleanUp)(int saveact, int status, int RunLast);
 // Rembedded.h
 RAPI_EXTERN int (*Rf_initialize_R)(int ac, char **av);
 RAPI_EXTERN void (*setup_Rmainloop)(void);
-RAPI_EXTERN void (*run_Rmainloop)(void);
+RAPI_EXTERN void (*_run_Rmainloop)(void);
 
 // Rdynload.h
 

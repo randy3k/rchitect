@@ -272,7 +272,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_type2str);
     LOAD_SYMBOL(Rf_type2str_nowarn);
 
-    LOAD_SYMBOL(R_tryEval);
+    LOAD_SYMBOL_AS(R_tryEval, _R_tryEval);
     LOAD_SYMBOL(R_tryEvalSilent);
     LOAD_SYMBOL(R_curErrorBuf);
 
@@ -443,7 +443,7 @@ int _libR_load_symbols() {
 
     LOAD_SYMBOL(Rf_initialize_R);
     LOAD_SYMBOL(setup_Rmainloop);
-    LOAD_SYMBOL(run_Rmainloop);
+    LOAD_SYMBOL_AS(run_Rmainloop, _run_Rmainloop);
 
     LOAD_SYMBOL(R_getEmbeddingDllInfo);
     LOAD_SYMBOL(R_registerRoutines);

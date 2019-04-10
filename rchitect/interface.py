@@ -140,7 +140,8 @@ def as_call(x):
 
 
 def rlang_p(f, *args, **kwargs):
-    with protected(*args, *(kwargs.items())):
+    argslist = list(args) + list(kwargs.items())
+    with protected(*argslist):
         nargs = len(args) + len(kwargs)
         t = lib.Rf_allocVector(lib.LANGSXP, nargs + 1)
 
