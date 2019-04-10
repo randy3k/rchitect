@@ -1,0 +1,45 @@
+getOption("rchitect_py_tools")$register()
+
+# patch reticulate::py_discover_config
+
+py_config <- import("rchitect.py_config")
+native_config <- py_copy(py_config$config())
+
+ns <- getNamespace("reticulate")
+
+unlockBinding("py_discover_config", ns)
+
+old_py_discover_config <- ns$py_discover_config
+
+assign(
+    "py_discover_config",
+    function(...) {
+        "patched by rchitect"
+        config <- old_py_discover_config(...)
+        config$python <- native_config[[1]]
+        config$libpython <- native_config[[2]]
+        config
+    },
+    ns)
+
+lockBinding("py_discover_config", ns)
+
+# conversions
+
+stuff <- import("rchitect.reticulate")
+
+py_to_r.rchitect.types.RObject <- function(x) {
+    stuff$py_to_r(get("pyobj", x))
+}
+
+registerS3method("py_to_r", "rchitect.types.RObject", py_to_r.rchitect.types.RObject, ns)
+
+
+r_to_py.PyObject <- function(x) {
+    id <- reticulate::py_eval(stuff$id_str(x), convert = FALSE)
+    ctypes <- reticulate::import("ctypes")
+    result <- reticulate::py_call(ctypes$cast, id, ctypes$py_object)
+    reticulate::py_get_attr(result, "value")
+}
+
+registerS3method("r_to_py", "PyObject", r_to_py.PyObject, ns)

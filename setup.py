@@ -30,6 +30,7 @@ setup(
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     packages=find_packages('.', exclude=["tests"]),
+    package_data={'rchitect': ['R/*.R']},
     cffi_modules=["src/build.py:ffibuilder"],
     setup_requires=[
         'cffi>=1.10.0',

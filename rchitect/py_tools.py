@@ -13,18 +13,6 @@ def get_p(name, envir):
     return rcall_p(("base", "get"), name, envir=envir)
 
 
-def set_hook(event, fun):
-    rcall(("base", "setHook"), event, fun)
-
-
-def package_event(pkg, event):
-    return rcall(("base", "packageEvent"), pkg, event)
-
-
-def register_s3_method(generic, cls, fun, envir):
-    rcall(("base", "registerS3method"), generic, cls, fun, envir)
-
-
 def inject_py_tools():
 
     def py_import(module):
@@ -142,51 +130,30 @@ def inject_py_tools():
     assign("[<-.PyObject", robject(py_set_item, invisible=True, asis=True, convert=False), e)
 
     def register():
-        register_s3_method("names", "PyObject", get_p("names.PyObject", e), e)
-        register_s3_method("print", "PyObject", get_p("print.PyObject", e), e)
-        register_s3_method(".DollarNames", "PyObject", get_p(".DollarNames.PyObject", e), e)
-        register_s3_method("$", "PyObject", get_p("$.PyObject", e), e)
-        register_s3_method("[", "PyObject", get_p("[.PyObject", e), e)
-        register_s3_method("$<-", "PyObject", get_p("$<-.PyObject", e), e)
-        register_s3_method("[<-", "PyObject", get_p("[<-.PyObject", e), e)
+        parent_frame = rcall("sys.frame", -1)
+        things = [
+            "import",
+            "import_builtins",
+            "py_call",
+            "py_copy",
+            "py_eval",
+            "py_get_attr",
+            "py_get_item",
+            "py_object",
+            "py_set_attr",
+            "py_set_item",
+            "py_unicode",
+            "dict",
+            "tuple",
+            "names.PyObject",
+            "print.PyObject",
+            ".DollarNames.PyObject",
+            "$.PyObject",
+            "[.PyObject",
+            "$<-.PyObject",
+            "[<-.PyObject",
+        ]
+        for thing in things:
+            assign(thing, get_p(thing, e), parent_frame)
 
     assign("register", robject(register, invisible=True), e)
-
-
-# def register_reticulate_s3_methods():
-#     def py_to_r(obj):
-#         pyobj = get_p("pyobj", obj)
-#         a = to_pyo(pyobj)
-#         return a.value
-
-#     def r_to_py(obj):
-#         ctypes = rcall(("reticulate", "import"), "ctypes")
-#         cast = rcall("$", ctypes, "cast")
-#         py_object = rcall("$", ctypes, "py_object")
-#         p = id(obj)
-#         addr = lib.Rf_protect(rcall_p(("reticulate", "py_eval"), str(p), convert=False))
-#         ret = lib.Rf_protect(rcall_p(("reticulate", "py_call"), cast, addr, py_object))
-#         value = rcall_p(("reticulate", "py_get_attr"), ret, "value")
-#         lib.Rf_unprotect(2)
-#         return value
-
-#     reticulatens = rcall(("base", "asNamespace"), "reticulate")
-#     register_s3_method(
-#         "py_to_r", "rchitect.types.RObject",
-#         robject(py_to_r, asis=True, convert=True),
-#         reticulatens)
-#     register_s3_method(
-#         "r_to_py", "PyObject",
-#         robject(r_to_py, asis=False, convert=True),
-#         reticulatens)
-
-
-# def set_hook_for_reticulate():
-
-#     if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
-#         register_reticulate_s3_methods()
-#     else:
-#         set_hook(
-#             package_event("reticulate", "onLoad"),
-#             lambda x, y: register_reticulate_s3_methods()
-#         )

@@ -28,8 +28,11 @@ def init(args=["rchitect", "--quiet"]):
         raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
     lib._libR_init_xptr_callback()
 
-    from rchitect.inject import inject_py_tools
+    from rchitect.py_tools import inject_py_tools
     inject_py_tools()
+
+    from rchitect.reticulate import set_hooks
+    set_hooks()
 
 
 def loop():
