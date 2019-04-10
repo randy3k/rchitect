@@ -12,8 +12,9 @@ void run_Rmainloop(void) {
 
 SEXP R_tryEval(SEXP x, SEXP e, int* s) {
     PyGILState_STATE gstate;
+    SEXP result;
     gstate = PyGILState_Ensure();
-    SEXP result = _R_tryEval(x, e, s);
+    result = _R_tryEval(x, e, s);
     PyGILState_Release(gstate);
     return result;
 }
