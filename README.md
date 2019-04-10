@@ -19,36 +19,42 @@ pip install -U git+https://github.com/randy3k/rchitect
 ```
 
 
-## Examples to work with `reticulate`
+### Conversions between reticulate and rchitect objects are seamless
 
 Python side
 
 ```py
 import rchitect; rchitect.init()
 from rchitect import *
-
 reval("library(reticulate)");
-py_object = reval("r_to_py(LETTERS)")
-rcopy(py_object)
 
+# py to r  (this direction is not usual in Python)
+chars = reval("""
+    py_eval("reval('LETTERS')")
+""")
+rcall("py_to_r", chars)
+
+# r to py
 class Foo(object):
     pass
 
 foo = Foo()
-rcall("r_to_py", robject(foo), _convert=True)
+rcall("r_to_py", robject(foo))
 ```
 
 R side
 
 ```r
 library(reticulate)
-py_run_string("import rchitect; rchitect.init()")
 py_run_string("from rchitect import *")
-r_object = py_eval("reval('LETTERS')")
-py_to_r(r_object)
 
+# py to r
+chars = py_eval("reval('LETTERS')")
+py_to_r(chars)
+
+# r to py  (this direction is not usual in R)
 py_run_string("class Foo(object): pass")
 py_run_string("foo = Foo()")
-py_object = py_eval("robject(foo)")
-r_to_py(py_to_r(py_object))
+foo = py_to_r(py_eval("robject(foo)"))
+r_to_py(foo)
 ```

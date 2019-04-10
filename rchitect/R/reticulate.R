@@ -26,17 +26,17 @@ lockBinding("py_discover_config", ns)
 
 # conversions
 
-stuff <- import("rchitect.reticulate")
+utils <- import("rchitect.utils")
 
 py_to_r.rchitect.types.RObject <- function(x) {
-    stuff$py_to_r(get("pyobj", x))
+    utils$identity(x)  # triggers `rcopy` when callback is called
 }
 
 registerS3method("py_to_r", "rchitect.types.RObject", py_to_r.rchitect.types.RObject, ns)
 
 
 r_to_py.PyObject <- function(x) {
-    id <- reticulate::py_eval(stuff$id_str(x), convert = FALSE)
+    id <- reticulate::py_eval(utils$id_str(x), convert = FALSE)
     ctypes <- reticulate::import("ctypes")
     result <- reticulate::py_call(ctypes$cast, id, ctypes$py_object)
     reticulate::py_get_attr(result, "value")

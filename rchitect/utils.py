@@ -147,3 +147,11 @@ else:
 
     def utf8tosystem(text):
         return text.encode("utf-8", "backslashreplace")
+
+
+def id_str(x):
+    return str(id(x))
+
+
+def identity(x):
+    return x

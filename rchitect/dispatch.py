@@ -66,7 +66,7 @@ class Dispatcher(object):
 
     def reorder(self, types):
         if types in self._ordering:
-            raise TypeError("Signature %s redefined" % str(*types))
+            raise TypeError("Signature %s redefined" % str(types))
 
         n = len(types)
         for signature in self._ordering:

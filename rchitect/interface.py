@@ -7,6 +7,8 @@ from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, 
 from .types import box, unbox
 from .xptr import new_xptr, new_xptr_p, from_xptr
 
+import sys
+import ctypes
 import struct
 from contextlib import contextmanager
 from six import text_type, string_types
@@ -417,10 +419,20 @@ def rcopy(_, s):
     return from_xptr(s)
 
 
-# PyCallable
+# reticulate's python.builtin.object
+@dispatch(datatype(object), ENVSXP)  # noqa
+def rcopy(_, s):
+    x = rcall(("base", "get"), "pyobj", s)
+    p = ffi.cast("uintptr_t", lib.R_ExternalPtrAddr(unbox(x)))
+    d = int(p) if sys.version >= "3" else long(p)
+    obj = ctypes.cast(d, ctypes.py_object)
+    return obj.value
+
+
+# PyCallable or reticulate's python.builtin.function
 @dispatch(datatype(object), CLOSXP)  # noqa
 def rcopy(_, s):
-    return from_xptr(getattrib_p(s, "py_object"))
+    return rcopy(getattrib_p(s, "py_object"))
 
 
 @dispatch(datatype(RObject), SEXP)  # noqa
@@ -455,6 +467,30 @@ def rcopy(s, **kwargs):
 @dispatch(RObject)  # noqa
 def rcopy(r, **kwargs):
     return rcopy(unbox(r), **kwargs)
+
+
+# PyObject
+@dispatch(datatype(RClass("PyObject")), EXTPTRSXP)  # noqa
+def rcopytype(_, s):
+    return object
+
+
+# PyCallable
+@dispatch(datatype(RClass("PyCallable")), CLOSXP)  # noqa
+def rcopytype(_, s):
+    return object
+
+
+# reticulate class
+@dispatch(datatype(RClass("python.builtin.object")), ENVSXP)  # noqa
+def rcopytype(_, s):
+    return object
+
+
+# reticulate function
+@dispatch(datatype(RClass("python.builtin.function")), CLOSXP)  # noqa
+def rcopytype(_, s):
+    return object
 
 
 @dispatch(datatype(default), NILSXP)  # noqa
@@ -504,18 +540,12 @@ def rcopytype(_, s):
 
 @dispatch(datatype(default), CLOSXP)  # noqa
 def rcopytype(_, s):
-    if "PyObject" in rclass(s):
-        return object
-    else:
-        return FunctionType
+    return FunctionType
 
 
 @dispatch(datatype(default), EXTPTRSXP)  # noqa
 def rcopytype(_, s):
-    if "PyObject" in rclass(s):
-        return object
-    else:
-        return RObject
+    return RObject
 
 
 @dispatch(object, SEXP)  # noqa
