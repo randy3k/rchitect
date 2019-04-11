@@ -566,6 +566,17 @@ void _libR_set_callback(char* name, void* cb) {
     }
 }
 
+int xptr_callback_error_occured;
+char xptr_callback_error_message[100];
+
+SEXP _libR_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis, SEXP convert) {
+    SEXP result;
+    xptr_callback_error_occured = 0;
+    result = xptr_callback(exptr, arglist, asis, convert);
+    if (xptr_callback_error_occured == 1) {
+        Rf_error("%s", xptr_callback_error_message);
+    }
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_libR_xptr_callback", (DL_FUNC) &_libR_xptr_callback, 4},

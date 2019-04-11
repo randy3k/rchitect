@@ -727,7 +727,12 @@ def sexp_as_py_object(obj):
         return sexp(RClass("PyObject"), obj)
 
 
-@ffi.def_extern(name="_libR_xptr_callback")
+def on_xptr_callback_error(exception, exc_value, traceback):
+    lib.xptr_callback_error_occured = 1
+    lib.xptr_callback_error_message = str(exc_value)[0:100].encode()
+
+
+@ffi.def_extern(error=ffi.NULL, onerror=on_xptr_callback_error)
 def xptr_callback(exptr, arglist, asis, convert):
     asis = rcopy(bool, asis)
     convert = rcopy(bool, convert)
@@ -735,23 +740,20 @@ def xptr_callback(exptr, arglist, asis, convert):
     args = []
     kwargs = {}
     names = rnames(arglist)
-    try:
-        for i in range(lib.Rf_length(arglist)):
-            if asis:
-                if names and names[i]:
-                    kwargs[names[i]] = lib.VECTOR_ELT(arglist, i)
-                else:
-                    args.append(lib.VECTOR_ELT(arglist, i))
+    for i in range(lib.Rf_length(arglist)):
+        if asis:
+            if names and names[i]:
+                kwargs[names[i]] = lib.VECTOR_ELT(arglist, i)
             else:
-                if names and names[i]:
-                    kwargs[names[i]] = rcopy(lib.VECTOR_ELT(arglist, i))
-                else:
-                    args.append(rcopy(lib.VECTOR_ELT(arglist, i)))
+                args.append(lib.VECTOR_ELT(arglist, i))
+        else:
+            if names and names[i]:
+                kwargs[names[i]] = rcopy(lib.VECTOR_ELT(arglist, i))
+            else:
+                args.append(rcopy(lib.VECTOR_ELT(arglist, i)))
 
-        ret = f(*args, **kwargs)
-        return sexp(ret) if convert else sexp_as_py_object(ret)
-    except Exception as e:
-        return rcall_p(("base", "simpleError"), str(e))
+    ret = f(*args, **kwargs)
+    return sexp(ret) if convert else sexp_as_py_object(ret)
 
 
 @dispatch(datatype(RClass("function")), Callable)  # noqa
