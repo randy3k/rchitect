@@ -26,6 +26,12 @@ dispatch.add_dispatch_policy(
     lambda x: sexptype(x) if ffi.typeof(x) == ffi.typeof('SEXP') else ffi.CData)
 
 
+def ensure_initialized():
+    if lib.Rf_initialize_R == ffi.NULL:
+        from .setup import init
+        init()
+
+
 @contextmanager
 def protected(*args):
     nprotect = 0
@@ -93,6 +99,7 @@ def rsym(s, t=None):
 
 
 def rparse_p(s):
+    ensure_initialized()
     status = ffi.new("ParseStatus[1]")
     s = rstring_p(s)
     with protected(s):
@@ -108,6 +115,7 @@ def rparse(s):
 
 @dispatch(EXPRSXP)
 def reval_p(s):
+    ensure_initialized()
     ret = lib.R_NilValue
     status = ffi.new("int[1]")
     with protected(s):
@@ -146,6 +154,7 @@ def as_call(x):
 
 
 def rlang_p(f, *args, **kwargs):
+    ensure_initialized()
     argslist = list(args) + list(kwargs.items())
     with protected(*argslist):
         nargs = len(args) + len(kwargs)
@@ -197,6 +206,7 @@ def sexp_args(args, kwargs):
 
 
 def rcall_p(f, *args, _envir=None, **kwargs):
+    ensure_initialized()
     if _envir:
         _envir = unbox(_envir)
     else:
@@ -460,6 +470,7 @@ default = RClass("default")
 
 @dispatch(SEXP)  # noqa
 def rcopy(s, **kwargs):
+    ensure_initialized()
     for cls in rclass(s):
         T = rcopytype(RClass(cls), s)
         if T is not RObject:
@@ -563,6 +574,7 @@ def rcopytype(_, s):
 # python to r conversions
 
 def robject(*args, **kwargs):
+    ensure_initialized()
     if len(args) == 2 and isinstance(args[0], text_type):
         return RObject(sexp(RClass(args[0]), args[1], **kwargs))
     elif len(args) == 1:

@@ -23,7 +23,9 @@ def init(args=["rchitect", "--quiet"]):
         if not lib._libR_load_symbols():
             raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
 
+    # _libR_is_initialized is only correct after _libR_load is execuated.
     if not lib._libR_is_initialized():
+
         _argv = [ffi.new("char[]", a.encode()) for a in args]
         argv = ffi.new("char *[]", _argv)
 

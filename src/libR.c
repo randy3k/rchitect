@@ -105,10 +105,13 @@ int _libR_load(const char* libpath) {
     }
 }
 
+
 int _libR_is_initialized(void) {
+    if (libR_t == NULL) return 0;
     void* p;
     return load_constant("R_GlobalEnv", (void**) &p);
 }
+
 
 int _libR_load_symbols() {
     LOAD_SYMBOL(R_CHAR);
@@ -562,6 +565,7 @@ void _libR_set_callback(char* name, void* cb) {
         printf("error setting callback of %s\n", name);
     }
 }
+
 
 static const R_CallMethodDef CallEntries[] = {
     {"_libR_xptr_callback", (DL_FUNC) &_libR_xptr_callback, 4},

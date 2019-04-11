@@ -24,7 +24,6 @@ pip install -U git+https://github.com/randy3k/rchitect
 Python side
 
 ```py
-import rchitect; rchitect.init()
 from rchitect import *
 reval("library(reticulate)");
 
