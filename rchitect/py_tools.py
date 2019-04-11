@@ -1,5 +1,5 @@
 from __future__ import unicode_literals, absolute_import
-from rchitect._libR import lib
+from rchitect._cffi import lib
 
 import sys
 import importlib

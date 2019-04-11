@@ -1,6 +1,6 @@
 import os
 import sys
-from .interface import rcall
+from .interface import rcall, rcopy
 
 
 def set_hook(event, fun):
@@ -11,8 +11,8 @@ def package_event(pkg, event):
     return rcall(("base", "packageEvent"), pkg, event)
 
 
-def set_hooks():
-    def hooks(x, y):
+def run_or_set_hooks():
+    def hooks():
         os.environ["RETICULATE_PYTHON"] = sys.executable
 
         rcall(
@@ -20,4 +20,7 @@ def set_hooks():
             os.path.join(os.path.dirname(__file__), "R", "reticulate.R"),
             rcall(("base", "new.env")))
 
-    set_hook(package_event("reticulate", "onLoad"), hooks)
+    if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
+        hooks()
+    else:
+        set_hook(package_event("reticulate", "onLoad"), lambda x, y: hooks())

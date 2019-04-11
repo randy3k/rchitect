@@ -37,7 +37,7 @@ with open(os.path.join(cwd, "libR.h"), "r") as f:
     """.format(m.group(1)))
 
 ffibuilder.set_source(
-    "rchitect._libR",
+    "rchitect._cffi",
     """
     # include "gli.h"
     # include "libR.h"

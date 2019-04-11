@@ -2,37 +2,49 @@ from __future__ import unicode_literals
 import sys
 import signal
 
-from rchitect._libR import ffi, lib
+from rchitect._cffi import ffi, lib
 from .utils import Rhome, libRpath, ensure_path
 from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
+
+
+if sys.version >= "3":
+    long = int
 
 
 def init(args=["rchitect", "--quiet"]):
     rhome = Rhome()
     ensure_path(rhome)
-    if not lib._libR_load(libRpath(rhome).encode()):
-        raise Exception("cannot load R library")
-    if not lib._libR_load_symbols():
-        raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
 
-    _argv = [ffi.new("char[]", a.encode()) for a in args]
-    argv = ffi.new("char *[]", _argv)
+    libR_loaded = lib.Rf_initialize_R != ffi.NULL
 
-    lib.Rf_initialize_R(len(argv), argv)
-    if sys.platform.startswith("win"):
-        setup_rstart(args)
-    else:
-        setup_unix_callbacks()
-    lib.setup_Rmainloop()
-    if not lib._libR_load_constants():
-        raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
-    lib._libR_init_xptr_callback()
+    if not libR_loaded:
+        if not lib._libR_load(libRpath(rhome).encode()):
+            raise Exception("cannot load R library")
+        if not lib._libR_load_symbols():
+            raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
 
-    from rchitect.py_tools import inject_py_tools
-    inject_py_tools()
+    if not lib._libR_is_initialized():
+        _argv = [ffi.new("char[]", a.encode()) for a in args]
+        argv = ffi.new("char *[]", _argv)
 
-    from rchitect.reticulate import set_hooks
-    set_hooks()
+        lib.Rf_initialize_R(len(argv), argv)
+
+        if sys.platform.startswith("win"):
+            setup_rstart(args)
+        else:
+            setup_unix_callbacks()
+        lib.setup_Rmainloop()
+
+    if not libR_loaded:
+        if not lib._libR_load_constants():
+            raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
+        lib._libR_setup_xptr_callback()
+
+        from rchitect.py_tools import inject_py_tools
+        inject_py_tools()
+
+        from rchitect.reticulate import run_or_set_hooks
+        run_or_set_hooks()
 
 
 def loop():

@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from rchitect._libR import ffi, lib
+from rchitect._cffi import ffi, lib
 from .dispatch import dispatch
 from .types import RObject, SEXP, RClass, sexptype, datatype
 from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, CPLXSXP, STRSXP, \
@@ -14,6 +14,10 @@ from contextlib import contextmanager
 from six import text_type, string_types
 from types import FunctionType
 from collections import OrderedDict, Callable
+
+
+if sys.version >= "3":
+    long = int
 
 
 dispatch.add_dispatch_policy(type, datatype)
@@ -424,7 +428,7 @@ def rcopy(_, s):
 def rcopy(_, s):
     x = rcall(("base", "get"), "pyobj", s)
     p = ffi.cast("uintptr_t", lib.R_ExternalPtrAddr(unbox(x)))
-    d = int(p) if sys.version >= "3" else long(p)
+    d = long(p)
     obj = ctypes.cast(d, ctypes.py_object)
     return obj.value
 

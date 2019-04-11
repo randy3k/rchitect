@@ -44,19 +44,6 @@ char* _libR_dl_error_message() {
     return dl_error_message;
 }
 
-int _libR_load(const char* libpath) {
-    libR_t = NULL;
-#ifdef _WIN32
-    libR_t = (void*)LoadLibraryEx(libpath, NULL, 0);
-#else
-    libR_t = dlopen(libpath, RTLD_NOW|RTLD_GLOBAL);
-#endif
-    if (libR_t == NULL) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
 
 static int load_symbol(const char* name, void** ppSymbol) {
     strcpy(last_loaded_symbol, name);
@@ -102,6 +89,26 @@ if (!load_constant(#name, (void**) &as)) \
 #define LOAD_CONSTANT(name) \
 if (!load_constant(#name, (void**) &name)) \
     return 0;
+
+
+int _libR_load(const char* libpath) {
+    libR_t = NULL;
+#ifdef _WIN32
+    libR_t = (void*)LoadLibraryEx(libpath, NULL, 0);
+#else
+    libR_t = dlopen(libpath, RTLD_NOW|RTLD_GLOBAL);
+#endif
+    if (libR_t == NULL) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+int _libR_is_initialized(void) {
+    void* p;
+    return load_constant("R_GlobalEnv", (void**) &p);
+}
 
 int _libR_load_symbols() {
     LOAD_SYMBOL(R_CHAR);
@@ -549,7 +556,7 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
 
 void _libR_set_callback(char* name, void* cb) {
     void** p;
-    if (load_symbol(name, &p)) {
+    if (load_symbol(name, (void**) &p)) {
         *p = cb;
     } else {
         printf("error setting callback of %s\n", name);
@@ -561,7 +568,7 @@ static const R_CallMethodDef CallEntries[] = {
     {NULL, NULL, 0}
 };
 
-void _libR_init_xptr_callback() {
+void _libR_setup_xptr_callback() {
     DllInfo* dll = R_getEmbeddingDllInfo();
     R_registerRoutines(dll, NULL, (void*) CallEntries, NULL, NULL);
 }
