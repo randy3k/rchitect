@@ -2,27 +2,29 @@ getOption("rchitect_py_tools")$register()
 
 # patch reticulate::py_discover_config
 
-py_config <- import("rchitect.py_config")
-native_config <- py_copy(py_config$config())
+if (.Platform$OS.type == "unix") {
+    py_config <- import("rchitect.py_config")
+    native_config <- py_copy(py_config$config())
 
-ns <- getNamespace("reticulate")
+    ns <- getNamespace("reticulate")
 
-unlockBinding("py_discover_config", ns)
+    unlockBinding("py_discover_config", ns)
 
-old_py_discover_config <- ns$py_discover_config
+    old_py_discover_config <- ns$py_discover_config
 
-assign(
-    "py_discover_config",
-    function(...) {
-        "patched by rchitect"
-        config <- old_py_discover_config(...)
-        config$python <- native_config[[1]]
-        config$libpython <- native_config[[2]]
-        config
-    },
-    ns)
+    assign(
+        "py_discover_config",
+        function(...) {
+            "patched by rchitect"
+            config <- old_py_discover_config(...)
+            config$python <- native_config[[1]]
+            config$libpython <- native_config[[2]]
+            config
+        },
+        ns)
 
-lockBinding("py_discover_config", ns)
+    lockBinding("py_discover_config", ns)
+}
 
 # conversions
 
