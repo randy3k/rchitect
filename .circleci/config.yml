@@ -8,7 +8,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl python python-pip libffi6 libffi-dev -y
-      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
+      - run: R --slave -e "install.packages('reticulate')"
       - checkout
       - run: pip install -e .[test]
       - run: |
@@ -21,7 +21,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl python python-pip libffi6 libffi-dev -y
-      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
+      - run: R --slave -e "install.packages('reticulate')"
       - checkout
       - run: pip install -e .[test]
       - run: |
@@ -34,7 +34,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl python python-pip libffi6 libffi-dev -y
-      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
+      - run: R --slave -e "install.packages('reticulate')"
       - checkout
       - run: pip install -e .[test]
       - run: |
@@ -47,7 +47,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl python3 python3-pip libffi6 libffi-dev -y
-      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
+      - run: R --slave -e "install.packages('reticulate')"
       - checkout
       - run: pip3 install -e .[test]
       - run: |
@@ -60,7 +60,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl python3 python3-pip libffi6 libffi-dev -y
-      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
+      - run: R --slave -e "install.packages('reticulate')"
       - checkout
       - run: pip3 install -e .[test]
       - run: |
@@ -73,7 +73,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl python3 python3-pip libffi6 libffi-dev -y
-      - run: R --slave -e "devtools::install_github('rstudio/reticulate#279')"
+      - run: R --slave -e "install.packages('reticulate')"
       - checkout
       - run: pip3 install -e .[test]
       - run: |

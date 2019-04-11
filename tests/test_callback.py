@@ -5,4 +5,4 @@ from rchitect import rcopy, rcall, robject
 
 
 def test_lambda():
-    rcopy(rcall(robject(lambda x: x + 3), 4)) == 7
+    assert rcopy(rcall(robject(lambda x: x + 3), 4)) == 7
