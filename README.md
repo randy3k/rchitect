@@ -18,42 +18,21 @@ pip install -U rchitect
 pip install -U git+https://github.com/randy3k/rchitect
 ```
 
+## FAQ
 
-### Conversions between reticulate and rchitect objects are seamless
+Sometimes, `rchitect` may fail to open the R shared library. User could first
+try to expose the path to R to the `PATH` vaiable. In Linux/macOS, one could
+also specify `R_HOME` explictly:
+```sh
+export R_HOME=/usr/local/lib/R
+```
+Note that it should be the path to `R_HOME`, not the path to the R binary. In
+Linux, you may need to futher specify `LD_LIBRARY_PATH`,
 
-Python side
-
-```py
-from rchitect import *
-reval("library(reticulate)");
-
-# py to r  (this direction is not usual in Python)
-chars = reval("""
-    py_eval("reval('LETTERS')")
-""")
-rcall("py_to_r", chars)
-
-# r to py
-class Foo(object):
-    pass
-
-foo = Foo()
-rcall("r_to_py", robject(foo))
+```sh
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
 ```
 
-R side
+## Wiki
 
-```r
-library(reticulate)
-py_run_string("from rchitect import *")
-
-# py to r
-chars = py_eval("reval('LETTERS')")
-py_to_r(chars)
-
-# r to py  (this direction is not usual in R)
-py_run_string("class Foo(object): pass")
-py_run_string("foo = Foo()")
-foo = py_to_r(py_eval("robject(foo)"))
-r_to_py(foo)
-```
+[reticulate](https://github.com/randy3k/rchitect/wiki/Conversions-between-reticulate-and-rchitect-objects-are-seamless) conversions
