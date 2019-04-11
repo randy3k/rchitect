@@ -1,4 +1,5 @@
 # a simple repl loop suitable used within python console
+from __future__ import unicode_literals
 
 from prompt_toolkit.shortcuts import prompt
 

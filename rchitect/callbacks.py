@@ -29,9 +29,12 @@ class Callback(object):
     yes_no_cancel = None
 
     def __setattr__(self, item, value):
-        if item not in self:
+        if item not in Callback.__dict__.keys():
             raise KeyError()
-        super(Callback).__setattr__(self, item, value)
+        self.__dict__[item] = value
+
+
+callback = Callback()
 
 
 def def_callback(name=None):
@@ -39,13 +42,13 @@ def def_callback(name=None):
         fname = name
         if fname is None:
             fname = fun.__name__
-        setattr(Callback, fname, fun)
+        setattr(callback, fname, fun)
 
     return _
 
 
 def undef_callback(name):
-    setattr(Callback, name, None)
+    setattr(callback, name, None)
 
 
 # prevent rstart being gc'ed
@@ -87,7 +90,7 @@ def setup_rstart(args):
     rstart.home = home
     rstart._ReadConsole = ffi.addressof(lib, "cb_read_console_interruptible")
     rstart._WriteConsole = ffi.NULL
-    rstart.CallBack = ffi.addressof(lib, "cb_polled_events")
+    rstart.callback = ffi.addressof(lib, "cb_polled_events")
     rstart.ShowMessage = ffi.addressof(lib, "cb_show_message")
     rstart.YesNoCancel = ffi.addressof(lib, "cb_yes_no_cancel")
     rstart.Busy = ffi.addressof(lib, "cb_busy")
@@ -97,9 +100,9 @@ def setup_rstart(args):
 
 
 def setup_callback(p, name, cb_name=None):
-    if getattr(Callback, name):
+    if getattr(callback, name):
         cb_name = cb_name if cb_name is not None else "cb_" + name
-        lib._libR_set_callback(p.encode(), ffi.addressof(lib, cb_name))
+        lib._libR_set_callback(p.encode(), ffi.addressof(lib, str(cb_name)))
 
 
 def setup_unix_callbacks():
@@ -129,7 +132,7 @@ def setup_unix_callbacks():
 
 @ffi.def_extern()
 def cb_show_message(buf):
-    Callback.show_message(rconsole2str(ffi.string(buf)))
+    callback.show_message(rconsole2str(ffi.string(buf)))
 
 
 def on_read_console_error(exception, exc_value, traceback):
@@ -150,7 +153,7 @@ def cb_read_console(p, buf, buflen, add_history):
     if _code[0]:
         code = _code[0]
     else:
-        text = Callback.read_console(rconsole2str(ffi.string(p)), add_history)
+        text = callback.read_console(rconsole2str(ffi.string(p)), add_history)
         if text is None:
             return 0
         code = utf8tosystem(text)
@@ -169,24 +172,24 @@ def cb_read_console(p, buf, buflen, add_history):
 
 @ffi.def_extern()
 def cb_write_console_ex(buf, buflen, otype):
-    Callback.write_console_ex(rconsole2str(ffi.string(buf)), otype)
+    callback.write_console_ex(rconsole2str(ffi.string(buf)), otype)
 
 
 @ffi.def_extern()
 def cb_busy(which):
-    Callback.busy(which)
+    callback.busy(which)
 
 
 @ffi.def_extern()
 def cb_clean_up(saveact, status, run_last):
-    Callback.clean_up(saveact, status, run_last)
+    callback.clean_up(saveact, status, run_last)
 
 
 @ffi.def_extern()
 def cb_polled_events():
-    Callback.polled_events()
+    callback.polled_events()
 
 
 @ffi.def_extern()
 def cb_yes_no_cancel(p):
-    return Callback.yes_no_cancel(rconsole2str(ffi.string(p)))
+    return callback.yes_no_cancel(rconsole2str(ffi.string(p)))

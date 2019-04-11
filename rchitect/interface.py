@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from __future__ import unicode_literals, absolute_import
 from rchitect._cffi import ffi, lib
 from .dispatch import dispatch
 from .types import RObject, SEXP, RClass, sexptype, datatype
@@ -24,6 +24,15 @@ dispatch.add_dispatch_policy(type, datatype)
 dispatch.add_dispatch_policy(
     ffi.CData,
     lambda x: sexptype(x) if ffi.typeof(x) == ffi.typeof('SEXP') else ffi.CData)
+
+
+def extract(kwargs, key, default=None):
+    if key in kwargs:
+        value = kwargs[key]
+        del kwargs[key]
+    else:
+        value = default
+    return value
 
 
 def ensure_initialized():
@@ -131,7 +140,7 @@ def reval_p(s):
     return reval_p(unbox(s))
 
 
-@dispatch(text_type)  # noqa
+@dispatch(string_types)  # noqa
 def reval_p(s):
     return reval_p(rparse_p(s))
 
@@ -145,7 +154,7 @@ def as_call(x):
         return x
     elif isinstance(x, RObject):
         return unbox(x)
-    elif isinstance(x, text_type):
+    elif isinstance(x, string_types):
         return rsym_p(x)
     elif isinstance(x, tuple) and len(x) == 2:
         return rsym_p(*x)
@@ -205,8 +214,9 @@ def sexp_args(args, kwargs):
         lib.Rf_unprotect(nprotect)
 
 
-def rcall_p(f, *args, _envir=None, **kwargs):
+def rcall_p(f, *args, **kwargs):
     ensure_initialized()
+    _envir = extract(kwargs, "_envir")
     if _envir:
         _envir = unbox(_envir)
     else:
@@ -222,7 +232,8 @@ def rcall_p(f, *args, _envir=None, **kwargs):
     return val
 
 
-def rcall(*args, _convert=False, **kwargs):
+def rcall(*args, **kwargs):
+    _convert = extract(kwargs, "_convert")
     s = rcall_p(*args, **kwargs)
     return rcopy(s) if _convert else box(s)
 
@@ -277,12 +288,12 @@ def setoption(key, value):
 
 
 def getattrib_p(s, key):
-    return lib.Rf_getAttrib(unbox(s), rsym_p(key) if isinstance(key, text_type) else key)
+    return lib.Rf_getAttrib(unbox(s), rsym_p(key) if isinstance(key, string_types) else key)
 
 
 def setattrib(s, key, value):
     with protected(s, value):
-        lib.Rf_setAttrib(unbox(s), rsym_p(key) if isinstance(key, text_type) else key, value)
+        lib.Rf_setAttrib(unbox(s), rsym_p(key) if isinstance(key, string_types) else key, value)
 
 
 def getnames_p(s):
@@ -583,7 +594,7 @@ def rcopytype(_, s):
 
 def robject(*args, **kwargs):
     ensure_initialized()
-    if len(args) == 2 and isinstance(args[0], text_type):
+    if len(args) == 2 and isinstance(args[0], string_types):
         return RObject(sexp(RClass(args[0]), args[1], **kwargs))
     elif len(args) == 1:
         return RObject(sexp(args[0], **kwargs))

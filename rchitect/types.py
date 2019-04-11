@@ -45,7 +45,8 @@ class sexptype(type):
             assert ffi.typeof(x) == ffi.typeof('SEXP')
             return globals()[_sexpnums_reversed[lib.TYPEOF(x)]]
         else:
-            return super(sexptype, cls).__new__(cls, *args)
+            x = str(args[0])
+            return super(sexptype, cls).__new__(cls, x, *args[1:])
 
     def __instancecheck__(self, instance):
         if not isinstance(instance, ffi.CData):

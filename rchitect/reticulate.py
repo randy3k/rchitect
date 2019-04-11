@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import os
 import sys
 from .interface import rcall, rcopy, set_hook, package_event
