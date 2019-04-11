@@ -310,6 +310,14 @@ def process_events():
     lib.process_events()
 
 
+def set_hook(event, fun):
+    rcall(("base", "setHook"), event, fun)
+
+
+def package_event(pkg, event):
+    return rcall(("base", "packageEvent"), pkg, event)
+
+
 def greeting():
     info = rcopy(rcall("R.Version"))
     return "{} -- \"{}\"\nPlatform: {} ({}-bit)\n".format(
@@ -771,7 +779,7 @@ def sexp(_, s):
 
 
 @dispatch(datatype(RClass("PyCallable")), Callable)  # noqa
-def sexp(_, f, invisible=False, asis=False, convert=False):
+def sexp(_, f, invisible=False, asis=False, convert=True):
     p = sexp(RClass("function"), f, invisible=invisible, asis=asis, convert=convert)
     setattrib(p, "py_object", sexp(RClass("PyObject"), f))
     setclass(p, ["PyCallable", "PyObject"])
@@ -850,7 +858,7 @@ def sexpclass(s):
 
 @dispatch(Callable)  # noqa
 def sexpclass(f):
-    return "function"
+    return "PyCallable"
 
 
 @dispatch(object)  # noqa

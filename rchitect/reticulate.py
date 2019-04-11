@@ -1,14 +1,6 @@
 import os
 import sys
-from .interface import rcall, rcopy
-
-
-def set_hook(event, fun):
-    rcall(("base", "setHook"), event, fun)
-
-
-def package_event(pkg, event):
-    return rcall(("base", "packageEvent"), pkg, event)
+from .interface import rcall, rcopy, set_hook, package_event
 
 
 def run_or_set_hooks():
