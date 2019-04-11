@@ -1,17 +1,70 @@
 environment:
   TWINE_USERNAME: randy3k
+  USE_RTOOLS: true
+  matrix:
+   - PYTHON: "C:\\Python27-x64"
+     PYTHON_VERSION: "2.7.x"
+     PYTHON_ARCH: "64"
+     R_VERSION: "release"
 
-build_script:
-  - pip install cibuildwheel==0.10.1
-  - cibuildwheel --output-dir wheelhouse
-  - >
-    IF "%APPVEYOR_REPO_TAG%" == "true"
-    (
-    python -m pip install twine
-    &&
-    python -m twine upload wheelhouse/*.whl
-    )
+   - PYTHON: "C:\\Python36-x64"
+     PYTHON_VERSION: "3.6.x"
+     PYTHON_ARCH: "64"
+     R_VERSION: "release"
 
-artifacts:
-  - path: "wheelhouse\\*.whl"
-    name: Wheels
+   - PYTHON: "C:\\Python27-x64"
+     PYTHON_VERSION: "2.7.x"
+     PYTHON_ARCH: "64"
+     R_VERSION: "devel"
+
+   - PYTHON: "C:\\Python36-x64"
+     PYTHON_VERSION: "3.6.x"
+     PYTHON_ARCH: "64"
+     R_VERSION: "devel"
+
+   - BUILD_WHEEL: true
+
+matrix:
+  allow_failures:
+    - R_VERSION: "devel"
+
+for:
+  -
+    matrix:
+      except:
+        - BUILD_WHEEL: true
+    init:
+      - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
+      # https://github.com/rstudio/reticulate/blob/master/appveyor.yml
+      - ps: |
+            $ErrorActionPreference = "Stop"
+            Invoke-WebRequest http://raw.github.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "..\appveyor-tool.ps1"
+            Import-Module '..\appveyor-tool.ps1'
+    install:
+      - ps: Bootstrap
+      - R.exe -e "install.packages('reticulate', repo = '"https://cloud.r-project.org"')"
+      - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+      - "%CMD_IN_ENV% python -m pip install --upgrade setuptools pip"
+      - "%CMD_IN_ENV% pip install -e .[test]"
+    build_script:
+      - "%CMD_IN_ENV% pytest"
+
+  -
+    matrix:
+      only:
+        - BUILD_WHEEL: true
+    install:
+      - pip install cibuildwheel==0.10.1
+      - cibuildwheel --output-dir wheelhouse
+    build_script:
+      - >
+        IF "%APPVEYOR_REPO_TAG%" == "true"
+        (
+        python -m pip install twine
+        &&
+        python -m twine upload wheelhouse/*.whl
+        )
+
+    artifacts:
+      - path: "wheelhouse\\*.whl"
+        name: Wheels
