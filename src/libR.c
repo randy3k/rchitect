@@ -107,8 +107,8 @@ int _libR_load(const char* libpath) {
 
 
 int _libR_is_initialized(void) {
-    if (libR_t == NULL) return 0;
     void* p;
+    if (libR_t == NULL) return 0;
     return load_constant("R_GlobalEnv", (void**) &p);
 }
 
