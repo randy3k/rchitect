@@ -1,3 +1,7 @@
+# v0.3.0
+
+  - completely rewritten using cffi
+
 # v0.2.4
 
    - some ipython hook fixes
