@@ -41,6 +41,11 @@ def config():
 
     python = sys.executable
     libpython = info.dli_fname.decode()
+
+    lib = ctypes.PyDLL(libpython)
+    if lib.Py_IsInitialized() == 0:
+        libpython = ""
+
     try:
         import sysconfig
         pythonhome = sysconfig.get_config_vars('prefix')[0] + ":" + \

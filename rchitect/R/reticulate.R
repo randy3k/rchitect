@@ -1,12 +1,12 @@
 getOption("rchitect_py_tools")$register()
 
+ns <- getNamespace("reticulate")
+
 # patch reticulate::py_discover_config
 
 if (.Platform$OS.type == "unix") {
     py_config <- import("rchitect.py_config")
     native_config <- py_copy(py_config$config())
-
-    ns <- getNamespace("reticulate")
 
     unlockBinding("py_discover_config", ns)
 
