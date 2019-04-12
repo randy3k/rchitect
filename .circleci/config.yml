@@ -8,7 +8,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl libpython-dev python-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate')"
+      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - checkout
       - run: pip install -e .[test]
       - run: |
@@ -21,7 +21,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl libpython-dev python-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate')"
+      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - checkout
       - run: pip install -e .[test]
       - run: |
@@ -34,7 +34,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl libpython-dev python-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate')"
+      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - checkout
       - run: pip install -e .[test]
       - run: |
@@ -47,7 +47,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl libpython3-dev python3-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate')"
+      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - checkout
       - run: pip3 install -e .[test]
       - run: |
@@ -60,7 +60,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl libpython3-dev python3-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate')"
+      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - checkout
       - run: pip3 install -e .[test]
       - run: |
@@ -73,7 +73,7 @@ jobs:
       - run: |
           apt-get update
           apt-get install git ssh curl libpython3-dev python3-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate')"
+      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - checkout
       - run: pip3 install -e .[test]
       - run: |
