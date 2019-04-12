@@ -401,8 +401,8 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_ScalarString);
     LOAD_SYMBOL(Rf_xlength);
     LOAD_SYMBOL(XTRUELENGTH);
-    LOAD_SYMBOL(LENGTH_EX);
-    LOAD_SYMBOL(XLENGTH_EX);
+    // LOAD_SYMBOL(LENGTH_EX);
+    // LOAD_SYMBOL(XLENGTH_EX);
 
     LOAD_SYMBOL(R_IsNA);
     LOAD_SYMBOL(R_IsNaN);

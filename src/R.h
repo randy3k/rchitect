@@ -482,8 +482,8 @@ RAPI_EXTERN SEXP     (*Rf_ScalarReal)(double);
 RAPI_EXTERN SEXP     (*Rf_ScalarString)(SEXP);
 RAPI_EXTERN R_xlen_t  (*Rf_xlength)(SEXP);
 RAPI_EXTERN R_xlen_t  (*XTRUELENGTH)(SEXP x);
-RAPI_EXTERN int (*LENGTH_EX)(SEXP x, const char *file, int line);
-RAPI_EXTERN R_xlen_t (*XLENGTH_EX)(SEXP x);
+// RAPI_EXTERN int (*LENGTH_EX)(SEXP x, const char *file, int line);
+// RAPI_EXTERN R_xlen_t (*XLENGTH_EX)(SEXP x);
 
 
 // Arith.h
