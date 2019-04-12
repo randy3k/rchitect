@@ -390,7 +390,7 @@ def rcopy(_, s):
 
 
 def _string(s):
-    return text_type(ffi.string(lib.Rf_translateCharUTF8(s)).decode())
+    return text_type(ffi.string(lib.Rf_translateCharUTF8(s)).decode("utf-8"))
 
 
 @dispatch(datatype(bytes), RAWSXP)  # noqa
@@ -740,7 +740,7 @@ def sexp_as_py_object(obj):
 
 def on_xptr_callback_error(exception, exc_value, traceback):
     lib.xptr_callback_error_occured = 1
-    lib.xptr_callback_error_message = str(exc_value)[0:100].encode()
+    lib.xptr_callback_error_message = str(exc_value)[0:100].encode("utf-8")
 
 
 @ffi.def_extern(error=ffi.NULL, onerror=on_xptr_callback_error)

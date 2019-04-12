@@ -18,7 +18,7 @@ def init(args=["rchitect", "--quiet"]):
     libR_loaded = lib.Rf_initialize_R != ffi.NULL
 
     if not libR_loaded:
-        if not lib._libR_load(libRpath(rhome).encode()):
+        if not lib._libR_load(libRpath(rhome).encode("utf-8")):
             raise Exception("cannot load R library")
         if not lib._libR_load_symbols():
             raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
@@ -26,7 +26,7 @@ def init(args=["rchitect", "--quiet"]):
     # _libR_is_initialized is only correct after _libR_load is execuated.
     if not lib._libR_is_initialized():
 
-        _argv = [ffi.new("char[]", a.encode()) for a in args]
+        _argv = [ffi.new("char[]", a.encode("utf-8")) for a in args]
         argv = ffi.new("char *[]", _argv)
 
         lib.Rf_initialize_R(len(argv), argv)
