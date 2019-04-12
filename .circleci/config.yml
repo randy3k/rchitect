@@ -13,7 +13,7 @@ jobs:
       - run: pip install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest
+          pytest -s
   test-r-release-py2:
     docker:
       - image: rocker/tidyverse
@@ -26,7 +26,7 @@ jobs:
       - run: pip install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest
+          pytest -s
   test-r-devel-py2:
     docker:
       - image: rocker/tidyverse:devel
@@ -39,7 +39,7 @@ jobs:
       - run: pip install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest
+          pytest -s
   test-r-3.4.4-py3:
     docker:
       - image: rocker/tidyverse:3.4.4
@@ -52,7 +52,7 @@ jobs:
       - run: pip3 install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest
+          pytest -s
   test-r-release-py3:
     docker:
       - image: rocker/tidyverse
@@ -65,7 +65,7 @@ jobs:
       - run: pip3 install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest
+          pytest -s
   test-r-devel-py3:
     docker:
       - image: rocker/tidyverse:devel
@@ -78,7 +78,7 @@ jobs:
       - run: pip3 install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest
+          pytest -s
   deploy-to-pypi:
     docker:
       - image: circleci/python
