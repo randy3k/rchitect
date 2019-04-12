@@ -7,6 +7,7 @@ from .interface import rcall, rcopy, set_hook, package_event
 def run_or_set_hooks():
     def hooks():
         os.environ["RETICULATE_PYTHON"] = sys.executable
+        os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
 
         rcall(
             ("base", "source"),

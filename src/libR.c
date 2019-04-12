@@ -576,6 +576,7 @@ SEXP _libR_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis, SEXP convert) {
     if (xptr_callback_error_occured == 1) {
         Rf_error("%s", xptr_callback_error_message);
     }
+    return result;
 }
 
 static const R_CallMethodDef CallEntries[] = {
