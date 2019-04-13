@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 from rchitect import rcopy, rcall, reval, robject
 from rchitect.interface import rclass, rstring, rint, rdouble
 
+from collections import OrderedDict
+
 
 def test_booleans():
     assert rcall("identical", robject([True, False]), reval("c(TRUE, FALSE)"), _convert=True)
@@ -33,6 +35,15 @@ def test_strings():
 
 def test_raw():
     assert rcall("rawToChar", robject("raw", b"hello"), _convert=True) == "hello"
+
+
+def test_none():
+    assert rcall("identical", robject(None), reval("NULL"), _convert=True)
+
+
+def test_ordered_list():
+    d = OrderedDict([("a", 2), ("b", "hello")])
+    assert rcall("identical", robject(d), reval("list(a = 2L, b = 'hello')"), _convert=True)
 
 
 def test_functions():

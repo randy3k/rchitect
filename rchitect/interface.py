@@ -227,7 +227,7 @@ def rcall_p(f, *args, **kwargs):
             status = ffi.new("int[1]")
             val = lib.R_tryEval(rlang_p(f, *a, **k), _envir, status)
             if status[0] != 0:
-                raise RuntimeError("rcall error.")
+                raise RuntimeError("call error")
 
     return val
 
