@@ -55,3 +55,5 @@ def test_functions():
     assert f(3) == 9
     f2 = rcopy(reval("function(x) x^2"), convert=False)
     assert rcopy(f2(3)) == 9
+    sumfun = rcopy(reval("sum"))
+    assert sumfun([1, 2, 3]) == 6

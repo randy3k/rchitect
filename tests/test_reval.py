@@ -5,6 +5,7 @@ from rchitect import rparse, reval
 from rchitect.interface import rclass
 
 import pytest
+import sys
 
 
 def test_reval():
@@ -22,5 +23,10 @@ def test_rparse_error():
 
 def test_reval_error():
     with pytest.raises(Exception) as excinfo:
-        reval("1 + 'A'")
+        try:
+            original_stderr = sys.stderr
+            sys.stderr = None
+            reval("1 + 'A'")
+        finally:
+            sys.stderr = original_stderr
     assert str(excinfo.value) == "eval error"

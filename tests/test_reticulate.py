@@ -4,11 +4,6 @@ from __future__ import unicode_literals
 from rchitect import reval, rcopy, rcall, robject
 import string
 
-import os
-import sys
-os.environ["RETICULATE_PYTHON"] = sys.executable
-os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
-
 
 def test_rcopy_reticulate_object():
     reval("library(reticulate)")

@@ -5,6 +5,10 @@ from rchitect import rcopy, rcall, reval, robject
 from rchitect.interface import rclass, rstring, rint, rdouble
 
 
+def test_booleans():
+    assert rcall("identical", robject([True, False]), reval("c(TRUE, FALSE)"), _convert=True)
+
+
 def test_numbers():
     assert rcall("identical", robject(1), rint(1), _convert=True)
     assert rcall("identical", robject(1.0), rdouble(1), _convert=True)
@@ -24,7 +28,11 @@ def test_strings():
     assert rcall("identical", robject(['a', 'b']), reval("c('a', 'b')"), _convert=True)
 
 
-def test_lambda():
+def test_raw():
+    assert rcall("rawToChar", robject("raw", b"hello"), _convert=True) == "hello"
+
+
+def test_functions():
     def f(x):
         return x + 3
 

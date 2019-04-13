@@ -850,10 +850,10 @@ def sexpclass(s):
 
 @dispatch(list)  # noqa
 def sexpclass(s):
-    if all(isinstance(x, int) for x in s):
-        return "integer"
-    elif all(isinstance(x, bool) for x in s):
+    if all(isinstance(x, bool) for x in s):
         return "logical"
+    elif all(isinstance(x, int) for x in s):
+        return "integer"
     elif all(isinstance(x, float) for x in s):
         return "numeric"
     elif all(isinstance(x, complex) for x in s):
