@@ -53,9 +53,15 @@ def test_functions():
     fun = robject(f)
     assert "PyCallable" in rclass(fun)
     assert rcopy(rcall(fun, 4)) == f(4)
+    assert rcopy(rcall(fun, x=4)) == f(4)
 
     fun = robject(lambda x: x + 3, convert=False)
     assert "PyCallable" in rclass(fun)
     ret = rcall(fun, 4)
     assert "PyObject" in rclass(ret)
     assert rcopy(ret) == f(4)
+
+    makef = robject(lambda: f, convert=False)
+    ret = rcall(makef)
+    assert "PyCallable" in rclass(ret)
+    assert rcopy(ret) == f
