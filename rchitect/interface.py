@@ -437,11 +437,11 @@ def rcopy(_, s):
 
 
 @dispatch(datatype(FunctionType), (CLOSXP, BUILTINSXP))  # noqa
-def rcopy(_, s, _envir=None):
+def rcopy(_, s, _envir=None, _convert=True):
     r = RObject(s)  # preserve the closure
 
     def _(*args, **kwargs):
-        return rcall(r, *args, _envir=_envir, _convert=True, **kwargs)
+        return rcall(r, *args, _envir=_envir, _convert=_convert, **kwargs)
 
     return _
 
