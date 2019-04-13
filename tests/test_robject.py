@@ -19,6 +19,9 @@ def test_numbers():
 
     assert rcall("identical", robject([1, 2]), reval("c(1L, 2L)"), _convert=True)
     assert rcall("identical", robject([1.0, 2.0]), reval("c(1, 2)"), _convert=True)
+    assert rcall(
+        "identical",
+        robject([complex(1, 2), complex(2, 1)]), reval("c(1 + 2i, 2 + 1i)"), _convert=True)
 
 
 def test_strings():
