@@ -13,7 +13,10 @@ jobs:
       - run: pip install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s
+          pytest -s --cov=rchitect
+      - run: |
+          pip install codecov
+          codecov
   test-r-release-py2:
     docker:
       - image: rocker/tidyverse
@@ -26,7 +29,10 @@ jobs:
       - run: pip install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s
+          pytest -s --cov=rchitect
+      - run: |
+          pip install codecov
+          codecov
   test-r-devel-py2:
     docker:
       - image: rocker/tidyverse:devel
@@ -39,7 +45,10 @@ jobs:
       - run: pip install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s
+          pytest -s --cov=rchitect
+      - run: |
+          pip install codecov
+          codecov
   test-r-3.4.4-py3:
     docker:
       - image: rocker/tidyverse:3.4.4
@@ -52,7 +61,10 @@ jobs:
       - run: pip3 install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s
+          pytest -s --cov=rchitect
+      - run: |
+          pip3 install codecov
+          codecov
   test-r-release-py3:
     docker:
       - image: rocker/tidyverse
@@ -65,7 +77,10 @@ jobs:
       - run: pip3 install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s
+          pytest -s --cov=rchitect
+      - run: |
+          pip3 install codecov
+          codecov
   test-r-devel-py3:
     docker:
       - image: rocker/tidyverse:devel
@@ -78,7 +93,10 @@ jobs:
       - run: pip3 install -e .[test]
       - run: |
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s
+          pytest -s --cov=rchitect
+      - run: |
+          pip3 install codecov
+          codecov
   deploy-to-pypi:
     docker:
       - image: circleci/python
