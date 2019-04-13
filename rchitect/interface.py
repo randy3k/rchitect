@@ -114,7 +114,7 @@ def rparse_p(s):
     with protected(s):
         ret = lib.R_ParseVector(s, -1, status, lib.R_NilValue)
         if status[0] != lib.PARSE_OK:
-            raise Exception("Parse error")
+            raise Exception("parse error")
     return ret
 
 
@@ -131,7 +131,7 @@ def reval_p(s):
         for i in range(0, lib.Rf_length(s)):
             ret = lib.R_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
             if status[0] != 0:
-                raise RuntimeError("reval error")
+                raise RuntimeError("eval error")
     return ret
 
 

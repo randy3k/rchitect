@@ -1,15 +1,14 @@
-# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
 from rchitect import rcopy, rcall, reval, robject
-from rchitect.interface import rclass, rstring
+from rchitect.interface import rclass, rstring, rint, rdouble
 
 
 def test_numbers():
-    assert rcall("identical", robject(1), reval("1L"), _convert=True)
-    assert rcall("identical", robject(1.0), reval("1"), _convert=True)
-    assert not rcall("identical", robject(1), reval("1"), _convert=True)
-    assert not rcall("identical", robject(1.0), reval("1L"), _convert=True)
+    assert rcall("identical", robject(1), rint(1), _convert=True)
+    assert rcall("identical", robject(1.0), rdouble(1), _convert=True)
+    assert not rcall("identical", robject(1), rdouble(1), _convert=True)
+    assert not rcall("identical", robject(1.0), rint(1), _convert=True)
 
     assert rcall("identical", robject(complex(1, 2)), reval("1 + 2i"), _convert=True)
 
