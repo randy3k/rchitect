@@ -47,7 +47,10 @@ for:
       - "%CMD_IN_ENV% python -m pip install --upgrade setuptools pip"
       - "%CMD_IN_ENV% pip install -e .[test]"
     build_script:
-      - "%CMD_IN_ENV% pytest -s"
+      - "%CMD_IN_ENV% pytest -s --cov=rchitect"
+    after_build:
+      - "%CMD_IN_ENV% pip install codecov"
+      - "%CMD_IN_ENV% codecov"
     # on_failure:
     #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
