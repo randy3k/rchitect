@@ -635,15 +635,26 @@ def sexp(_, s):
     return rstring_p(s)
 
 
-@dispatch(datatype(RClass("raw")), bytes)  # noqa
-def sexp(_, s):
-    n = len(s)
-    x = lib.Rf_allocVector(lib.RAWSXP, n)
-    with protected(x):
-        p = lib.RAW(x)
-        for i in range(n):
-            p[i] = s[i]
-    return x
+if sys.version >= "3":
+    @dispatch(datatype(RClass("raw")), bytes)  # noqa
+    def sexp(_, s):
+        n = len(s)
+        x = lib.Rf_allocVector(lib.RAWSXP, n)
+        with protected(x):
+            p = lib.RAW(x)
+            for i in range(n):
+                p[i] = s[i]
+        return x
+else:
+    @dispatch(datatype(RClass("raw")), bytes)  # noqa
+    def sexp(_, s):
+        n = len(s)
+        x = lib.Rf_allocVector(lib.RAWSXP, n)
+        with protected(x):
+            p = lib.RAW(x)
+            for i in range(n):
+                p[i] = ord(s[i])
+        return x
 
 
 @dispatch(datatype(RClass("logical")), list)  # noqa
