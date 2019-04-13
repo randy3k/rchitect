@@ -437,11 +437,11 @@ def rcopy(_, s):
 
 
 @dispatch(datatype(FunctionType), (CLOSXP, BUILTINSXP))  # noqa
-def rcopy(_, s, _envir=None, _convert=True):
+def rcopy(_, s, envir=None, convert=True):
     r = RObject(s)  # preserve the closure
 
     def _(*args, **kwargs):
-        return rcall(r, *args, _envir=_envir, _convert=_convert, **kwargs)
+        return rcall(r, *args, _envir=envir, _convert=convert, **kwargs)
 
     return _
 
@@ -624,10 +624,10 @@ def sexp(_, s):
 
 @dispatch(datatype(RClass("complex")), complex)  # noqa
 def sexp(_, s):
-    c = ffi.new("Rcomplex")
+    c = ffi.new("Rcomplex*")
     c.r = s.real
     c.i = s.imag
-    return lib.Rf_ScalarComplex(c)
+    return lib.Rf_ScalarComplex(c[0])
 
 
 @dispatch(datatype(RClass("character")), string_types)  # noqa

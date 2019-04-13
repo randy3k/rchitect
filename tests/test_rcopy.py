@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from rchitect import rcopy, reval, rcall
+from rchitect import rcopy, reval
 from rchitect.interface import rstring
 import string
 
@@ -45,5 +45,5 @@ def test_raw():
 def test_functions():
     f = rcopy(reval("function(x) x^2"))
     assert f(3) == 9
-    f2 = rcopy(reval("function(x) x^2"), _convert=False)
+    f2 = rcopy(reval("function(x) x^2"), convert=False)
     assert rcopy(f2(3)) == 9
