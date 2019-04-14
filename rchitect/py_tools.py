@@ -64,21 +64,23 @@ def inject_py_tools():
         lib.Rf_protect(obj)
         lib.Rf_protect(key)
         lib.Rf_protect(value)
+        pyo = rcopy(object, obj)
         try:
-            setattr(rcopy(object, obj), rcopy(key), rcopy(value))
+            setattr(pyo, rcopy(key), rcopy(value))
         finally:
             lib.Rf_unprotect(3)
-        return obj
+        return pyo
 
     def py_set_item(obj, key, value):
         lib.Rf_protect(obj)
         lib.Rf_protect(key)
         lib.Rf_protect(value)
+        pyo = rcopy(object, obj)
         try:
-            rcopy(object, obj)[rcopy(key)] = rcopy(value)
+            pyo[rcopy(key)] = rcopy(value)
         finally:
             lib.Rf_unprotect(3)
-        return obj
+        return pyo
 
     def py_dict(**kwargs):
         narg = len(kwargs)
@@ -115,8 +117,8 @@ def inject_py_tools():
     assign("py_get_attr", robject(py_get_attr, convert=False), e)
     assign("py_get_item", robject(py_get_item, convert=False), e)
     assign("py_object", robject(py_object, asis=True, convert=False), e)
-    assign("py_set_attr", robject(py_set_attr, asis=True, convert=False), e)
-    assign("py_set_item", robject(py_set_item, asis=True, convert=False), e)
+    assign("py_set_attr", robject(py_set_attr, invisible=True, asis=True, convert=False), e)
+    assign("py_set_item", robject(py_set_item, invisible=True, asis=True, convert=False), e)
     assign("py_unicode", robject(py_unicode, convert=False), e)
     assign("dict", robject(py_dict, asis=True, convert=False), e)
     assign("tuple", robject(py_tuple, asis=True, convert=False), e)

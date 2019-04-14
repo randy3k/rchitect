@@ -123,30 +123,37 @@ def rparse(s):
 
 
 @dispatch(EXPRSXP)
-def reval_p(s):
+def reval_p(s, envir=None):
     ensure_initialized()
-    ret = lib.R_NilValue
-    status = ffi.new("int[1]")
-    with protected(s):
-        for i in range(0, lib.Rf_length(s)):
-            ret = lib.R_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
-            if status[0] != 0:
-                raise RuntimeError("eval error")
+    if envir:
+        # `sys.frame()` doesn't work with R_tryEval as it doesn't create R stacks,
+        # we use `base::eval` instead.
+        ret = rcall_p(("base", "eval"), s, _envir=envir)
+    else:
+        ret = lib.R_NilValue
+        status = ffi.new("int[1]")
+        with protected(s):
+            for i in range(0, lib.Rf_length(s)):
+                ret = lib.R_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
+                if status[0] != 0:
+                    raise RuntimeError("eval error")
     return ret
 
 
 @dispatch(RObject)  # noqa
-def reval_p(s):
-    return reval_p(unbox(s))
+def reval_p(s, envir=None):
+    with protected(envir):
+        return reval_p(unbox(s), envir=envir)
 
 
 @dispatch(string_types)  # noqa
-def reval_p(s):
-    return reval_p(rparse_p(s))
+def reval_p(s, envir=None):
+    with protected(envir):
+        return reval_p(rparse_p(s), envir=envir)
 
 
-def reval(s):
-    return box(reval_p(s))
+def reval(s, envir=None):
+    return box(reval_p(s, envir=envir))
 
 
 def as_call(x):
