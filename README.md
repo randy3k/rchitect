@@ -7,8 +7,6 @@
 [![pypi](https://img.shields.io/pypi/v/rchitect.svg)](https://pypi.org/project/rchitect/)
 
 
-**rchitect is under major update at the moment**
-
 ## Installation
 
 ```sh
@@ -17,6 +15,26 @@ pip install -U rchitect
 
 # or the development version
 pip install -U git+https://github.com/randy3k/rchitect
+```
+
+## Why?
+
+Why writing another package when there is [`rpy2`](https://rpy2.readthedocs.io/)?
+
+The main reason is to drive [radian](https://github.com/randy3k/radian).
+`rpy2` was not suitable because it is missing some key features for running
+the R REPL. Speaking of compatibility, `rchitect` has been thoroughly tested on
+multiple platforms such as Windows, macOS and Linux and we also provide binary
+wheels for user convenience.
+
+## Getting started
+
+```py
+from rchitect import *
+a = reval("1:5")     # evaluate an R expression in the global environment
+b = rcopy(a)         # convert any RObject returned by `reval` to its python type
+c = robject(b)       # convert any python object to its R type
+d = rcall("sum", c)  # call an R function. Python objects are converted to RObjects implicitly.
 ```
 
 ## FAQ
