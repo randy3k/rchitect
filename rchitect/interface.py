@@ -13,12 +13,12 @@ import struct
 from contextlib import contextmanager
 from six import text_type, string_types
 from types import FunctionType
-from collections import OrderedDict, Callable
-
-
+from collections import OrderedDict
 if sys.version >= "3":
+    from collections.abc import Callable
     long = int
-
+else:
+    from collections import Callable
 
 dispatch.add_dispatch_policy(type, datatype)
 dispatch.add_dispatch_policy(
