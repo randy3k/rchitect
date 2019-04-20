@@ -107,7 +107,8 @@ def inject_py_tools():
         rcall(("base", "assign"), name, value, envir=envir)
 
     e = rcall(("base", "new.env"), parent=lib.R_GlobalEnv)
-    rcall(("base", "options"), rchitect_py_tools=e)
+    kwarg = {"rchitect.py_tools": e}
+    rcall(("base", "options"), **kwarg)
 
     assign("import", robject(py_import, convert=False), e)
     assign("import_builtins", robject(py_import_builtins, convert=False), e)
