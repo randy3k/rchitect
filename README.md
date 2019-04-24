@@ -39,17 +39,20 @@ d = rcall("sum", c)  # call an R function. Python objects are converted to RObje
 
 ## FAQ
 
-Sometimes, `rchitect` may fail to open the R shared library. User could first
-try to expose the path to R to the `PATH` vaiable. In Linux/macOS, one could
-use the following command to specify the distribution of R:
+If `rchitect` fails to open the R shared library, user should first
+try to expose the path to R to the `PATH` vaiable.
+
+In Linux/macOS, you could also export the environment variable `R_HOME`. For example,
 ```sh
-export R_HOME=/usr/local/lib/R
+$ export R_HOME=/usr/local/lib/R
+$ radian
 ```
-Note that it should be the path to R's shared files, not the path to the R binary. In
-Linux, you may need to futher specify `LD_LIBRARY_PATH` if R fails to find some shared libraries,
+Sometimes, you may also need to futher specify `LD_LIBRARY_PATH` if R fails to find some shared libraries,
 ```sh
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
 ```
+
+Please also make sure that R was installed with the R shared library `libR.so` or `libR.dylib` or `libR.dll`. On Linux, the flag `--enable-R-shlib` may be needed to install R from the source.
 
 ## Wiki
 
