@@ -1,6 +1,7 @@
 from __future__ import unicode_literals, absolute_import
 from rchitect._cffi import lib
 
+import operator
 import sys
 import importlib
 from six import text_type
@@ -131,6 +132,8 @@ def inject_py_tools():
     assign("[.PyObject", robject(py_get_item, convert=True), e)
     assign("$<-.PyObject", robject(py_set_attr, invisible=True, asis=True, convert=False), e)
     assign("[<-.PyObject", robject(py_set_item, invisible=True, asis=True, convert=False), e)
+    assign("&.PyObject", robject(operator.and_, invisible=True, convert=False), e)
+    assign("|.PyObject", robject(operator.or_, invisible=True, convert=False), e)
 
     def register():
         parent_frame = rcall("sys.frame", -1)
@@ -155,6 +158,8 @@ def inject_py_tools():
             "[.PyObject",
             "$<-.PyObject",
             "[<-.PyObject",
+            "&.PyObject",
+            "|.PyObject"
         ]
         for thing in things:
             assign(thing, get_p(thing, e), parent_frame)
