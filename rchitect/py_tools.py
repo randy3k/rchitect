@@ -135,7 +135,7 @@ def inject_py_tools():
     assign("&.PyObject", robject(operator.and_, invisible=True, convert=False), e)
     assign("|.PyObject", robject(operator.or_, invisible=True, convert=False), e)
 
-    def register():
+    def attach():
         parent_frame = rcall("sys.frame", -1)
         things = [
             "import",
@@ -164,4 +164,4 @@ def inject_py_tools():
         for thing in things:
             assign(thing, get_p(thing, e), parent_frame)
 
-    assign("register", robject(register, invisible=True), e)
+    assign("attach", robject(attach, invisible=True), e)

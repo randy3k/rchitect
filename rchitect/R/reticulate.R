@@ -1,4 +1,4 @@
-getOption("rchitect.py_tools")$register()
+getOption("rchitect.py_tools")$attach()
 
 ns <- getNamespace("reticulate")
 

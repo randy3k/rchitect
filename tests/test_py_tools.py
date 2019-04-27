@@ -8,7 +8,7 @@ import os
 
 def test_py_tools():
     env = rcall("new.env")
-    reval("getOption('rchitect.py_tools')$register()", envir=env)
+    reval("getOption('rchitect.py_tools')$attach()", envir=env)
     assert "import" in rcall("names", env, _convert=True)
 
     reval("os <- import('os')", envir=env)
