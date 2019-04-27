@@ -134,6 +134,7 @@ def inject_py_tools():
     assign("[<-.PyObject", robject(py_set_item, invisible=True, asis=True, convert=False), e)
     assign("&.PyObject", robject(operator.and_, invisible=True, convert=False), e)
     assign("|.PyObject", robject(operator.or_, invisible=True, convert=False), e)
+    assign("!.PyObject", robject(operator.not_, invisible=True, convert=False), e)
 
     def attach():
         parent_frame = rcall("sys.frame", -1)
@@ -159,7 +160,8 @@ def inject_py_tools():
             "$<-.PyObject",
             "[<-.PyObject",
             "&.PyObject",
-            "|.PyObject"
+            "|.PyObject",
+            "!.PyObject"
         ]
         for thing in things:
             assign(thing, get_p(thing, e), parent_frame)
