@@ -94,7 +94,7 @@ def setup_rstart(args):
     rstart.ShowMessage = ffi.addressof(lib, "cb_show_message")
     rstart.YesNoCancel = ffi.addressof(lib, "cb_yes_no_cancel")
     rstart.Busy = ffi.addressof(lib, "cb_busy")
-    rstart.CharacterMode = 0
+    rstart.CharacterMode = 1  # RTerm
     rstart.WriteConsoleEx = ffi.addressof(lib, "cb_write_console_ex")
     lib.R_SetParams(rstart)
 
