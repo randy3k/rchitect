@@ -1,3 +1,11 @@
+# v0.3.1:
+
+   - python 3.8 fix
+   - rename to rchitect.py_tools
+   - support &, |, ! in py_tools
+   - windows fix for 3.6
+
+
 # v0.3.0
 
   - completely rewritten using cffi
