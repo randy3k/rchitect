@@ -97,21 +97,59 @@ jobs:
       - run: |
           pip3 install codecov
           codecov
-  deploy-to-pypi:
+  linux-wheels:
+    working_directory: /tmp/workspace
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build the Linux wheels.
+          command: |
+            sudo python -m pip install cibuildwheel
+            cibuildwheel --output-dir wheelhouse
+      - store_artifacts:
+          path: wheelhouse/
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - wheelhouse
+  osx-wheels:
+    working_directory: /tmp/workspace
+    macos:
+      xcode: "10.0.0"
+    steps:
+      - checkout
+      - run:
+          name: Build the OS X wheels.
+          command: |
+            python -m pip install cibuildwheel
+            cibuildwheel --output-dir wheelhouse
+      - store_artifacts:
+          path: wheelhouse/
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - wheelhouse
+  upload-tarball:
     docker:
       - image: circleci/python
     steps:
       - checkout
-      - run: sudo pip install twine
-      - run:
-          name: init .pypirc
-          command: |
-            echo -e "[pypi]" >> ~/.pypirc
-            echo -e "username = randy3k" >> ~/.pypirc
-            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
+      - run: sudo python -m pip install twine
       - run: |
           python setup.py sdist
           twine upload dist/*
+  upload-wheels:
+    docker:
+      - image: circleci/python
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run: sudo python -m pip install twine
+      - run: twine upload /tmp/workspace/wheelhouse/*.whl
+
 workflows:
   version: 2
   build:
@@ -140,7 +178,15 @@ workflows:
           filters:
             tags:
               only: /^v.*/
-      - deploy-to-pypi:
+      - linux-wheels:
+          filters:
+            tags:
+              only: /^v.*/
+      - osx-wheels:
+          filters:
+            tags:
+              only: /^v.*/
+      - upload-tarball:
           requires:
             - test-r-3.4.4-py2
             - test-r-release-py2
@@ -148,6 +194,23 @@ workflows:
             - test-r-3.4.4-py3
             - test-r-release-py3
             - test-r-devel-py3
+            - linux-wheels
+            - osx-wheels
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+      - upload-wheels:
+          requires:
+            - test-r-3.4.4-py2
+            - test-r-release-py2
+            - test-r-devel-py2
+            - test-r-3.4.4-py3
+            - test-r-release-py3
+            - test-r-devel-py3
+            - linux-wheels
+            - osx-wheels
           filters:
             branches:
               ignore: /.*/
