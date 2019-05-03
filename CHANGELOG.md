@@ -1,3 +1,7 @@
+# v0.3.2
+
+   - fix a tarball issue
+
 # v0.3.1:
 
    - python 3.8 fix

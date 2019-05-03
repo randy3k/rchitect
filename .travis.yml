@@ -12,8 +12,8 @@ matrix:
     - os: osx
       language: generic
       before_install:
-        - python2 -m pip install virtualenv
-        - python2 -m virtualenv venv
+        - python -m pip install virtualenv
+        - python -m virtualenv venv
         - source venv/bin/activate
 
 script:
