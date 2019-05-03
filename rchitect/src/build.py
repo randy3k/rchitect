@@ -44,8 +44,13 @@ ffibuilder.set_source(
     # include "parse.h"
     # include "process_events.h"
     """,
-    include_dirs=['src'],
-    sources=['src/libR.c', 'src/gli.c', 'src/parse.c', 'src/process_events.c'])
+    include_dirs=['rchitect/src'],
+    sources=[
+        'rchitect/src/libR.c',
+        'rchitect/src/gli.c',
+        'rchitect/src/parse.c',
+        'rchitect/src/process_events.c'
+    ])
 
 if __name__ == "__main__":
     ffibuilder.compile(verbose=True)
