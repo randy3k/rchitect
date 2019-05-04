@@ -1,102 +1,118 @@
-version: 2
+version: 2.1
+
+commands:
+  install-deps:
+    steps:
+      - run: |
+          apt-get update
+          apt-get install git ssh curl bzip2 libffi6 libffi-dev -y
+      - checkout
+  install-python:
+    parameters:
+      tag:
+        type: string
+        default: "3.6"
+    steps:
+      - run: |
+          curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh
+          bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
+          export PATH="$HOME/miniconda/bin:$PATH"
+          conda create --name myenv python=<<parameters.tag>>
+  run-tests:
+    steps:
+      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
+      - run: |
+          export PATH="$HOME/miniconda/bin:$PATH"
+          source activate myenv
+          python -m pip install -e .[test]
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
+          pytest -s --cov=rchitect
+          python -m pip install codecov
+          codecov
+
+executors:
+  rocker:
+    parameters:
+      tag:
+        type: string
+        default: latest
+    docker:
+      - image: rocker/tidyverse:<< parameters.tag >>
 
 jobs:
-  test-r-3.4.4-py2:
-    docker:
-      - image: rocker/tidyverse:3.4.4
+  test-r-latest-py27:
+    executor:
+      name: rocker
+      tag: latest
     steps:
-      - run: |
-          apt-get update
-          apt-get install git ssh curl libpython-dev python-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - checkout
-      - run: pip install -e .[test]
-      - run: |
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s --cov=rchitect
-      - run: |
-          pip install codecov
-          codecov
-  test-r-release-py2:
-    docker:
-      - image: rocker/tidyverse
+      - install-deps
+      - install-python:
+          tag: "2.7"
+      - run-tests
+  test-r-latest-py35:
+    executor:
+      name: rocker
+      tag: latest
     steps:
-      - run: |
-          apt-get update
-          apt-get install git ssh curl libpython-dev python-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - checkout
-      - run: pip install -e .[test]
-      - run: |
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s --cov=rchitect
-      - run: |
-          pip install codecov
-          codecov
-  test-r-devel-py2:
-    docker:
-      - image: rocker/tidyverse:devel
+      - install-deps
+      - install-python:
+          tag: "3.5"
+      - run-tests
+  test-r-latest-py36:
+    executor:
+      name: rocker
+      tag: latest
     steps:
-      - run: |
-          apt-get update
-          apt-get install git ssh curl libpython-dev python-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - checkout
-      - run: pip install -e .[test]
-      - run: |
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s --cov=rchitect
-      - run: |
-          pip install codecov
-          codecov
-  test-r-3.4.4-py3:
-    docker:
-      - image: rocker/tidyverse:3.4.4
+      - install-deps
+      - install-python:
+          tag: "3.6"
+      - run-tests
+  test-r-latest-py37:
+    executor:
+      name: rocker
+      tag: latest
     steps:
-      - run: |
-          apt-get update
-          apt-get install git ssh curl libpython3-dev python3-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - checkout
-      - run: pip3 install -e .[test]
-      - run: |
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s --cov=rchitect
-      - run: |
-          pip3 install codecov
-          codecov
-  test-r-release-py3:
-    docker:
-      - image: rocker/tidyverse
+      - install-deps
+      - install-python:
+          tag: "3.7"
+      - run-tests
+  test-r-devel-py27:
+    executor:
+      name: rocker
+      tag: devel
     steps:
-      - run: |
-          apt-get update
-          apt-get install git ssh curl libpython3-dev python3-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - checkout
-      - run: pip3 install -e .[test]
-      - run: |
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s --cov=rchitect
-      - run: |
-          pip3 install codecov
-          codecov
-  test-r-devel-py3:
-    docker:
-      - image: rocker/tidyverse:devel
+      - install-deps
+      - install-python:
+          tag: "2.7"
+      - run-tests
+  test-r-devel-py37:
+    executor:
+      name: rocker
+      tag: devel
     steps:
-      - run: |
-          apt-get update
-          apt-get install git ssh curl libpython3-dev python3-pip libffi6 libffi-dev -y
-      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - checkout
-      - run: pip3 install -e .[test]
-      - run: |
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s --cov=rchitect
-      - run: |
-          pip3 install codecov
-          codecov
+      - install-deps
+      - install-python:
+          tag: "3.7"
+      - run-tests
+  test-r-35-py27:
+    executor:
+      name: rocker
+      tag: "3.5"
+    steps:
+      - install-deps
+      - install-python:
+          tag: "2.7"
+      - run-tests
+  test-r-35-py37:
+    executor:
+      name: rocker
+      tag: "3.5"
+    steps:
+      - install-deps
+      - install-python:
+          tag: "3.7"
+      - run-tests
+
   linux-wheels:
     working_directory: /tmp/workspace
     docker:
@@ -154,27 +170,35 @@ workflows:
   version: 2
   build:
     jobs:
-      - test-r-3.4.4-py2:
+      - test-r-latest-py27:
           filters:
             tags:
               only: /^v.*/
-      - test-r-release-py2:
+      - test-r-latest-py35:
           filters:
             tags:
               only: /^v.*/
-      - test-r-devel-py2:
+      - test-r-latest-py36:
           filters:
             tags:
               only: /^v.*/
-      - test-r-3.4.4-py3:
+      - test-r-latest-py37:
           filters:
             tags:
               only: /^v.*/
-      - test-r-release-py3:
+      - test-r-devel-py27:
           filters:
             tags:
               only: /^v.*/
-      - test-r-devel-py3:
+      - test-r-devel-py37:
+          filters:
+            tags:
+              only: /^v.*/
+      - test-r-35-py27:
+          filters:
+            tags:
+              only: /^v.*/
+      - test-r-35-py37:
           filters:
             tags:
               only: /^v.*/
@@ -188,12 +212,14 @@ workflows:
               only: /^v.*/
       - upload-tarball:
           requires:
-            - test-r-3.4.4-py2
-            - test-r-release-py2
-            - test-r-devel-py2
-            - test-r-3.4.4-py3
-            - test-r-release-py3
-            - test-r-devel-py3
+            - test-r-latest-py27
+            - test-r-latest-py35
+            - test-r-latest-py36
+            - test-r-latest-py37
+            - test-r-devel-py27
+            - test-r-devel-py37
+            - test-r-35-py27
+            - test-r-35-py37
             - linux-wheels
             - osx-wheels
           filters:
@@ -203,12 +229,14 @@ workflows:
               only: /^v.*/
       - upload-wheels:
           requires:
-            - test-r-3.4.4-py2
-            - test-r-release-py2
-            - test-r-devel-py2
-            - test-r-3.4.4-py3
-            - test-r-release-py3
-            - test-r-devel-py3
+            - test-r-latest-py27
+            - test-r-latest-py35
+            - test-r-latest-py36
+            - test-r-latest-py37
+            - test-r-devel-py27
+            - test-r-devel-py37
+            - test-r-35-py27
+            - test-r-35-py37
             - linux-wheels
             - osx-wheels
           filters:
