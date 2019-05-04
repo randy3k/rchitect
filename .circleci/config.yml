@@ -6,7 +6,6 @@ commands:
       - run: |
           apt-get update
           apt-get install git ssh curl bzip2 libffi6 libffi-dev -y
-      - checkout
   install-python:
     parameters:
       tag:
@@ -16,14 +15,12 @@ commands:
       - run: |
           curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh
           bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
-          export PATH="$HOME/miniconda/bin:$PATH"
-          conda create --name myenv python=<<parameters.tag>>
+          $HOME/miniconda/bin/conda create --name myenv python=<<parameters.tag>>
   run-tests:
     steps:
       - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - run: |
-          export PATH="$HOME/miniconda/bin:$PATH"
-          source activate myenv
+          source $HOME/miniconda/bin/activate myenv
           python -m pip install -e .[test]
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest -s --cov=rchitect
@@ -40,79 +37,21 @@ executors:
       - image: rocker/tidyverse:<< parameters.tag >>
 
 jobs:
-  test-r-latest-py27:
+  pytest:
+    parameters:
+      r:
+        type: string
+      python:
+        type: string
     executor:
       name: rocker
-      tag: latest
+      tag: <<parameters.r>>
     steps:
       - install-deps
+      - checkout
       - install-python:
-          tag: "2.7"
+          tag: <<parameters.python>>
       - run-tests
-  test-r-latest-py35:
-    executor:
-      name: rocker
-      tag: latest
-    steps:
-      - install-deps
-      - install-python:
-          tag: "3.5"
-      - run-tests
-  test-r-latest-py36:
-    executor:
-      name: rocker
-      tag: latest
-    steps:
-      - install-deps
-      - install-python:
-          tag: "3.6"
-      - run-tests
-  test-r-latest-py37:
-    executor:
-      name: rocker
-      tag: latest
-    steps:
-      - install-deps
-      - install-python:
-          tag: "3.7"
-      - run-tests
-  test-r-devel-py27:
-    executor:
-      name: rocker
-      tag: devel
-    steps:
-      - install-deps
-      - install-python:
-          tag: "2.7"
-      - run-tests
-  test-r-devel-py37:
-    executor:
-      name: rocker
-      tag: devel
-    steps:
-      - install-deps
-      - install-python:
-          tag: "3.7"
-      - run-tests
-  test-r-35-py27:
-    executor:
-      name: rocker
-      tag: "3.5"
-    steps:
-      - install-deps
-      - install-python:
-          tag: "2.7"
-      - run-tests
-  test-r-35-py37:
-    executor:
-      name: rocker
-      tag: "3.5"
-    steps:
-      - install-deps
-      - install-python:
-          tag: "3.7"
-      - run-tests
-
   linux-wheels:
     working_directory: /tmp/workspace
     docker:
@@ -170,35 +109,66 @@ workflows:
   version: 2
   build:
     jobs:
-      - test-r-latest-py27:
+      - pytest:
+          name: rlatest-py27
+          r: latest
+          python: "2.7"
           filters:
             tags:
               only: /^v.*/
-      - test-r-latest-py35:
+      - pytest:
+          name: rlatest-py34
+          r: latest
+          python: "3.4"
           filters:
             tags:
               only: /^v.*/
-      - test-r-latest-py36:
+      - pytest:
+          name: rlatest-py35
+          r: latest
+          python: "3.5"
           filters:
             tags:
               only: /^v.*/
-      - test-r-latest-py37:
+      - pytest:
+          name: rlatest-py36
+          r: latest
+          python: "3.6"
           filters:
             tags:
               only: /^v.*/
-      - test-r-devel-py27:
+      - pytest:
+          name: rlatest-py37
+          r: latest
+          python: "3.7"
           filters:
             tags:
               only: /^v.*/
-      - test-r-devel-py37:
+      - pytest:
+          name: rdevel-py27
+          r: devel
+          python: "2.7"
           filters:
             tags:
               only: /^v.*/
-      - test-r-35-py27:
+      - pytest:
+          name: rdevel-py37
+          r: devel
+          python: "3.7"
           filters:
             tags:
               only: /^v.*/
-      - test-r-35-py37:
+      - pytest:
+          name: r35-py27
+          r: "3.5"
+          python: "2.7"
+          filters:
+            tags:
+              only: /^v.*/
+      - pytest:
+          name: r35-py37
+          r: "3.5"
+          python: "3.7"
           filters:
             tags:
               only: /^v.*/
@@ -212,14 +182,15 @@ workflows:
               only: /^v.*/
       - upload-tarball:
           requires:
-            - test-r-latest-py27
-            - test-r-latest-py35
-            - test-r-latest-py36
-            - test-r-latest-py37
-            - test-r-devel-py27
-            - test-r-devel-py37
-            - test-r-35-py27
-            - test-r-35-py37
+            - rlatest-py27
+            - rlatest-py34
+            - rlatest-py35
+            - rlatest-py36
+            - rlatest-py37
+            - rdevel-py27
+            - rdevel-py37
+            - r35-py27
+            - r35-py37
             - linux-wheels
             - osx-wheels
           filters:
