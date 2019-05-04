@@ -229,16 +229,7 @@ workflows:
               only: /^v.*/
       - upload-wheels:
           requires:
-            - test-r-latest-py27
-            - test-r-latest-py35
-            - test-r-latest-py36
-            - test-r-latest-py37
-            - test-r-devel-py27
-            - test-r-devel-py37
-            - test-r-35-py27
-            - test-r-35-py37
-            - linux-wheels
-            - osx-wheels
+            - upload-tarball
           filters:
             branches:
               ignore: /.*/
