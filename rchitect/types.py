@@ -103,7 +103,11 @@ class RObject(object):
         lib.R_PreserveObject(self.s)
 
     def __del__(self):
-        lib.R_ReleaseObject(self.s)
+        try:
+            # it might cause AttributeError when the program exits
+            lib.R_ReleaseObject(self.s)
+        except AttributeError:
+            pass
 
 
 class RClass(object):
