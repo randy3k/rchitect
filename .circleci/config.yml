@@ -3,29 +3,31 @@ version: 2.1
 commands:
   install-deps:
     steps:
-      - run: |
-          apt-get update
-          apt-get install git ssh curl bzip2 libffi6 libffi-dev -y
-  install-python:
+      - run:
+          name: Install apt-get dependencies
+          command: |
+            apt-get update
+            apt-get install git ssh curl bzip2 libffi6 libffi-dev -y
+  install-conda:
     parameters:
-      tag:
+      python:
         type: string
         default: "3.6"
     steps:
-      - run: |
-          curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh
-          bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
-          $HOME/miniconda/bin/conda create --name myenv python=<<parameters.tag>>
-  run-tests:
+      - run:
+          name: Install Miniconda
+          command: |
+            curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh
+            bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
+            $HOME/miniconda/bin/conda create --name myenv python=<<parameters.python>>
+  install-r-packages:
+    parameters:
+      packages:
+        type: string
     steps:
-      - run: R --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - run: |
-          source $HOME/miniconda/bin/activate myenv
-          python -m pip install -e .[test]
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s --cov=rchitect
-          python -m pip install codecov
-          codecov
+      - run:
+          name: Install R packages
+          command: R --slave -e "install.packages('<<parameters.packages>>', repo = 'https://cloud.r-project.org')"
 
 executors:
   rocker:
@@ -37,7 +39,7 @@ executors:
       - image: rocker/tidyverse:<< parameters.tag >>
 
 jobs:
-  pytest:
+  test:
     parameters:
       r:
         type: string
@@ -49,9 +51,19 @@ jobs:
     steps:
       - install-deps
       - checkout
-      - install-python:
-          tag: <<parameters.python>>
-      - run-tests
+      - install-conda:
+          python: <<parameters.python>>
+      - install-r-packages:
+          packages: "reticulate"
+      - run:
+          name: Install and test
+          command: |
+            source $HOME/miniconda/bin/activate myenv
+            python -m pip install -e .[test]
+            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
+            pytest -s --cov=rchitect
+            python -m pip install codecov
+            codecov
   linux-wheels:
     working_directory: /tmp/workspace
     docker:
@@ -109,63 +121,63 @@ workflows:
   version: 2
   build:
     jobs:
-      - pytest:
+      - test:
           name: rlatest-py27
           r: latest
           python: "2.7"
           filters:
             tags:
               only: /^v.*/
-      - pytest:
+      - test:
           name: rlatest-py34
           r: latest
           python: "3.4"
           filters:
             tags:
               only: /^v.*/
-      - pytest:
+      - test:
           name: rlatest-py35
           r: latest
           python: "3.5"
           filters:
             tags:
               only: /^v.*/
-      - pytest:
+      - test:
           name: rlatest-py36
           r: latest
           python: "3.6"
           filters:
             tags:
               only: /^v.*/
-      - pytest:
+      - test:
           name: rlatest-py37
           r: latest
           python: "3.7"
           filters:
             tags:
               only: /^v.*/
-      - pytest:
+      - test:
           name: rdevel-py27
           r: devel
           python: "2.7"
           filters:
             tags:
               only: /^v.*/
-      - pytest:
+      - test:
           name: rdevel-py37
           r: devel
           python: "3.7"
           filters:
             tags:
               only: /^v.*/
-      - pytest:
+      - test:
           name: r35-py27
           r: "3.5"
           python: "2.7"
           filters:
             tags:
               only: /^v.*/
-      - pytest:
+      - test:
           name: r35-py37
           r: "3.5"
           python: "3.7"
