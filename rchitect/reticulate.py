@@ -6,8 +6,13 @@ from .interface import rcall, rcopy, set_hook, package_event
 
 def run_or_set_hooks():
     def hooks():
-        os.environ["RETICULATE_PYTHON"] = sys.executable
-        os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
+        # os.environ doesn't set the variables in C, we'll need to either use
+        # `msvcrt._putenv` or to use the R function `Sys.setenv`.
+        # os.environ["RETICULATE_PYTHON"] = sys.executable
+        # os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
+        rcall(("base", "Sys.setenv"),
+              RETICULATE_PYTHON=sys.executable,
+              RETICULATE_REMAP_OUTPUT_STREAMS="0")
 
         rcall(
             ("base", "source"),
