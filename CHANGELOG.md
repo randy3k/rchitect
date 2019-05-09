@@ -1,3 +1,7 @@
+# v0.3.3
+
+   - fix reticulate issue in Windows
+
 # v0.3.2
 
    - fix a tarball issue
