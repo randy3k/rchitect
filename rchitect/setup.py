@@ -11,7 +11,11 @@ if sys.version >= "3":
     long = int
 
 
-def init(args=["rchitect", "--quiet"]):
+def init(args=None):
+
+    if not args:
+        args = ["rchitect", "--quiet", "--no-save"]
+
     rhome = Rhome()
     ensure_path(rhome)
 
