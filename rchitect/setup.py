@@ -3,7 +3,7 @@ import sys
 import signal
 
 from rchitect._cffi import ffi, lib
-from .utils import Rhome, libRpath, ensure_path
+from .utils import Rhome, libRpath, ensure_path, system2utf8
 from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
@@ -25,7 +25,7 @@ def init(args=None):
         if not lib._libR_load(libRpath(rhome).encode("utf-8")):
             raise Exception("cannot load R library")
         if not lib._libR_load_symbols():
-            raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
+            raise Exception(system2utf8(ffi.string(lib._libR_dl_error_message())))
 
     # _libR_is_initialized is only correct after _libR_load is execuated.
     if not lib._libR_is_initialized():
@@ -43,7 +43,7 @@ def init(args=None):
 
     if not libR_loaded:
         if not lib._libR_load_constants():
-            raise Exception(ffi.string(lib._libR_dl_error_message()).decode())
+            raise Exception(system2utf8(ffi.string(lib._libR_dl_error_message())))
         lib._libR_setup_xptr_callback()
 
         from rchitect.py_tools import inject_py_tools
