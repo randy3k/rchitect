@@ -1,3 +1,13 @@
+# v0.3.5:
+
+   - use system2utf8 to decode dlerror message
+   - fix python 3 error
+   - install python 3.4 from conda-forge
+
+# v0.3.4
+
+  - init with no-save
+
 # v0.3.3
 
    - fix reticulate issue in Windows
