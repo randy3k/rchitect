@@ -22,14 +22,8 @@ def test_read_console_long(mocker):
 
 def test_read_console_interrupt(mocker):
     mocker.patch("rchitect.setup.ask_input", side_effect=KeyboardInterrupt())
-    oldstderr = sys.stderr
-    sys.stderr = None
-    try:
-        with pytest.raises(Exception) as excinfo:
-            reval("readline('> ')")
-    finally:
-        sys.stderr = oldstderr
-
+    with pytest.raises(Exception) as excinfo:
+        reval("readline('> ')")
     if sys.version_info[0] >= 3:
         assert "eval error" in str(excinfo.value)
     else:
