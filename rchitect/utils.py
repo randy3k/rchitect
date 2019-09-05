@@ -22,7 +22,7 @@ def read_registry(key, valueex):
 def Rhome():
     if 'R_HOME' not in os.environ:
         try:
-            rhome = subprocess.check_output(["R", "RHOME"]).decode("utf-8").strip()
+            rhome = system2utf8(subprocess.check_output(["R", "RHOME"])).strip()
         except Exception:
             rhome = ""
         try:
@@ -63,10 +63,10 @@ def ensure_path(rhome=None):
         try:
             msvcrt = ctypes.cdll.msvcrt
             msvcrt.getenv.restype = ctypes.c_char_p
-            path = msvcrt.getenv("PATH".encode("utf-8")).decode("utf-8")
+            path = system2utf8(utf8tosystem(msvcrt.getenv("PATH")))
             if libRdir not in path:
                 path = libRdir + ";" + path
-                msvcrt._putenv("PATH={}".format(path).encode("utf-8"))
+                msvcrt._putenv(utf8tosystem("PATH={}".format(path)))
         except Exception as e:
             print(e)
             pass
@@ -80,9 +80,9 @@ def rversion(rhome=None):
     if not rhome:
         rhome = Rhome()
     try:
-        output = subprocess.check_output(
+        output = system2utf8(subprocess.check_output(
             [os.path.join(rhome, "bin", "R"), "--version"],
-            stderr=subprocess.STDOUT).decode("utf-8").strip()
+            stderr=subprocess.STDOUT)).strip()
         m = R_RELEASE.match(output)
         if not m:
             m = R_DEVEL.match(output)
