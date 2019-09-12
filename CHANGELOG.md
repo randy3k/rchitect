@@ -1,3 +1,7 @@
+# v0.3.7
+
+  - fix a path related bug in Windows
+
 # v0.3.6
 
    - use system2utf8 for decoding
