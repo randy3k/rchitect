@@ -108,6 +108,9 @@ def setup_callback(p, name, cb_name=None):
 
 
 def setup_unix_callbacks():
+    setup_callback("R_Outputfile", None)
+    setup_callback("R_Consolefile", None)
+
     setup_callback("ptr_R_Suicide", "suicide")
     setup_callback("ptr_R_ShowMessage", "show_message")
     setup_callback("ptr_R_ReadConsole", "read_console", "cb_read_console_interruptible")
