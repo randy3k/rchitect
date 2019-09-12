@@ -1,3 +1,9 @@
+# v0.3.6
+
+   - use system2utf8 for decoding
+   - set ptr_R_WriteConsole to NULL
+   - set R_Outputfile and R_Consolefile to NULL
+
 # v0.3.5:
 
    - use system2utf8 to decode dlerror message
