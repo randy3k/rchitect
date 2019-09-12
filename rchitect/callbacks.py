@@ -100,7 +100,9 @@ def setup_rstart(args):
 
 
 def setup_callback(p, name, cb_name=None):
-    if getattr(callback, name):
+    if name is None:
+        lib._libR_set_callback(p.encode(), ffi.NULL)
+    elif getattr(callback, name):
         cb_name = cb_name if cb_name is not None else "cb_" + name
         lib._libR_set_callback(p.encode(), ffi.addressof(lib, str(cb_name)))
 
@@ -109,7 +111,7 @@ def setup_unix_callbacks():
     setup_callback("ptr_R_Suicide", "suicide")
     setup_callback("ptr_R_ShowMessage", "show_message")
     setup_callback("ptr_R_ReadConsole", "read_console", "cb_read_console_interruptible")
-    setup_callback("ptr_R_WriteConsole", "write_console")
+    setup_callback("ptr_R_WriteConsole", None)
     setup_callback("ptr_R_WriteConsoleEx", "write_console_ex")
     setup_callback("ptr_R_ResetConsole", "reset_console")
     setup_callback("ptr_R_FlushConsole", "flush_console")
