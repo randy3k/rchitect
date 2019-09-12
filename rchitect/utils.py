@@ -63,7 +63,7 @@ def ensure_path(rhome=None):
         try:
             msvcrt = ctypes.cdll.msvcrt
             msvcrt.getenv.restype = ctypes.c_char_p
-            path = system2utf8(utf8tosystem(msvcrt.getenv("PATH")))
+            path = system2utf8(msvcrt.getenv("PATH".encode()))
             if libRdir not in path:
                 path = libRdir + ";" + path
                 msvcrt._putenv(utf8tosystem("PATH={}".format(path)))
