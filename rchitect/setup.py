@@ -49,8 +49,8 @@ def init(args=None):
         from rchitect.py_tools import inject_py_tools
         inject_py_tools()
 
-        from rchitect.reticulate import run_or_set_hooks
-        run_or_set_hooks()
+        from rchitect import reticulate
+        reticulate.configure()
 
 
 def loop():

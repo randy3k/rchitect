@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 import os
 import sys
-from .interface import rcall, rcopy, set_hook, package_event
+from rchitect.interface import rcall, rcopy, set_hook, package_event
 
 
-def run_or_set_hooks():
-    def hooks():
+def configure():
+    def _configure():
         # os.environ doesn't set the variables in C, we'll need to either use
         # `msvcrt._putenv` or to use the R function `Sys.setenv`.
         # os.environ["RETICULATE_PYTHON"] = sys.executable
@@ -16,10 +16,10 @@ def run_or_set_hooks():
 
         rcall(
             ("base", "source"),
-            os.path.join(os.path.dirname(__file__), "R", "reticulate.R"),
+            os.path.join(os.path.dirname(__file__), "config.R"),
             rcall(("base", "new.env")))
 
     if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
-        hooks()
+        _configure()
     else:
-        set_hook(package_event("reticulate", "onLoad"), lambda x, y: hooks())
+        set_hook(package_event("reticulate", "onLoad"), lambda x, y: _configure())
