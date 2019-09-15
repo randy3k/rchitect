@@ -24,10 +24,7 @@ def test_read_console_interrupt(mocker):
     mocker.patch("rchitect.setup.ask_input", side_effect=KeyboardInterrupt())
     with pytest.raises(Exception) as excinfo:
         reval("readline('> ')")
-    if sys.version_info[0] >= 3:
-        assert str(excinfo.value).startswith("Error")
-    else:
-        assert str(excinfo).startswith("Error")
+    assert str(excinfo.value).startswith("Error")
 
 
 def test_yes_no_cancel(mocker):
