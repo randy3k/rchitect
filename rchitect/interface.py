@@ -6,6 +6,8 @@ from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, 
     VECSXP, EXPRSXP, EXTPTRSXP, RAWSXP, S4SXP
 from .types import box, unbox
 from .xptr import new_xptr, new_xptr_p, from_xptr
+from .console import capture_console, read_stderr
+
 
 import sys
 import ctypes
@@ -112,9 +114,11 @@ def rparse_p(s):
     status = ffi.new("ParseStatus[1]")
     s = rstring_p(s)
     with protected(s):
-        ret = lib.R_ParseVector(s, -1, status, lib.R_NilValue)
-        if status[0] != lib.PARSE_OK:
-            raise Exception("parse error")
+        with capture_console():
+            ret = lib.R_ParseVector(s, -1, status, lib.R_NilValue)
+            if status[0] != lib.PARSE_OK:
+                err = read_stderr().strip() or "Error"
+                raise RuntimeError("{}".format(err))
     return ret
 
 
@@ -133,10 +137,12 @@ def reval_p(s, envir=None):
         ret = lib.R_NilValue
         status = ffi.new("int[1]")
         with protected(s):
-            for i in range(0, lib.Rf_length(s)):
-                ret = lib.R_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
-                if status[0] != 0:
-                    raise RuntimeError("eval error")
+            with capture_console():
+                for i in range(0, lib.Rf_length(s)):
+                    ret = lib.R_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
+                    if status[0] != 0:
+                        err = read_stderr().strip() or "Error"
+                        raise RuntimeError("{}".format(err))
     return ret
 
 
@@ -231,11 +237,12 @@ def rcall_p(f, *args, **kwargs):
 
     with protected(_envir):
         with sexp_args(args, kwargs) as (a, k):
-            status = ffi.new("int[1]")
-            val = lib.R_tryEval(rlang_p(f, *a, **k), _envir, status)
-            if status[0] != 0:
-                raise RuntimeError("call error")
-
+            with capture_console():
+                status = ffi.new("int[1]")
+                val = lib.R_tryEval(rlang_p(f, *a, **k), _envir, status)
+                if status[0] != 0:
+                    err = read_stderr().strip() or "Error"
+                    raise RuntimeError("{}".format(err))
     return val
 
 

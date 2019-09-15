@@ -35,6 +35,8 @@ extern char xptr_callback_error_message[100];
 
 // begin cb cdef
 
+void cb_write_console_capturable(const char *, int, int);
+
 void cb_suicide(const char *);
 void cb_show_message(const char *);
 int  cb_read_console(const char *, unsigned char *, int, int);

@@ -25,9 +25,9 @@ def test_read_console_interrupt(mocker):
     with pytest.raises(Exception) as excinfo:
         reval("readline('> ')")
     if sys.version_info[0] >= 3:
-        assert "eval error" in str(excinfo.value)
+        assert str(excinfo.value).startswith("Error")
     else:
-        assert "eval error" in str(excinfo)
+        assert str(excinfo).startswith("Error")
 
 
 def test_yes_no_cancel(mocker):

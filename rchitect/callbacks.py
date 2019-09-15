@@ -1,13 +1,13 @@
 from __future__ import unicode_literals
 from rchitect._cffi import ffi, lib
 from .utils import rconsole2str, utf8tosystem
+from . import console
 
 
 class Callback(object):
     suicide = None
     show_message = None
     read_console = None
-    write_console = None
     write_console_ex = None
     reset_console = None
     flush_console = None
@@ -35,6 +35,7 @@ class Callback(object):
 
 
 callback = Callback()
+console.reg_callback(callback)
 
 
 def def_callback(name=None):
@@ -95,7 +96,7 @@ def setup_rstart(args):
     rstart.YesNoCancel = ffi.addressof(lib, "cb_yes_no_cancel")
     rstart.Busy = ffi.addressof(lib, "cb_busy")
     rstart.CharacterMode = 1  # RTerm
-    rstart.WriteConsoleEx = ffi.addressof(lib, "cb_write_console_ex")
+    rstart.WriteConsoleEx = ffi.addressof(lib, "cb_write_console_capturable")
     lib.R_SetParams(rstart)
 
 
@@ -115,7 +116,7 @@ def setup_unix_callbacks():
     setup_callback("ptr_R_ShowMessage", "show_message")
     setup_callback("ptr_R_ReadConsole", "read_console", "cb_read_console_interruptible")
     setup_callback("ptr_R_WriteConsole", None)
-    setup_callback("ptr_R_WriteConsoleEx", "write_console_ex")
+    setup_callback("ptr_R_WriteConsoleEx", "write_console_ex", "cb_write_console_capturable")
     setup_callback("ptr_R_ResetConsole", "reset_console")
     setup_callback("ptr_R_FlushConsole", "flush_console")
     setup_callback("ptr_R_ClearerrConsole", "clearerr_console")
@@ -176,8 +177,9 @@ def cb_read_console(p, buf, buflen, add_history):
 
 
 @ffi.def_extern()
-def cb_write_console_ex(buf, buflen, otype):
-    callback.write_console_ex(rconsole2str(ffi.string(buf)), otype)
+def cb_write_console_capturable(buf, bufline, otype):
+    text = rconsole2str(ffi.string(buf))
+    console.write_console(text, otype)
 
 
 @ffi.def_extern()
@@ -192,6 +194,7 @@ def cb_clean_up(saveact, status, run_last):
 
 @ffi.def_extern()
 def cb_polled_events():
+    console.flush()
     callback.polled_events()
 
 

@@ -23,7 +23,7 @@ def test_rprint():
 def test_rparse_error():
     with pytest.raises(Exception) as excinfo:
         rparse("x =")
-    assert str(excinfo.value) == "parse error"
+    assert str(excinfo.value).startswith("Error")
 
 
 def test_reval_error():
@@ -34,7 +34,7 @@ def test_reval_error():
             reval("1 + 'A'")
         finally:
             sys.stderr = original_stderr
-    assert str(excinfo.value) == "eval error"
+    assert str(excinfo.value).startswith("Error")
 
 
 def test_rcall_error():
@@ -45,4 +45,4 @@ def test_rcall_error():
             rcall("sum", [1, "A"])
         finally:
             sys.stderr = original_stderr
-    assert str(excinfo.value) == "call error"
+    assert str(excinfo.value).startswith("Error")
