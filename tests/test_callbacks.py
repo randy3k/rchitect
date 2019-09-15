@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from rchitect import reval, rcopy
 from rchitect._cffi import lib, ffi
 import pytest
-import sys
 
 
 def test_read_console(mocker):
