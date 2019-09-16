@@ -1,3 +1,9 @@
+# v0.3.8:
+
+   - improve error message handling
+   - add completion utils
+   - tests update
+
 # v0.3.7
 
   - fix a path related bug in Windows
