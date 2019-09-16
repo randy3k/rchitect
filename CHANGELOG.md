@@ -1,3 +1,7 @@
+# v0.3.9
+
+  - fix a reticulate bug
+
 # v0.3.8:
 
    - improve error message handling
