@@ -25,6 +25,12 @@ def test_rparse_error():
         assert str(excinfo.value).startswith("Error")
 
 
+def test_rparse_error2():
+    with pytest.raises(Exception) as excinfo:
+        rparse("'\\g'")
+        assert "an unrecognized escape in character string" in str(excinfo.value)
+
+
 def test_reval_error():
     with pytest.raises(Exception) as excinfo:
         reval("1 + 'A'")
