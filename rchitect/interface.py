@@ -253,7 +253,7 @@ def rcall(*args, **kwargs):
 
 
 def rprint(s):
-    new_env = rcall("new.env")
+    new_env = rcall(("base", "new.env"))
     lib.Rf_defineVar(rsym_p("x"), unbox(s), unbox(new_env))
     with protected(s):
         try:
@@ -264,10 +264,10 @@ def rprint(s):
 
 def _repr(self):
     s = self.s
-    new_env = rcall("new.env")
+    new_env = rcall(("base", "new.env"))
     lib.Rf_defineVar(rsym_p("x"), unbox(s), unbox(new_env))
     try:
-        output = rcall("capture.output", rlang(("base", "print"), rsym_p("x")), _envir=new_env)
+        output = rcall(("utils", "capture.output"), rlang(("base", "print"), rsym_p("x")), _envir=new_env)
     finally:
         lib.Rf_defineVar(rsym_p("x"), lib.R_NilValue, unbox(new_env))
 
