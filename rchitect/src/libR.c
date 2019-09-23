@@ -2,7 +2,6 @@
 #include "libR.h"
 #include "R.h"
 #include <stdio.h>
-#include <Python.h>
 
 static void* libR_t;
 
