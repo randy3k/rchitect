@@ -599,7 +599,25 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
 }
 
 
-#ifndef _WIN32
+#ifdef _WIN32
+
+// actually we don't use them
+
+void cb_polled_events_safe() {
+    cb_polled_events();
+}
+
+
+void cb_write_console_safe(const char* s, int bufline, int otype) {
+    cb_write_console_capturable(s, bufline, otype);
+}
+
+void cb_busy_safe(int which) {
+    cb_busy(which);
+}
+
+
+#else
 
 #include <unistd.h>
 
