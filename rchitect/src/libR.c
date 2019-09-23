@@ -594,8 +594,11 @@ void _libR_setup_xptr_callback() {
 #if defined(_WIN32)
 
 void cb_polled_events_safe() {
-
     cb_polled_events();
+}
+
+void cb_write_console_safe(const char* s, int bufline, int otype) {
+    cb_write_console_capturable(s, bufline, otype);
 }
 
 #else
@@ -605,16 +608,27 @@ void cb_polled_events_safe() {
 void* main_id;
 
 void cb_polled_events_safe() {
-
-    if (main_id == NULL) {
-        main_id = getpid();
-    }
-
-    if (getpid() != main_id) {
-        return;
-    }
-
+    if (main_id == NULL) main_id = getpid();
+    if (getpid() != main_id) return;
     cb_polled_events();
+}
+
+void cb_write_console_safe(const char* s, int bufline, int otype) {
+    // TODO: is it possible to capture the output of forks?
+
+    if (main_id == NULL) main_id = getpid();
+    if (getpid() == main_id) {
+        // only capture the main process
+        cb_write_console_capturable(s, bufline, otype);
+    } else {
+        if (otype == 0) {
+            printf("%s", s);
+            fflush(stdout);
+        } else {
+            fprintf(stderr, "%s", s);
+            fflush(stderr);
+        }
+    }
 }
 
 #endif

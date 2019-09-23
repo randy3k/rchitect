@@ -116,7 +116,7 @@ def setup_unix_callbacks():
     setup_callback("ptr_R_ShowMessage", "show_message")
     setup_callback("ptr_R_ReadConsole", "read_console", "cb_read_console_interruptible")
     setup_callback("ptr_R_WriteConsole", None)
-    setup_callback("ptr_R_WriteConsoleEx", "write_console_ex", "cb_write_console_capturable")
+    setup_callback("ptr_R_WriteConsoleEx", "write_console_ex", "cb_write_console_safe")
     setup_callback("ptr_R_ResetConsole", "reset_console")
     setup_callback("ptr_R_FlushConsole", "flush_console")
     setup_callback("ptr_R_ClearerrConsole", "clearerr_console")

@@ -25,6 +25,8 @@ void _libR_set_callback(char* name, void* cb);
 int cb_read_console_interruptible(const char *, unsigned char *, int, int);
 extern int cb_read_console_interrupted;
 
+void cb_write_console_safe(const char *, int, int);
+
 void cb_polled_events_safe();
 
 void _libR_setup_xptr_callback();
