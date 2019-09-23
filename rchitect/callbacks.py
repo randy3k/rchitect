@@ -120,7 +120,7 @@ def setup_unix_callbacks():
     setup_callback("ptr_R_ResetConsole", "reset_console")
     setup_callback("ptr_R_FlushConsole", "flush_console")
     setup_callback("ptr_R_ClearerrConsole", "clearerr_console")
-    setup_callback("ptr_R_Busy", "busy")
+    setup_callback("ptr_R_Busy", "busy", "cb_busy_safe")
     setup_callback("ptr_R_CleanUp", "clean_up")
     setup_callback("ptr_R_ShowFiles", "show_files")
     setup_callback("ptr_R_ChooseFile", "choose_file")
