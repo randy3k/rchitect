@@ -2,6 +2,7 @@
 #include "libR.h"
 #include "R.h"
 #include <stdio.h>
+#include <Python.h>
 
 static void* libR_t;
 
@@ -588,3 +589,33 @@ void _libR_setup_xptr_callback() {
     DllInfo* dll = R_getEmbeddingDllInfo();
     R_registerRoutines(dll, NULL, (void*) CallEntries, NULL, NULL);
 }
+
+
+
+#if defined(_WIN32)
+
+void cb_polled_events_safe() {
+
+    cb_polled_events();
+}
+
+#else
+
+#include <unistd.h>
+
+void* main_id;
+
+void cb_polled_events_safe() {
+
+    if (main_id == NULL) {
+        main_id = getpid();
+    }
+
+    if (getpid() != main_id) {
+        return;
+    }
+
+    cb_polled_events();
+}
+
+#endif

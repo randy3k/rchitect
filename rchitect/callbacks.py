@@ -133,7 +133,7 @@ def setup_unix_callbacks():
     setup_callback("ptr_do_dataentry", "do_dataentry")
     setup_callback("ptr_do_dataviewer", "do_dataviewer")
     setup_callback("ptr_R_ProcessEvents", "process_events")
-    setup_callback("R_PolledEvents", "polled_events")
+    setup_callback("R_PolledEvents", "polled_events", "cb_polled_events_safe")
 
 
 @ffi.def_extern()
