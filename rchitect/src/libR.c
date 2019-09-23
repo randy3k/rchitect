@@ -538,25 +538,6 @@ int _libR_load_constants() {
     return 1;
 }
 
-int cb_read_console_interrupted;
-
-// we need to wrap cb_read_console to make it KeyboardInterrupt aware
-int cb_read_console_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
-    int ret;
-    cb_read_console_interrupted = 0;
-    ret = cb_read_console(p, buf, buflen, add_history);
-    if (cb_read_console_interrupted == 1) {
-#ifdef _WIN32
-        *UserBreak_t = 1;
-#else
-        *R_interrupts_pending_t = 1;
-#endif
-        R_CheckUserInterrupt();
-    }
-    return ret;
-}
-
-
 void _libR_set_callback(char* name, void* cb) {
     void** p;
     if (load_symbol(name, (void**) &p)) {
@@ -593,6 +574,24 @@ void _libR_setup_xptr_callback() {
 
 #if defined(_WIN32)
 
+int cb_read_console_interrupted;
+
+// we need to wrap cb_read_console to make it KeyboardInterrupt aware
+int cb_read_console_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
+    int ret;
+    cb_read_console_interrupted = 0;
+    ret = cb_read_console(p, buf, buflen, add_history);
+    if (cb_read_console_interrupted == 1) {
+#ifdef _WIN32
+        *UserBreak_t = 1;
+#else
+        *R_interrupts_pending_t = 1;
+#endif
+        R_CheckUserInterrupt();
+    }
+    return ret;
+}
+
 void cb_polled_events_safe() {
     cb_polled_events();
 }
@@ -606,6 +605,27 @@ void cb_write_console_safe(const char* s, int bufline, int otype) {
 #include <unistd.h>
 
 void* main_id;
+
+int cb_read_console_interrupted;
+
+// we need to wrap cb_read_console to make it KeyboardInterrupt aware
+int cb_read_console_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
+    if (main_id == NULL) main_id = getpid();
+    if (getpid() != main_id) abort();
+
+    int ret;
+    cb_read_console_interrupted = 0;
+    ret = cb_read_console(p, buf, buflen, add_history);
+    if (cb_read_console_interrupted == 1) {
+#ifdef _WIN32
+        *UserBreak_t = 1;
+#else
+        *R_interrupts_pending_t = 1;
+#endif
+        R_CheckUserInterrupt();
+    }
+    return ret;
+}
 
 void cb_polled_events_safe() {
     if (main_id == NULL) main_id = getpid();
