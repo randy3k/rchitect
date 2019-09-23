@@ -1,9 +1,7 @@
 #include "process_events.h"
 
 
-void process_events() {
-// TODO: use R_ToplevelExec
-
+static void _process_events(void* n) {
 #if defined(__APPLE__) || defined(_WIN32)
     R_ProcessEvents();
 #endif
@@ -17,4 +15,8 @@ void process_events() {
     R_runHandlers(R_InputHandlers, what);
 #endif
 
+}
+
+void process_events() {
+    R_ToplevelExec(_process_events, NULL);
 }
