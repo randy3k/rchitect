@@ -1,3 +1,7 @@
+# v0.3.10
+
+  - handle fork processes
+
 # v0.3.9
 
   - fix a reticulate bug
