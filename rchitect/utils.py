@@ -108,6 +108,14 @@ def rconsole2str(buf):
 
 
 if sys.platform == "win32":
+    """
+    The following only works after setlocale in C and
+    R will initialize it for us. To mimic the behaviour, consider
+    ```
+    ctypes.cdll.msvcrt.setlocale(0, ctypes.c_char_p("chinese-traditional"))
+    ```
+    """
+
     mbtowc = ctypes.cdll.msvcrt.mbtowc
     mbtowc.argtypes = [
         ctypes.POINTER(ctypes.c_wchar),
