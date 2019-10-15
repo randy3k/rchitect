@@ -525,11 +525,14 @@ int _libR_load_constants() {
     LOAD_CONSTANT(R_BlankString);
     LOAD_CONSTANT(R_BlankScalarString);
 
-    LOAD_CONSTANT(R_NaN);
-    LOAD_CONSTANT(R_PosInf);
-    LOAD_CONSTANT(R_NegInf);
-    LOAD_CONSTANT(R_NaReal);
-    LOAD_CONSTANT(R_NaInt);
+
+    // Better not load them now, they could be defined only after Rf_initialize_R
+    // we could load them after Rf_initialize_R when they are required
+    // LOAD_CONSTANT(R_NaN);
+    // LOAD_CONSTANT(R_PosInf);
+    // LOAD_CONSTANT(R_NegInf);
+    // LOAD_CONSTANT(R_NaReal);
+    // LOAD_CONSTANT(R_NaInt);
 
     #if !defined(_WIN32)
     LOAD_CONSTANT(R_InputHandlers)
