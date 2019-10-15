@@ -43,7 +43,9 @@ def init(args=None):
 
     if not libR_loaded:
         if not lib._libR_load_constants():
-            raise Exception(system2utf8(ffi.string(lib._libR_dl_error_message())))
+            raise Exception("{}: {}".format(
+                system2utf8(ffi.string(lib._libR_dl_error_message())),
+                system2utf8(ffi.string(lib._libR_last_loaded_symbol()))))
         lib._libR_setup_xptr_callback()
 
         from rchitect.py_tools import inject_py_tools
