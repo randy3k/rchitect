@@ -525,9 +525,7 @@ int _libR_load_constants() {
     LOAD_CONSTANT(R_BlankString);
     LOAD_CONSTANT(R_BlankScalarString);
 
-
-    // Better not load them now, they could be defined only after Rf_initialize_R
-    // we could load them after Rf_initialize_R when they are required
+    // These constants are not exported in raspbian
     // LOAD_CONSTANT(R_NaN);
     // LOAD_CONSTANT(R_PosInf);
     // LOAD_CONSTANT(R_NegInf);

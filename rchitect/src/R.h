@@ -487,11 +487,11 @@ RAPI_EXTERN R_xlen_t  (*XTRUELENGTH)(SEXP x);
 
 
 // Arith.h
-RAPI_EXTERN double R_NaN;
-RAPI_EXTERN double R_PosInf;
-RAPI_EXTERN double R_NegInf;
-RAPI_EXTERN double R_NaReal;
-RAPI_EXTERN int    R_NaInt;
+// RAPI_EXTERN double R_NaN;
+// RAPI_EXTERN double R_PosInf;
+// RAPI_EXTERN double R_NegInf;
+// RAPI_EXTERN double R_NaReal;
+// RAPI_EXTERN int    R_NaInt;
 RAPI_EXTERN int (*R_IsNA)(double);
 RAPI_EXTERN int (*R_IsNaN)(double);
 RAPI_EXTERN int (*R_finite)(double);
