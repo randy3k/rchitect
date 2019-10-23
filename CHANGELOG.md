@@ -1,3 +1,9 @@
+# v0.3.11 and v0.3.12
+
+   - show the last loaded symbol
+   - catch OSError in py_config
+
+
 # v0.3.10
 
   - handle fork processes
