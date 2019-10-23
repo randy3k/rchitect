@@ -17,6 +17,7 @@ def init(args=None):
         args = ["rchitect", "--quiet", "--no-save"]
 
     rhome = Rhome()
+    # TODO: we might need to do `ctypes.cdll.msvcrt.setlocale` in Windows.
     ensure_path(rhome)
 
     libR_loaded = lib.Rf_initialize_R != ffi.NULL
@@ -25,7 +26,10 @@ def init(args=None):
         if not lib._libR_load(libRpath(rhome).encode("utf-8")):
             raise Exception("cannot load R library")
         if not lib._libR_load_symbols():
-            raise Exception(system2utf8(ffi.string(lib._libR_dl_error_message())))
+            # `system2utf8` may not work before `Rf_initialize_R` because locale may not set
+            raise Exception("{}: {}".format(
+                system2utf8(ffi.string(lib._libR_dl_error_message())),
+                system2utf8(ffi.string(lib._libR_last_loaded_symbol()))))
 
     # _libR_is_initialized is only correct after _libR_load is execuated.
     if not lib._libR_is_initialized():
