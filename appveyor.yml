@@ -56,7 +56,7 @@ for:
       only:
         - BUILD_WHEEL: true
     install:
-      - python -m pip install cibuildwheel==0.10.1
+      - python -m pip install cibuildwheel
       - cibuildwheel --output-dir wheelhouse
     build_script:
       - >
