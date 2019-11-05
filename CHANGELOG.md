@@ -1,3 +1,7 @@
+# v0.3.13
+
+   - flush stdout and stderr before each prompt
+
 # v0.3.11 and v0.3.12
 
    - show the last loaded symbol
