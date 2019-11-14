@@ -44,7 +44,6 @@ try to expose the path to R to the `PATH` vaiable.
 In Linux/macOS, you could also export the environment variable `R_HOME`. For example,
 ```sh
 $ export R_HOME=/usr/local/lib/R
-$ radian
 ```
 Sometimes, you may also need to futher specify `LD_LIBRARY_PATH` if R fails to find some shared libraries,
 ```sh
