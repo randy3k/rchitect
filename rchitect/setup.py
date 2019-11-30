@@ -23,10 +23,11 @@ def init(args=None):
     libR_loaded = lib.Rf_initialize_R != ffi.NULL
 
     if not libR_loaded:
+        # `system2utf8` may not work before `Rf_initialize_R` because locale may not set
         if not lib._libR_load(libRpath(rhome).encode("utf-8")):
-            raise Exception("cannot load R library")
+            raise Exception("Cannot load R shared library. {}".format(
+                    system2utf8(ffi.string(lib._libR_dl_error_message()))))
         if not lib._libR_load_symbols():
-            # `system2utf8` may not work before `Rf_initialize_R` because locale may not set
             raise Exception("{}: {}".format(
                 system2utf8(ffi.string(lib._libR_dl_error_message())),
                 system2utf8(ffi.string(lib._libR_last_loaded_symbol()))))
