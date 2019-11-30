@@ -1,3 +1,8 @@
+# v0.3.14
+
+   - Support R-devel by removing CON_NR
+
+
 # v0.3.13
 
    - flush stdout and stderr before each prompt
