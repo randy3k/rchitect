@@ -22,7 +22,7 @@ def read_registry(key, valueex):
 def Rhome():
     if 'R_HOME' not in os.environ:
         try:
-            rhome = system2utf8(subprocess.check_output(["R", "RHOME"])).strip()
+            rhome = subprocess.check_output(["R", "RHOME"]).decode("utf-8").strip()
         except Exception:
             rhome = ""
         try:
@@ -62,11 +62,11 @@ def ensure_path(rhome=None):
         # make sure Rblas.dll can be reached
         try:
             msvcrt = ctypes.cdll.msvcrt
-            msvcrt.getenv.restype = ctypes.c_char_p
-            path = system2utf8(msvcrt.getenv("PATH".encode()))
+            msvcrt._wgetenv.restype = ctypes.c_wchar_p
+            path = msvcrt._wgetenv(ctypes.c_wchar_p("PATH"))
             if libRdir not in path:
                 path = libRdir + ";" + path
-                msvcrt._putenv(utf8tosystem("PATH={}".format(path)))
+                msvcrt._wputenv(ctypes.c_wchar_p("PATH={}".format(path)))
         except Exception as e:
             print(e)
             pass
@@ -80,9 +80,9 @@ def rversion(rhome=None):
     if not rhome:
         rhome = Rhome()
     try:
-        output = system2utf8(subprocess.check_output(
+        output = subprocess.check_output(
             [os.path.join(rhome, "bin", "R"), "--version"],
-            stderr=subprocess.STDOUT)).strip()
+            stderr=subprocess.STDOUT).decode("utf-8").strip()
         m = R_RELEASE.match(output)
         if not m:
             m = R_DEVEL.match(output)
