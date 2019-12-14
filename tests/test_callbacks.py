@@ -29,22 +29,19 @@ def test_read_console_interrupt(mocker):
 def test_write_console(mocker):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('helloworld')")
-    mocker_write_console.assert_called_once()
-    assert mocker_write_console.call_args == (('helloworld', 0), )
+    mocker_write_console.assert_called_once_with('helloworld', 0)
 
 
 def test_write_console_utf8(mocker):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('v𐐀字')")
-    mocker_write_console.assert_called_once()
-    assert mocker_write_console.call_args == (('v𐐀字', 0), )
+    mocker_write_console.assert_called_once_with('v𐐀字', 0)
 
 
 def test_write_console_stderr(mocker):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('helloworld', file = stderr())")
-    mocker_write_console.assert_called_once()
-    assert mocker_write_console.call_args == (('helloworld', 1), )
+    mocker_write_console.assert_called_once_with('helloworld', 1)
 
 
 def test_yes_no_cancel(mocker):
