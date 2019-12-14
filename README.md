@@ -38,6 +38,8 @@ d = rcall("sum", c)  # call an R function. Python objects are converted to RObje
 
 ## FAQ
 
+#### How to specify R_HOME location
+
 If `rchitect` fails to open the R shared library, user should first
 try to expose the path to R to the `PATH` vaiable.
 
@@ -51,6 +53,10 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
 ```
 
 Please also make sure that R was installed with the R shared library `libR.so` or `libR.dylib` or `libR.dll`. On Linux, the flag `--enable-R-shlib` may be needed to install R from the source.
+
+#### Microsoft Store python
+
+It is [known](https://github.com/randy3k/radian/issues/120#issuecomment-565695557) that `rchitect` doesn't work with python from Microsoft Store.
 
 ## Wiki
 
