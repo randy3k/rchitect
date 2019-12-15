@@ -83,7 +83,7 @@ def rdouble(s):
 
 def rchar_p(s):
     isascii = all(ord(c) < 128 for c in s)
-    b = utf8tosystem(s)
+    b = s.encode('utf-8')
     return lib.Rf_mkCharLenCE(b, len(b), lib.CE_NATIVE if isascii else lib.CE_UTF8)
 
 
@@ -113,7 +113,7 @@ def rsym(s, t=None):
 def rparse_p(s):
     ensure_initialized()
     status = ffi.new("ParseStatus[1]")
-    s = rstring_p(s)
+    s = lib.Rf_mkString(utf8tosystem(s))
     with protected(s):
         with capture_console():
             ret = lib.R_ParseVector(s, -1, status, lib.R_NilValue)
@@ -193,7 +193,7 @@ def rlang_p(f, *args, **kwargs):
             for k, v in kwargs.items():
                 s = lib.CDR(s)
                 lib.SETCAR(s, unbox(v))
-                lib.SET_TAG(s, lib.Rf_install(k.encode("utf-8")))
+                lib.SET_TAG(s, lib.Rf_install(utf8tosystem(k)))
 
             ret = t
     return ret
@@ -724,7 +724,7 @@ def sexp(_, s):
     with protected(x):
         for i in range(n):
             isascii = all(ord(c) < 128 for c in s[i])
-            b = utf8tosystem(s[i])
+            b = s[i].encode('utf-8')
             lib.SET_STRING_ELT(x, i, lib.Rf_mkCharLenCE(b, len(b), 0 if isascii else 1))
     return x
 
