@@ -34,8 +34,9 @@ def test_write_console(mocker):
 
 def test_write_console_utf8(mocker):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
-    reval("cat('v𐐀字')")
-    mocker_write_console.assert_called_once_with('v𐐀字', 0)
+    # windows still doesn't like `𐐀`
+    reval("cat('文字')")
+    mocker_write_console.assert_called_once_with('文字', 0)
 
 
 def test_write_console_stderr(mocker):

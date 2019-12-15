@@ -6,7 +6,8 @@ from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, 
     VECSXP, EXPRSXP, EXTPTRSXP, RAWSXP, S4SXP
 from .types import box, unbox
 from .xptr import new_xptr, new_xptr_p, from_xptr
-from .console import capture_console, read_stderr
+from .console import capture_console, read_stdout, read_stderr
+from .utils import utf8tosystem
 
 
 import sys
@@ -82,7 +83,7 @@ def rdouble(s):
 
 def rchar_p(s):
     isascii = all(ord(c) < 128 for c in s)
-    b = s.encode("utf-8")
+    b = utf8tosystem(s)
     return lib.Rf_mkCharLenCE(b, len(b), lib.CE_NATIVE if isascii else lib.CE_UTF8)
 
 
@@ -102,7 +103,7 @@ def rsym_p(s, t=None):
     if t:
         return rlang_p("::", rsym_p(s), rsym_p(t))
     else:
-        return lib.Rf_install(s.encode("utf-8"))
+        return lib.Rf_install(utf8tosystem(s))
 
 
 def rsym(s, t=None):
@@ -266,18 +267,18 @@ def _repr(self):
     s = self.s
     new_env = rcall(("base", "new.env"))
     lib.Rf_defineVar(rsym_p("x"), unbox(s), unbox(new_env))
-    try:
-        output = rcall(("utils", "capture.output"), rlang(("base", "print"), rsym_p("x")), _envir=new_env)
-    finally:
-        lib.Rf_defineVar(rsym_p("x"), lib.R_NilValue, unbox(new_env))
+    with capture_console(flushable=False):
+        try:
+            rcall(("base", "print"), rsym_p("x"), _envir=new_env)
+        finally:
+            lib.Rf_defineVar(rsym_p("x"), lib.R_NilValue, unbox(new_env))
+        output = read_stdout() or ""
 
     name = "RObject{{{}}}".format(str(sexptype(s)))
-    if not lib.Rf_isNull(unbox(output)) and lib.Rf_length(unbox(output)) > 0:
-        try:
-            return name + "\n" + "\n".join(rcopy(list, output))
-        except Exception:
-            pass
-    return name
+    if output:
+        return name + "\n" + output.rstrip()
+    else:
+        return name
 
 
 RObject.__repr__ = _repr
@@ -723,7 +724,7 @@ def sexp(_, s):
     with protected(x):
         for i in range(n):
             isascii = all(ord(c) < 128 for c in s[i])
-            b = s[i].encode("utf-8")
+            b = utf8tosystem(s[i])
             lib.SET_STRING_ELT(x, i, lib.Rf_mkCharLenCE(b, len(b), 0 if isascii else 1))
     return x
 
@@ -765,7 +766,7 @@ def sexp_as_py_object(obj):
 
 def on_xptr_callback_error(exception, exc_value, traceback):
     lib.xptr_callback_error_occured = 1
-    lib.xptr_callback_error_message = str(exc_value)[0:100].encode("utf-8")
+    lib.xptr_callback_error_message = utf8tosystem(str(exc_value)[0:100])
 
 
 @ffi.def_extern(error=ffi.NULL, onerror=on_xptr_callback_error)

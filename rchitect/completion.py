@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from rchitect.interface import rcall, reval, rcopy, rstring, rint
 from six import text_type
 

@@ -142,7 +142,13 @@ if sys.platform == "win32":
         s = ctypes.create_string_buffer(10)
         buf = b""
         for c in text:
-            n = wctomb(s, c)
+            try:
+                n = wctomb(s, c)
+            except Exception:
+                print(text)
+                print(c, type(c))
+                raise
+
             if n > 0:
                 buf += s[:n]
             else:

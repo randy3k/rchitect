@@ -1,9 +1,12 @@
+from __future__ import unicode_literals
+
 from six import StringIO
 from contextlib import contextmanager
 
 
 output_buffer = StringIO()
 error_buffer = StringIO()
+_flushable = True
 _capture_state = False
 _callback = None
 
@@ -36,6 +39,8 @@ def read_stdout():
 
 
 def flush_stdout():
+    if not _flushable:
+        return
     out = read_stdout()
     if out:
         _callback.write_console_ex(out, 0)
@@ -46,6 +51,8 @@ def read_stderr():
 
 
 def flush_stderr():
+    if not _flushable:
+        return
     err = read_stderr()
     if err:
         _callback.write_console_ex(err, 1)
@@ -57,11 +64,17 @@ def flush():
 
 
 @contextmanager
-def capture_console():
+def capture_console(flushable=True):
     global _capture_state
+    global _flushable
+    _capture_state_old = _capture_state
     _capture_state = True
+    _flushable_old = _flushable
+    _flushable = flushable and _flushable
     try:
         yield
     finally:
-        _capture_state = False
-        flush()
+        _capture_state = _capture_state_old
+        if flushable and _capture_state == 0:
+            flush()
+        _flushable = _flushable_old
