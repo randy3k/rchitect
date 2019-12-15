@@ -1,3 +1,8 @@
+# v0.3.15
+
+   - fix some unicode issues in Windows
+
+
 # v0.3.14
 
    - Support R-devel by removing CON_NR
