@@ -145,9 +145,7 @@ if sys.platform == "win32":
             try:
                 n = wctomb(s, c)
             except Exception:
-                print(text)
-                print(c, type(c))
-                raise
+                n = -1
 
             if n > 0:
                 buf += s[:n]
