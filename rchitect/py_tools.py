@@ -27,6 +27,8 @@ def inject_py_tools():
 
     def py_call(fun, *args, **kwargs):
         # todo: suuport .asis and .convert
+        if isinstance(fun, text_type):
+            fun = eval(fun)
         return fun(*args, **kwargs)
 
     def py_copy(*args):
