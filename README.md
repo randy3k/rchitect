@@ -24,7 +24,7 @@ The main reason is to drive [`radian`](https://github.com/randy3k/radian).
 `rpy2` was not suitable because it is missing some key features for running
 the R REPL. Speaking of compatibility, `rchitect` has been thoroughly tested on
 multiple platforms such as Windows, macOS and Linux and we also provide binary
-wheels for user convenience.
+wheels for python 2.7 and 3.5+.
 
 ## Getting started
 
