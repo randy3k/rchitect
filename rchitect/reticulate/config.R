@@ -28,14 +28,12 @@ if (.Platform$OS.type == "unix") {
 
 # conversions
 
-utils <- import("rchitect.utils")
-
-py_to_r.rchitect.types.RObject <- function(x) {
-    utils$identity(x)  # triggers `rcopy` when callback is called
-}
+py_to_r.rchitect.types.RObject <- import("rchitect")$robject
 
 registerS3method("py_to_r", "rchitect.types.RObject", py_to_r.rchitect.types.RObject, ns)
 
+
+utils <- import("rchitect.utils")
 
 r_to_py.PyObject <- function(x) {
     id <- reticulate::py_eval(utils$id_str(x), convert = FALSE)

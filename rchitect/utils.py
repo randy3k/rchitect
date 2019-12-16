@@ -163,7 +163,3 @@ else:
 
 def id_str(x):
     return str(id(x))
-
-
-def identity(x):
-    return x
