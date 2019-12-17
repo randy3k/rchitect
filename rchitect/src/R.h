@@ -620,6 +620,7 @@ RAPI_EXTERN int (*R_registerRoutines)(DllInfo*, void*, void*, void*, void*);
 RAPI_EXTERN char *(*get_R_HOME)(void);
 RAPI_EXTERN char *(*getRUser)(void);
 RAPI_EXTERN int* UserBreak_t;
+RAPI_EXTERN int* CharacterMode_t;
 #else
 // eventloop.h
 RAPI_EXTERN void* (*R_InputHandlers);

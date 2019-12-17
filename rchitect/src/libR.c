@@ -462,6 +462,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(get_R_HOME)
     LOAD_SYMBOL(getRUser)
     LOAD_SYMBOL_AS(UserBreak, UserBreak_t)
+    LOAD_SYMBOL_AS(CharacterMode, CharacterMode_t)
     #else
     LOAD_SYMBOL(R_checkActivity)
     LOAD_SYMBOL(R_runHandlers)
@@ -584,6 +585,7 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
 #ifndef _WIN32
     if (main_id == NULL) main_id = getpid();
     if (getpid() != main_id) abort();
+    // *CharacterMode_t = 1;  // set to RTerm
 #endif
     int ret;
     cb_read_console_interrupted = 0;
@@ -600,6 +602,7 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
 #endif
         R_CheckUserInterrupt();
     }
+    // *CharacterMode_t = 0;  // set to RGui
     return ret;
 }
 

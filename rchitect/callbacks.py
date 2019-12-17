@@ -95,8 +95,8 @@ def setup_rstart(args):
     rstart.ShowMessage = ffi.addressof(lib, "cb_show_message")
     rstart.YesNoCancel = ffi.addressof(lib, "cb_yes_no_cancel")
     rstart.Busy = ffi.addressof(lib, "cb_busy")
-    # set to 1 (RTerm) will set WinUTF8out to False.
-    rstart.CharacterMode = 0
+    # we cannot get it to RGui, otherwise `do_system` will clear the standard handlers
+    rstart.CharacterMode = 1  # RTerm
     rstart.WriteConsoleEx = ffi.addressof(lib, "cb_write_console_capturable")
     lib.R_SetParams(rstart)
 
