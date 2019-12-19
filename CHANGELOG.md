@@ -1,3 +1,7 @@
+# v0.3.16
+
+   - revert the "fix" in v0.3.15
+
 # v0.3.15
 
    - fix some unicode issues in Windows
