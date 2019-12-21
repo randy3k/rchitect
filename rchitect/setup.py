@@ -85,6 +85,9 @@ def show_message(buf):
 
 @def_callback()
 def read_console(p, add_history):
+    sys.stdout.flush()
+    sys.stderr.flush()
+
     orig_handler = signal.getsignal(signal.SIGINT)
     # allow Ctrl+C to throw KeyboardInterrupt in callback
     signal.signal(signal.SIGINT, sigint_handler)

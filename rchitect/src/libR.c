@@ -590,9 +590,6 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
     int ret;
     cb_read_console_interrupted = 0;
 
-    // flush everything first
-    fflush(stdout);
-    fflush(stderr);
     ret = cb_read_console(p, buf, buflen, add_history);
     if (cb_read_console_interrupted == 1) {
 #ifdef _WIN32
