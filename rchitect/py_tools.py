@@ -7,7 +7,7 @@ import importlib
 from six import text_type
 from types import ModuleType
 
-from .interface import rcopy, robject, rcall_p, rcall
+from .interface import rcopy, robject, rfunction, rcall_p, rcall
 
 
 def get_p(name, envir):
@@ -113,30 +113,30 @@ def inject_py_tools():
     kwarg = {"rchitect.py_tools": e}
     rcall(("base", "options"), **kwarg)
 
-    assign("import", robject(py_import, convert=False), e)
-    assign("import_builtins", robject(py_import_builtins, convert=False), e)
-    assign("py_call", robject(py_call, convert=False), e)
-    assign("py_copy", robject(py_copy, convert=True), e)
-    assign("py_eval", robject(py_eval, convert=False), e)
-    assign("py_get_attr", robject(py_get_attr, convert=False), e)
-    assign("py_get_item", robject(py_get_item, convert=False), e)
-    assign("py_object", robject(py_object, asis=True, convert=False), e)
-    assign("py_set_attr", robject(py_set_attr, invisible=True, asis=True, convert=False), e)
-    assign("py_set_item", robject(py_set_item, invisible=True, asis=True, convert=False), e)
-    assign("py_unicode", robject(py_unicode, convert=False), e)
-    assign("dict", robject(py_dict, asis=True, convert=False), e)
-    assign("tuple", robject(py_tuple, asis=True, convert=False), e)
+    assign("import", rfunction(py_import, convert=False), e)
+    assign("import_builtins", rfunction(py_import_builtins, convert=False), e)
+    assign("py_call", rfunction(py_call, convert=False), e)
+    assign("py_copy", rfunction(py_copy, convert=True), e)
+    assign("py_eval", rfunction(py_eval, convert=False), e)
+    assign("py_get_attr", rfunction(py_get_attr, convert=False), e)
+    assign("py_get_item", rfunction(py_get_item, convert=False), e)
+    assign("py_object", rfunction(py_object, asis=True, convert=False), e)
+    assign("py_set_attr", rfunction(py_set_attr, invisible=True, asis=True, convert=False), e)
+    assign("py_set_item", rfunction(py_set_item, invisible=True, asis=True, convert=False), e)
+    assign("py_unicode", rfunction(py_unicode, convert=False), e)
+    assign("dict", rfunction(py_dict, asis=True, convert=False), e)
+    assign("tuple", rfunction(py_tuple, asis=True, convert=False), e)
 
-    assign("names.PyObject", robject(py_names, convert=True), e)
-    assign("print.PyObject", robject(py_print, invisible=True, convert=False), e)
-    assign(".DollarNames.PyObject", robject(py_names, convert=True), e)
-    assign("$.PyObject", robject(py_get_attr, convert=True), e)
-    assign("[.PyObject", robject(py_get_item, convert=True), e)
-    assign("$<-.PyObject", robject(py_set_attr, invisible=True, asis=True, convert=False), e)
-    assign("[<-.PyObject", robject(py_set_item, invisible=True, asis=True, convert=False), e)
-    assign("&.PyObject", robject(operator.and_, invisible=True, convert=False), e)
-    assign("|.PyObject", robject(operator.or_, invisible=True, convert=False), e)
-    assign("!.PyObject", robject(operator.not_, invisible=True, convert=False), e)
+    assign("names.PyObject", rfunction(py_names, convert=True), e)
+    assign("print.PyObject", rfunction(py_print, invisible=True, convert=False), e)
+    assign(".DollarNames.PyObject", rfunction(py_names, convert=True), e)
+    assign("$.PyObject", rfunction(py_get_attr, convert=True), e)
+    assign("[.PyObject", rfunction(py_get_item, convert=True), e)
+    assign("$<-.PyObject", rfunction(py_set_attr, invisible=True, asis=True, convert=False), e)
+    assign("[<-.PyObject", rfunction(py_set_item, invisible=True, asis=True, convert=False), e)
+    assign("&.PyObject", rfunction(operator.and_, invisible=True, convert=False), e)
+    assign("|.PyObject", rfunction(operator.or_, invisible=True, convert=False), e)
+    assign("!.PyObject", rfunction(operator.not_, invisible=True, convert=False), e)
 
     def attach():
         parent_frame = rcall("sys.frame", -1)

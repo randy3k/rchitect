@@ -204,12 +204,12 @@ def rlang(*args, **kwargs):
 
 
 @contextmanager
-def sexp_args(args, kwargs):
+def sexp_args(args, kwargs, asis=False):
     nprotect = 0
     try:
         _args = []
         for a in args:
-            _a = sexp(a)
+            _a = sexp_as_py_object(a) if asis else sexp(a)
             if isinstance(_a, SEXP):
                 lib.Rf_protect(_a)
                 nprotect += 1
@@ -217,7 +217,7 @@ def sexp_args(args, kwargs):
 
         _kwargs = {}
         for k, v in kwargs.items():
-            _v = sexp(v)
+            _v = sexp_as_py_object(v) if asis else sexp(v)
             if isinstance(_v, SEXP):
                 lib.Rf_protect(_v)
                 nprotect += 1
@@ -231,13 +231,14 @@ def sexp_args(args, kwargs):
 def rcall_p(f, *args, **kwargs):
     ensure_initialized()
     _envir = extract(kwargs, "_envir")
+    _asis = extract(kwargs, "_asis")
     if _envir:
         _envir = unbox(_envir)
     else:
         _envir = lib.R_GlobalEnv
 
     with protected(_envir):
-        with sexp_args(args, kwargs) as (a, k):
+        with sexp_args(args, kwargs, _asis) as (a, k):
             with capture_console():
                 status = ffi.new("int[1]")
                 val = lib.R_tryEval(rlang_p(f, *a, **k), _envir, status)
@@ -452,11 +453,11 @@ def rcopy(_, s):
 
 
 @dispatch(datatype(FunctionType), (CLOSXP, BUILTINSXP))  # noqa
-def rcopy(_, s, envir=None, convert=True):
+def rcopy(_, s, envir=None, asis=False, convert=True):
     r = RObject(s)  # preserve the closure
 
     def _(*args, **kwargs):
-        return rcall(r, *args, _envir=envir, _convert=convert, **kwargs)
+        return rcall(r, *args, _envir=envir, _asis=asis, _convert=convert, **kwargs)
 
     return _
 
@@ -615,6 +616,10 @@ def robject(*args, **kwargs):
         return RObject(sexp(args[0], **kwargs))
     else:
         raise TypeError("wrong number of arguments or argument types")
+
+
+def rfunction(x, **kwargs):
+    return robject("function", x, **kwargs)
 
 
 @dispatch(datatype(RClass("NULL")), type(None))  # noqa
