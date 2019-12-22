@@ -636,8 +636,10 @@ void cb_write_console_safe(const char* s, int bufline, int otype) {
     // TODO: is it possible to capture the output of forks?
 
     if (main_id == NULL) main_id = getpid();
+    // only capture the main process
     if (getpid() == main_id) {
-        // only capture the main process
+        // flush anything from printf
+        fflush(NULL);
         cb_write_console_capturable(s, bufline, otype);
     } else {
         if (otype == 0) {
