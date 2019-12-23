@@ -10,8 +10,6 @@
 #endif
 
 // begin cdef
-RAPI_EXTERN int R_MAJOR;
-
 typedef unsigned char Rbyte;
 
 typedef enum {Bytes, Chars, Width} nchar_type;
@@ -623,7 +621,7 @@ RAPI_EXTERN int* UserBreak_t;
 RAPI_EXTERN int* CharacterMode_t;
 #else
 // eventloop.h
-RAPI_EXTERN void* (*R_InputHandlers);
+RAPI_EXTERN void* R_InputHandlers;
 RAPI_EXTERN void* (*R_checkActivity)(int usec, int ignore_stdin);
 RAPI_EXTERN void (*R_runHandlers)(void* handlers, void* mask);
 

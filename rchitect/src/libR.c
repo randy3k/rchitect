@@ -70,14 +70,16 @@ if (!load_symbol(#name, (void**) &name)) {\
 
 static int load_constant(const char* name, void** ppSymbol) {
     strcpy(last_loaded_symbol, name);
+    void** temp;
 #ifdef _WIN32
-    *ppSymbol = *((void**) GetProcAddress((HINSTANCE) libR_t, name));
+    temp = (void**) GetProcAddress((HINSTANCE) libR_t, name);
 #else
-    *ppSymbol = *((void**) dlsym(libR_t, name));
+    temp = (void**) dlsym(libR_t, name);
 #endif
-    if (*ppSymbol == NULL) {
+    if (temp == NULL) {
         return 0;
     } else {
+        *ppSymbol = *temp;
         return 1;
     }
 }
@@ -109,7 +111,8 @@ int _libR_load(const char* libpath) {
 int _libR_is_initialized(void) {
     void* p;
     if (libR_t == NULL) return 0;
-    return load_constant("R_GlobalEnv", (void**) &p);
+    if (!load_constant("R_GlobalEnv", (void**) &p)) return 0;
+    return p != NULL;
 }
 
 
