@@ -69,8 +69,8 @@ if (!load_symbol(#name, (void**) &name)) {\
 }
 
 static int load_constant(const char* name, void** ppSymbol) {
-    strcpy(last_loaded_symbol, name);
     void** temp;
+    strcpy(last_loaded_symbol, name);
 #ifdef _WIN32
     temp = (void**) GetProcAddress((HINSTANCE) libR_t, name);
 #else
