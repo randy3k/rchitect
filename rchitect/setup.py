@@ -22,16 +22,16 @@ def init(args=None):
     libR_loaded = lib.Rf_initialize_R != ffi.NULL
 
     if not libR_loaded:
-        # `system2utf8` may not work before `Rf_initialize_R` because locale may not set
+        # `system2utf8` may not work before `Rf_initialize_R` because locale may not be set
         if not lib._libR_load(libRpath(rhome).encode("utf-8")):
             raise Exception("Cannot load R shared library. {}".format(
                     system2utf8(ffi.string(lib._libR_dl_error_message()))))
         if not lib._libR_load_symbols():
-            raise Exception("{}: {}".format(
-                system2utf8(ffi.string(lib._libR_dl_error_message())),
-                system2utf8(ffi.string(lib._libR_last_loaded_symbol()))))
+            raise Exception("Cannot load symbol {}: {}".format(
+                system2utf8(ffi.string(lib._libR_last_loaded_symbol()))),
+                system2utf8(ffi.string(lib._libR_dl_error_message())))
 
-    # _libR_is_initialized is only correct after _libR_load is execuated.
+    # _libR_is_initialized only works after _libR_load is run.
     if not lib._libR_is_initialized():
 
         _argv = [ffi.new("char[]", a.encode("utf-8")) for a in args]
@@ -48,9 +48,9 @@ def init(args=None):
 
     if not libR_loaded:
         if not lib._libR_load_constants():
-            raise Exception("{}: {}".format(
-                system2utf8(ffi.string(lib._libR_dl_error_message())),
-                system2utf8(ffi.string(lib._libR_last_loaded_symbol()))))
+            raise Exception("Cannot load constant {}: {}".format(
+                system2utf8(ffi.string(lib._libR_last_loaded_symbol()))),
+                system2utf8(ffi.string(lib._libR_dl_error_message())))
         lib._libR_setup_xptr_callback()
 
         from rchitect.py_tools import inject_py_tools
