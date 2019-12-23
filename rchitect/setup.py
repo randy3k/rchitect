@@ -17,7 +17,6 @@ def init(args=None):
         args = ["rchitect", "--quiet", "--no-save"]
 
     rhome = Rhome()
-    # TODO: we might need to do `ctypes.cdll.msvcrt.setlocale` in Windows.
     ensure_path(rhome)
 
     libR_loaded = lib.Rf_initialize_R != ffi.NULL
