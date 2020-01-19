@@ -48,6 +48,11 @@ def libRpath(rhome):
         path = os.path.join(rhome, "lib", "libR.so")
 
     if not os.path.exists(path):
+        if sys.platform.startswith("win"):
+            another_path = os.path.join(
+                rhome, "bin", "i386" if sys.maxsize > 2**32 else "x64", "R.dll")
+            if os.path.exists(another_path):
+                raise RuntimeError("R and python architectures do not match.")
         raise RuntimeError("Cannot locate R share library.")
 
     return path
