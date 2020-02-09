@@ -1,3 +1,7 @@
+# v0.3.17
+
+  - minor fix in console writter
+
 # v0.3.16
 
    - revert the "fix" in v0.3.15
