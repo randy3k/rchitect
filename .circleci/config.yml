@@ -17,11 +17,7 @@ commands:
             fi
             bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
             export PATH="$HOME/miniconda/bin/:$PATH"
-            if [ "<<parameters.python>>" == "3.4" ]; then
-              $HOME/miniconda/bin/conda create -y --name myenv python=<<parameters.python>> -c conda-forge
-            else
-              $HOME/miniconda/bin/conda create -y --name myenv python=<<parameters.python>>
-            fi
+            $HOME/miniconda/bin/conda create -y --name myenv python=<<parameters.python>>
             echo "export PATH=$HOME/miniconda/bin:$PATH" >> $BASH_ENV
   setup-conda-windows:
     parameters:
@@ -32,11 +28,7 @@ commands:
       - run:
           name: Setup Miniconda
           command: |
-            If ("<<parameters.python>>" -eq "3.4") {
-              conda create -y --name myenv python=<<parameters.python>> -c conda-forge
-            } Else {
-              conda create -y --name myenv python=<<parameters.python>>
-            }
+            conda create -y --name myenv python=<<parameters.python>>
             conda init powershell
   install-r:
     parameters:
@@ -260,13 +252,6 @@ workflows:
             tags:
               only: /^v.*/
       - linux-test:
-          name: linux-rlatest-py34
-          r: latest
-          python: "3.4"
-          filters:
-            tags:
-              only: /^v.*/
-      - linux-test:
           name: linux-rlatest-py35
           r: latest
           python: "3.5"
@@ -381,7 +366,6 @@ workflows:
             - linux-r35-py27
             - linux-r35-py37
             - linux-rlatest-py27
-            - linux-rlatest-py34
             - linux-rlatest-py35
             - linux-rlatest-py36
             - linux-rlatest-py37
