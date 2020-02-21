@@ -98,6 +98,10 @@ def rversion(rhome=None):
 
 
 UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe")
+if sys.version_info[0] >= 3:
+    DECODE_ERROR_HANDLER = "backslashreplace"
+else:
+    DECODE_ERROR_HANDLER = "replace"
 
 
 def rconsole2str(buf):
@@ -105,7 +109,7 @@ def rconsole2str(buf):
     m = UTFPATTERN.search(buf)
     while m:
         a, b = m.span()
-        ret += system2utf8(buf[:a]) + m.group(1).decode("utf-8", "backslashreplace")
+        ret += system2utf8(buf[:a]) + m.group(1).decode("utf-8", DECODE_ERROR_HANDLER)
         buf = buf[b:]
         m = UTFPATTERN.search(buf)
     ret += system2utf8(buf)
@@ -160,7 +164,7 @@ if sys.platform == "win32":
 
 else:
     def system2utf8(buf):
-        return buf.decode("utf-8", "backslashreplace")
+        return buf.decode("utf-8", DECODE_ERROR_HANDLER)
 
     def utf8tosystem(text):
         return text.encode("utf-8", "backslashreplace")
