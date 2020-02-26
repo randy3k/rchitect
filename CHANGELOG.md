@@ -1,3 +1,7 @@
+# v0.3.18
+
+  - use tryCatch in completion
+
 # v0.3.17
 
   - minor fix in console writter
