@@ -11,13 +11,29 @@ def assign_line_buffer(buf):
     return token
 
 
+CompleteCode = """
+tryCatch(
+    {{
+        if ({settimelimit}) base::setTimeLimit({timeout})
+        utils:::.completeToken()
+        if ({settimelimit}) base::setTimeLimit()
+    }},
+    error = function(e) {{
+        if ({settimelimit}) base::setTimeLimit()
+        assign("comps", NULL, env = utils:::.CompletionEnv)
+    }}
+)
+"""
+
+
 def complete_token(timeout=0):
     try:
-        if timeout:
-            rcall(("base", "setTimeLimit"), timeout)
-        reval("utils:::.completeToken()")
-        if timeout:
-            rcall(("base", "setTimeLimit"))
+        reval(
+            CompleteCode.format(
+                settimelimit="TRUE" if timeout > 0 else "FALSE",
+                timeout=str(timeout)),
+            envir=rcall("new.env")
+        )
     except Exception:
         if timeout:
             rcall(("base", "setTimeLimit"))
