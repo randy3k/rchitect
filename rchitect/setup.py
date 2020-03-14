@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import sys
 import signal
+from six.moves import input as six_input
 
 from rchitect._cffi import ffi, lib
 from .utils import Rhome, libRpath, ensure_path, system2utf8
@@ -68,12 +69,14 @@ def sigint_handler(signum, frame):
     raise KeyboardInterrupt()
 
 
-if sys.version >= "3":
-    def ask_input(s):
-        return input(s)
-else:
-    def ask_input(s):
-        return raw_input(s).decode("utf-8", "backslashreplace")
+def ask_input(s):
+    orig_handler = signal.getsignal(signal.SIGINT)
+    # allow Ctrl+C to throw KeyboardInterrupt in callback
+    signal.signal(signal.SIGINT, sigint_handler)
+    try:
+        return six_input(s)
+    finally:
+        signal.signal(signal.SIGINT, orig_handler)
 
 
 @def_callback()
@@ -86,14 +89,7 @@ def show_message(buf):
 def read_console(p, add_history):
     sys.stdout.flush()
     sys.stderr.flush()
-
-    orig_handler = signal.getsignal(signal.SIGINT)
-    # allow Ctrl+C to throw KeyboardInterrupt in callback
-    signal.signal(signal.SIGINT, sigint_handler)
-    try:
-        return ask_input(p)
-    finally:
-        signal.signal(signal.SIGINT, orig_handler)
+    return ask_input(p)
 
 
 @def_callback()
