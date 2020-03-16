@@ -1,3 +1,7 @@
+# v0.3.19
+
+  - support EmitEmbeddedUTF8
+
 # v0.3.18
 
   - use tryCatch in completion
