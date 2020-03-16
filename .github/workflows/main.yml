@@ -38,8 +38,6 @@ jobs:
           python -m pip install -e .[test]
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest -s --cov=rchitect
-      - name: codecov
-        run: |
           python -m pip install codecov
           codecov
         env:
@@ -86,8 +84,6 @@ jobs:
           python -m pip install -e .[test]
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest -s --cov=rchitect
-      - name: codecov
-        run: |
           python -m pip install codecov
           codecov
         env:
@@ -135,8 +131,6 @@ jobs:
           conda activate myenv
           python -m pip install -e .[test]
           pytest -s --cov=rchitect
-      - name: codecov
-        run: |
           python -m pip install codecov
           codecov
         env:
@@ -170,7 +164,8 @@ jobs:
           name: wheels
           path: ./wheelhouse
 
-  upload_wheels_and_tarball:
+  twine:
+    name: Upload tarball and wheels
     if: startsWith(github.ref, 'refs/tags/')
     needs: build_wheels
     runs-on: ubuntu-latest
