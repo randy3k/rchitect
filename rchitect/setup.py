@@ -43,6 +43,8 @@ def init(args=None):
         if sys.platform.startswith("win"):
             setup_rstart(args)
             lib.setup_Rmainloop()
+            if lib.EmitEmbeddedUTF8_t != ffi.NULL:
+                lib.EmitEmbeddedUTF8_t[0] = 1
         else:
             setup_unix_callbacks()
             lib.setup_Rmainloop()

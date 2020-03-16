@@ -619,6 +619,7 @@ RAPI_EXTERN char *(*get_R_HOME)(void);
 RAPI_EXTERN char *(*getRUser)(void);
 RAPI_EXTERN int* UserBreak_t;
 RAPI_EXTERN int* CharacterMode_t;
+RAPI_EXTERN int* EmitEmbeddedUTF8_t;
 #else
 // eventloop.h
 RAPI_EXTERN void* R_InputHandlers;

@@ -20,6 +20,7 @@ if sys.platform.startswith("win"):
         char *(*getRUser)(void);
         int* UserBreak_t;
         int* CharacterMode_t;
+        int* EmitEmbeddedUTF8_t;
     """)
 else:
     ffibuilder.cdef("""
