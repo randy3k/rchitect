@@ -7,24 +7,23 @@ import sys
 import pytest
 
 
-def test_read_console(mocker):
-    mocker.patch("rchitect.setup.ask_input", return_value="hello")
-    ret = reval("readline('> ')")
-    assert rcopy(ret) == "hello"
+if sys.platform.startswith("win") or sys.stdout.isatty():
+    def test_read_console(mocker):
+        mocker.patch("rchitect.setup.ask_input", return_value="hello")
+        ret = reval("readline('> ')")
+        assert rcopy(ret) == "hello"
 
+    def test_read_console_long(mocker):
+        s = "a" * 5000
+        mocker.patch("rchitect.setup.ask_input", return_value=s)
+        ret = reval("readline('> ')")
+        assert rcopy(ret) == s
 
-def test_read_console_long(mocker):
-    s = "a" * 5000
-    mocker.patch("rchitect.setup.ask_input", return_value=s)
-    ret = reval("readline('> ')")
-    assert rcopy(ret) == s
-
-
-def test_read_console_interrupt(mocker):
-    mocker.patch("rchitect.setup.ask_input", side_effect=KeyboardInterrupt())
-    with pytest.raises(Exception) as excinfo:
-        reval("readline('> ')")
-    assert str(excinfo.value).startswith("Error")
+    def test_read_console_interrupt(mocker):
+        mocker.patch("rchitect.setup.ask_input", side_effect=KeyboardInterrupt())
+        with pytest.raises(Exception) as excinfo:
+            reval("readline('> ')")
+        assert str(excinfo.value).startswith("Error")
 
 
 def test_write_console(mocker):
