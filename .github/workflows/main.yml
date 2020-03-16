@@ -36,6 +36,7 @@ jobs:
         run: |
           source activate myenv
           python -m pip install -e .[test]
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest -s --cov=rchitect
           python -m pip install codecov
           codecov
@@ -79,6 +80,7 @@ jobs:
         run: |
           source activate myenv
           python -m pip install -e .[test]
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest -s --cov=rchitect
           python -m pip install codecov
           codecov
