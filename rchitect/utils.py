@@ -88,9 +88,9 @@ def rversion(rhome=None):
         output = subprocess.check_output(
             [os.path.join(rhome, "bin", "R"), "--version"],
             stderr=subprocess.STDOUT).decode("utf-8").strip()
-        m = R_RELEASE.match(output)
+        m = R_RELEASE.match(output, re.MULTILINE)
         if not m:
-            m = R_DEVEL.match(output)
+            m = R_DEVEL.match(output, re.MULTILINE)
         version = LooseVersion(m.group(1))
     except Exception:
         version = LooseVersion("1000.0.0")
