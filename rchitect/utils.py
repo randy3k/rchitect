@@ -20,21 +20,25 @@ def read_registry(key, valueex):
 
 
 def Rhome():
-    if 'R_HOME' not in os.environ:
-        try:
-            rhome = subprocess.check_output(["R", "RHOME"]).decode("utf-8").strip()
-        except Exception:
-            rhome = ""
-        try:
-            if sys.platform.startswith("win") and not rhome:
-                rhome = read_registry("Software\\R-Core\\R", "InstallPath")[0]
-        except Exception:
-            rhome = ""
-
-        if rhome:
-            os.environ['R_HOME'] = rhome
-    else:
+    if 'R_HOME' in os.environ:
         rhome = os.environ['R_HOME']
+        if not os.path.isdir(rhome):
+            raise RuntimeError("R_HOME ({}) does not exist.".format(rhome))
+
+    try:
+        rhome = subprocess.check_output(["R", "RHOME"]).decode("utf-8").strip()
+    except Exception:
+        rhome = ""
+    try:
+        if sys.platform.startswith("win") and not rhome:
+            rhome = read_registry("Software\\R-Core\\R", "InstallPath")[0]
+    except Exception:
+        rhome = ""
+
+    if rhome:
+        os.environ['R_HOME'] = rhome
+    else:
+        raise RuntimeError("Cannot determine R HOME.")
 
     return rhome
 
