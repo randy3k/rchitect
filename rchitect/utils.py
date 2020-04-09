@@ -24,6 +24,7 @@ def Rhome():
         rhome = os.environ['R_HOME']
         if not os.path.isdir(rhome):
             raise RuntimeError("R_HOME ({}) does not exist.".format(rhome))
+        return rhome
 
     try:
         rhome = subprocess.check_output(["R", "RHOME"]).decode("utf-8").strip()
