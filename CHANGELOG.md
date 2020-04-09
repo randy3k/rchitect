@@ -1,3 +1,7 @@
+# v0.3.20
+
+  - fix a bug in detecting R_HOME
+
 # v0.3.19
 
   - support EmitEmbeddedUTF8
