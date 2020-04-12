@@ -1,6 +1,7 @@
 # v0.3.20
 
   - fix a bug in detecting R_HOME
+  - support specifying path to R binary via environment variable "R"
 
 # v0.3.19
 

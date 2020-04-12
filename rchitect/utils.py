@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import sys
+import shutil
 import ctypes
 from distutils.version import LooseVersion
 
@@ -26,10 +27,21 @@ def Rhome():
             raise RuntimeError("R_HOME ({}) does not exist.".format(rhome))
         return rhome
 
-    try:
-        rhome = subprocess.check_output(["R", "RHOME"]).decode("utf-8").strip()
-    except Exception:
-        rhome = ""
+    R_PATHS = ['R']
+    if 'R' in os.environ:
+        R_PATHS = [os.environ['R']] + R_PATHS
+
+    rhome = ""
+    for p in R_PATHS:
+        if not shutil.which(p):
+            continue
+        try:
+            rhome = subprocess.check_output([p, "RHOME"]).decode("utf-8").strip()
+        except Exception:
+            rhome = ""
+        if rhome:
+            break
+
     try:
         if sys.platform.startswith("win") and not rhome:
             rhome = read_registry("Software\\R-Core\\R", "InstallPath")[0]
@@ -82,21 +94,14 @@ def ensure_path(rhome=None):
             pass
 
 
-R_RELEASE = re.compile(r"R version ([0-9]+\.[0-9]+\.[0-9]+)")
-R_DEVEL = re.compile(r"R Under development \(unstable\) \(([^)]*)\)")
-
-
 def rversion(rhome=None):
     if not rhome:
         rhome = Rhome()
     try:
         output = subprocess.check_output(
-            [os.path.join(rhome, "bin", "R"), "--version"],
+            [os.path.join(rhome, "bin", "R"), "--slave", "-e", "cat(as.character(getRversion()))"],
             stderr=subprocess.STDOUT).decode("utf-8").strip()
-        m = R_RELEASE.match(output, re.MULTILINE)
-        if not m:
-            m = R_DEVEL.match(output, re.MULTILINE)
-        version = LooseVersion(m.group(1))
+        version = LooseVersion(output)
     except Exception:
         version = LooseVersion("1000.0.0")
     return version
