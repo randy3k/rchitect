@@ -23,10 +23,7 @@ def read_registry(key, valueex):
 def getRhome(path, throw=False):
     rhome = ""
     if not shutil.which(path):
-        if throw:
-            raise RuntimeError("R binary ({}) does not exist.".format(path))
-        else:
-            return None
+        return None
     try:
         rhome = subprocess.check_output([path, "RHOME"]).decode("utf-8").strip()
     except Exception:
@@ -40,6 +37,8 @@ def Rhome():
 
     if 'R_BINARY' in os.environ:
         rhome = getRhome(os.environ['R_BINARY'], throw=True)
+        if not rhome:
+            raise RuntimeError("R binary ({}) does not exist.".format(os.environ['R_BINARY']))
 
     if not rhome and 'R_HOME' in os.environ:
         rhome = os.environ['R_HOME']
