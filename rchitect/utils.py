@@ -20,27 +20,35 @@ def read_registry(key, valueex):
     return QueryValueEx(reg_key, valueex)
 
 
+def getRhome(path, throw=False):
+    rhome = ""
+    if not shutil.which(path):
+        if throw:
+            raise RuntimeError("R binary ({}) does not exist.".format(path))
+        else:
+            return None
+    try:
+        rhome = subprocess.check_output([path, "RHOME"]).decode("utf-8").strip()
+    except Exception:
+        rhome = None
+
+    return rhome
+
+
 def Rhome():
-    if 'R_HOME' in os.environ:
+    rhome = None
+
+    if 'R_BINARY' in os.environ:
+        rhome = getRhome(os.environ['R_BINARY'], throw=True)
+
+    if not rhome and 'R_HOME' in os.environ:
         rhome = os.environ['R_HOME']
         if not os.path.isdir(rhome):
             raise RuntimeError("R_HOME ({}) does not exist.".format(rhome))
         return rhome
 
-    R_PATHS = ['R']
-    if 'R' in os.environ:
-        R_PATHS = [os.environ['R']] + R_PATHS
-
-    rhome = ""
-    for p in R_PATHS:
-        if not shutil.which(p):
-            continue
-        try:
-            rhome = subprocess.check_output([p, "RHOME"]).decode("utf-8").strip()
-        except Exception:
-            rhome = ""
-        if rhome:
-            break
+    if not rhome:
+        rhome = getRhome("R")
 
     try:
         if sys.platform.startswith("win") and not rhome:
