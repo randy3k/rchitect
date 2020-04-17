@@ -1,3 +1,7 @@
+# v0.3.21
+
+  - check R_BINARY environmental variable
+
 # v0.3.20
 
   - fix a bug in detecting R_HOME
