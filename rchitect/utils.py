@@ -3,10 +3,12 @@ import os
 import re
 import subprocess
 import sys
-import shutil
 import ctypes
 from distutils.version import LooseVersion
-
+if sys.version_info[0] >= 3:
+    from shutil import which
+else:
+    from backports.shutil_which import which
 
 if sys.platform.startswith('win'):
     if sys.version_info[0] >= 3:
@@ -22,7 +24,7 @@ def read_registry(key, valueex):
 
 def getRhome(path, throw=False):
     rhome = ""
-    if not shutil.which(path):
+    if not which(path):
         return None
     try:
         rhome = subprocess.check_output([path, "RHOME"]).decode("utf-8").strip()

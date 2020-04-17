@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 from setuptools import setup, find_packages
 
 
@@ -20,6 +21,14 @@ def get_version(package):
     return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
 
 
+install_requires = [
+    'cffi>=1.10.0',
+    'six>=1.9.0'
+]
+
+if sys.version_info[0] == 2:
+    install_requires.append("backports.shutil_which>=3")
+
 setup(
     name='rchitect',
     author='Randy Lai',
@@ -32,13 +41,11 @@ setup(
     packages=find_packages('.', exclude=["tests"]),
     package_data={'rchitect': ['reticulate/*.R', 'src/*']},
     cffi_modules=["rchitect/src/build.py:ffibuilder"],
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*',
+    install_requires=install_requires,
     setup_requires=[
         'cffi>=1.10.0',
         "pytest-runner"
-    ],
-    install_requires=[
-        'cffi>=1.10.0',
-        'six>=1.9.0'
     ],
     extras_require={
         "test": [
