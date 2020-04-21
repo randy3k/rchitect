@@ -546,6 +546,43 @@ int _libR_load_constants() {
     return 1;
 }
 
+
+#ifdef _WIN32
+
+static void* libRga_t;
+
+#define LOAD_GA_SYMBOL(name) \
+if (!load_ga_symbol(#name, (void**) &name)) {\
+    return 0; \
+}
+
+static int load_ga_symbol(const char* name, void** ppSymbol) {
+    strcpy(last_loaded_symbol, name);
+    *ppSymbol = (void*) GetProcAddress((HINSTANCE) libRga_t, name);
+    if (*ppSymbol == NULL) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+int _libRga_load(const char* libpath) {
+    libRga_t = NULL;
+    libRga_t = (void*)LoadLibraryEx(libpath, NULL, 0);
+    if (libRga_t == NULL) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+int _libRga_load_symbols() {
+    LOAD_GA_SYMBOL(GA_peekevent);
+}
+#endif
+
+
+
 void _libR_set_callback(char* name, void* cb) {
     void** p;
     if (load_symbol(name, (void**) &p)) {

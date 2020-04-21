@@ -16,6 +16,8 @@ for header_file in ["R.h", "libR.h", "gli.h", "parse.h", "process_events.h"]:
 
 if sys.platform.startswith("win"):
     ffibuilder.cdef("""
+        int _libRga_load(const char* libpath);
+        int _libRga_load_symbols();
         extern char *(*get_R_HOME)(void);
         extern char *(*getRUser)(void);
         extern int* UserBreak_t;

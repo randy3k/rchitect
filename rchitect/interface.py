@@ -337,6 +337,10 @@ def process_events():
     lib.process_events()
 
 
+def peek_event():
+    return lib.peek_event()
+
+
 def set_hook(event, fun):
     rcall(("base", "setHook"), event, fun)
 

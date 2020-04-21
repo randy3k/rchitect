@@ -12,6 +12,17 @@ if sys.version >= "3":
     long = int
 
 
+def load_r_error():
+    return"Cannot load R shared library. {}".format(
+        system2utf8(ffi.string(lib._libR_dl_error_message())))
+
+
+def load_r_symbol_error():
+    return "Cannot load symbol {}: {}".format(
+                system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
+                system2utf8(ffi.string(lib._libR_dl_error_message())))
+
+
 def init(args=None):
 
     if not args:
@@ -25,12 +36,14 @@ def init(args=None):
     if not libR_loaded:
         # `system2utf8` may not work before `Rf_initialize_R` because locale may not be set
         if not lib._libR_load(libRpath(rhome).encode("utf-8")):
-            raise Exception("Cannot load R shared library. {}".format(
-                    system2utf8(ffi.string(lib._libR_dl_error_message()))))
+            raise Exception(load_r_error())
         if not lib._libR_load_symbols():
-            raise Exception("Cannot load symbol {}: {}".format(
-                system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
-                system2utf8(ffi.string(lib._libR_dl_error_message()))))
+            raise Exception(load_r_symbol_error())
+        if sys.platform.startswith("win"):
+            if not lib._libRga_load("Rgraphapp.dll".encode("utf-8")):
+                raise Exception(load_r_error())
+            if not lib._libRga_load_symbols():
+                raise Exception(load_r_symbol_error())
 
     # _libR_is_initialized only works after _libR_load is run.
     if not lib._libR_is_initialized():

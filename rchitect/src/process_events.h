@@ -7,6 +7,8 @@
 
 void process_events(void);
 
+int peek_event(void);
+
 // end cdef
 
 #endif /* end of include guard: PROCESS_EVENTS_H__ */

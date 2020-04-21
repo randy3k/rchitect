@@ -1,10 +1,7 @@
 #include "process_events.h"
 
-
 static void _process_events(void* n) {
-#if defined(__APPLE__) || defined(_WIN32)
     R_ProcessEvents();
-#endif
 
 #if defined(__APPLE__)
     void* what = R_checkActivity(0, 1);
@@ -20,3 +17,18 @@ static void _process_events(void* n) {
 void process_events() {
     R_ToplevelExec(_process_events, NULL);
 }
+
+#if defined(_WIN32)
+
+int peek_event(void) {
+    return GA_peekevent();
+}
+
+#else
+
+int peek_event(void) {
+    void* what = R_checkActivity(0, 1);
+    return what != NULL;
+}
+
+#endif
