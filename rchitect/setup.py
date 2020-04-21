@@ -29,8 +29,8 @@ def init(args=None):
                     system2utf8(ffi.string(lib._libR_dl_error_message()))))
         if not lib._libR_load_symbols():
             raise Exception("Cannot load symbol {}: {}".format(
-                system2utf8(ffi.string(lib._libR_last_loaded_symbol()))),
-                system2utf8(ffi.string(lib._libR_dl_error_message())))
+                system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
+                system2utf8(ffi.string(lib._libR_dl_error_message()))))
 
     # _libR_is_initialized only works after _libR_load is run.
     if not lib._libR_is_initialized():
