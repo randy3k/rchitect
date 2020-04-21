@@ -8,10 +8,6 @@ from .utils import Rhome, libRpath, ensure_path, system2utf8
 from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
-if sys.version >= "3":
-    long = int
-
-
 def load_r_error():
     return"Cannot load R shared library. {}".format(
         system2utf8(ffi.string(lib._libR_dl_error_message())))
