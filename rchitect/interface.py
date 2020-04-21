@@ -347,7 +347,9 @@ if sys.platform.startswith("win"):
         callback.polled_events()
 else:
     def polled_events():
-        lib.R_PolledEvents_t[0]()
+        ptr = lib.R_PolledEvents_t
+        if ptr != ffi.NULL:
+            ptr[0]()
 
 
 def set_hook(event, fun):

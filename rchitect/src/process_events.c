@@ -26,9 +26,19 @@ int peek_event(void) {
 
 #else
 
+
+static void Call_R_checkActivity(int *d) {
+    *d = R_checkActivity(0, 1);
+}
+
 int peek_event(void) {
-    void* what = R_checkActivity(0, 1);
-    return what != NULL;
+    Rboolean ok;
+    int d;
+    ok = R_ToplevelExec(Call_R_checkActivity, &d);
+    if (ok == FALSE) {
+        return 0;
+    }
+    return d;
 }
 
 #endif

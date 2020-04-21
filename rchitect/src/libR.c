@@ -473,7 +473,6 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(R_checkActivity)
     LOAD_SYMBOL(R_runHandlers)
     LOAD_SYMBOL_AS(R_PolledEvents, R_PolledEvents_t)
-
     LOAD_SYMBOL_AS(R_interrupts_pending, R_interrupts_pending_t)
     #endif
 
