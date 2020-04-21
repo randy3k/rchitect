@@ -27,6 +27,7 @@ if sys.platform.startswith("win"):
 else:
     ffibuilder.cdef("""
         extern void* (*R_InputHandlers);
+        extern void (**R_PolledEvents_t)(void);
         extern void* (*R_checkActivity)(int usec, int ignore_stdin);
         extern void (*R_runHandlers)(void* handlers, void* mask);
         extern int* R_interrupts_pending_t;

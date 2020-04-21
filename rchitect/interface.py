@@ -7,6 +7,7 @@ from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, 
 from .types import box, unbox
 from .xptr import new_xptr, new_xptr_p, from_xptr
 from .console import capture_console, read_stdout, read_stderr
+from .callbacks import callback
 from .utils import utf8tosystem
 
 
@@ -339,6 +340,14 @@ def process_events():
 
 def peek_event():
     return lib.peek_event()
+
+
+if sys.platform.startswith("win"):
+    def polled_events():
+        callback.polled_events()
+else:
+    def polled_events():
+        lib.R_PolledEvents_t[0]()
 
 
 def set_hook(event, fun):

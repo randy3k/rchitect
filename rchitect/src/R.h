@@ -624,6 +624,8 @@ RAPI_EXTERN int (*GA_peekevent)(void);
 #else
 // eventloop.h
 RAPI_EXTERN void* R_InputHandlers;
+RAPI_EXTERN void (**R_PolledEvents_t)(void);
+
 RAPI_EXTERN void* (*R_checkActivity)(int usec, int ignore_stdin);
 RAPI_EXTERN void (*R_runHandlers)(void* handlers, void* mask);
 
