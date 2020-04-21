@@ -1,3 +1,7 @@
+# v0.3.22
+
+  - better support of event processing
+
 # v0.3.21
 
   - check R_BINARY environmental variable
