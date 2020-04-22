@@ -3,10 +3,12 @@ from __future__ import unicode_literals
 
 from rchitect import reval, rcopy
 from rchitect._cffi import lib, ffi
+import os
 import sys
 import pytest
 
 
+@pytest.mark.skipif(sys.platform.startswith("win") and "GITHUB_REPOSITORY" in os.environ, reason="pytest issue")
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
 def test_read_console(mocker):
     mocker.patch("rchitect.setup.ask_input", return_value="hello")
@@ -14,6 +16,7 @@ def test_read_console(mocker):
     assert rcopy(ret) == "hello"
 
 
+@pytest.mark.skipif(sys.platform.startswith("win") and "GITHUB_REPOSITORY" in os.environ, reason="pytest issue")
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
 def test_read_console_long(mocker):
     s = "a" * 5000
@@ -22,6 +25,7 @@ def test_read_console_long(mocker):
     assert rcopy(ret) == s
 
 
+@pytest.mark.skipif(sys.platform.startswith("win") and "GITHUB_REPOSITORY" in os.environ, reason="pytest issue")
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
 def test_read_console_interrupt(mocker):
     mocker.patch("rchitect.setup.ask_input", side_effect=KeyboardInterrupt())
@@ -30,12 +34,14 @@ def test_read_console_interrupt(mocker):
     assert str(excinfo.value).startswith("Error")
 
 
+@pytest.mark.skipif(sys.platform.startswith("win") and "GITHUB_REPOSITORY" in os.environ, reason="pytest issue")
 def test_write_console(mocker):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('helloworld')")
     mocker_write_console.assert_called_once_with('helloworld', 0)
 
 
+@pytest.mark.skipif(sys.platform.startswith("win") and "GITHUB_REPOSITORY" in os.environ, reason="pytest issue")
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="upstream issue")
 def test_write_console_utf8(mocker):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
@@ -44,6 +50,7 @@ def test_write_console_utf8(mocker):
     mocker_write_console.assert_called_once_with('文字', 0)
 
 
+@pytest.mark.skipif(sys.platform.startswith("win") and "GITHUB_REPOSITORY" in os.environ, reason="pytest issue")
 def test_write_console_stderr(mocker):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('helloworld', file = stderr())")
@@ -58,6 +65,7 @@ def test_yes_no_cancel(mocker):
     mocker.resetall()
 
 
+@pytest.mark.skipif(sys.platform.startswith("win") and "GITHUB_REPOSITORY" in os.environ, reason="pytest issue")
 def test_yes_no_cancel_exceptions(mocker):
     count = [0]
 
