@@ -84,6 +84,15 @@ def libRpath(rhome):
     return path
 
 
+def libRgapath(rhome):
+    path = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386", "Rgraphapp.dll")
+
+    if not os.path.exists(path):
+        raise RuntimeError("Cannot locate R share library.")
+
+    return path
+
+
 def ensure_path(rhome=None):
     if not rhome:
         rhome = Rhome()

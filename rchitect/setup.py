@@ -4,7 +4,7 @@ import signal
 from six.moves import input as six_input
 
 from rchitect._cffi import ffi, lib
-from .utils import Rhome, libRpath, ensure_path, system2utf8
+from .utils import Rhome, libRpath, libRgapath, ensure_path, system2utf8
 from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
@@ -36,7 +36,7 @@ def init(args=None):
         if not lib._libR_load_symbols():
             raise Exception(load_r_symbol_error())
         if sys.platform.startswith("win"):
-            if not lib._libRga_load("Rgraphapp.dll".encode("utf-8")):
+            if not lib._libRga_load(libRgapath(rhome).encode("utf-8")):
                 raise Exception(load_r_error())
             if not lib._libRga_load_symbols():
                 raise Exception(load_r_symbol_error())
