@@ -9,7 +9,7 @@ jobs:
         r: [latest]
         # r: [3.5, latest, devel]
         python: [3.7]
-        # python: [2.7, 3.4, 3.5, 3.6, 3.7]
+        # python: [2.7, 3.5, 3.6, 3.7]
     runs-on: ubuntu-latest
     container: rocker/tidyverse:${{ matrix.r }}
     steps:
@@ -23,11 +23,7 @@ jobs:
           curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh
           bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
           export PATH="$HOME/miniconda/bin/:$PATH"
-          if [ "${{ matrix.python }}" == "3.4" ]; then
-            conda create -y -n myenv python=${{ matrix.python }} -c conda-forge
-          else
-            conda create -y -n myenv python=${{ matrix.python }}
-          fi
+          conda create -y -n myenv python=${{ matrix.python }}
           echo "::add-path::$HOME/miniconda/bin"
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
@@ -49,7 +45,7 @@ jobs:
         r: [latest]
         # r: [3.5, latest, devel]
         python: [3.7]
-        # python: [2.7, 3.4, 3.5, 3.6, 3.7]
+        # python: [2.7, 3.5, 3.6, 3.7]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v1
@@ -58,11 +54,7 @@ jobs:
           curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o /tmp/miniconda.sh
           bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
           export PATH="$HOME/miniconda/bin:$PATH"
-          if [ "${{ matrix.python }}" == "3.4" ]; then
-            conda create -y -n myenv python=${{ matrix.python }} -c conda-forge
-          else
-            conda create -y -n myenv python=${{ matrix.python }}
-          fi
+          conda create -y -n myenv python=${{ matrix.python }} -c conda-forge
           echo "::add-path::$HOME/miniconda/bin"
       - name: Install R
         run: |
@@ -95,18 +87,14 @@ jobs:
         r: [latest]
         # r: [3.5, latest, devel]
         python: [3.7]
-        # python: [2.7, 3.4, 3.5, 3.6, 3.7]
+        # python: [2.7, 3.5, 3.6, 3.7]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v1
       - name: Setup Miniconda
         run: |
           $env:PATH = "$env:CONDA;$env:CONDA\Scripts;$env:PATH"
-          If ('${{ matrix.r }}' -eq '3.4') {
-            conda create -y -n myenv python=${{ matrix.python }} -c conda-forge
-          } Else {
-            conda create -y -n myenv python=${{ matrix.python }}
-          }
+          conda create -y -n myenv python=${{ matrix.python }} -c conda-forge
           conda init powershell
       - name: Install R
         run: |
