@@ -31,7 +31,7 @@ jobs:
           echo "::add-path::$HOME/miniconda/bin"
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - name: Install and running tests
+      - name: Install and run tests
         shell: bash  # to allow `source`
         run: |
           source activate myenv
@@ -78,7 +78,7 @@ jobs:
           sudo installer -pkg R.pkg -target /
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - name: Install and running tests
+      - name: Install and run tests
         run: |
           source activate myenv
           python -m pip install -e .[test]
@@ -125,7 +125,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Continue"
           Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org', type = 'win.binary')"
-      - name: Install and running tests
+      - name: Install and run tests
         run: |
           conda activate myenv
           python -m pip install -e .[test]
