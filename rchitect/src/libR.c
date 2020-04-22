@@ -560,7 +560,15 @@ static int load_ga_symbol(const char* name, void** ppSymbol) {
     strcpy(last_loaded_symbol, name);
     *ppSymbol = (void*) GetProcAddress((HINSTANCE) libRga_t, name);
     if (*ppSymbol == NULL) {
-        return 0;
+
+        *ppSymbol = (void*) GetProcAddress((HINSTANCE) libR_t, name);
+
+        if (*ppSymbol == NULL) {
+            return 0;
+        } else {
+            return 1;
+        }
+
     } else {
         return 1;
     }
