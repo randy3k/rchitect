@@ -551,6 +551,10 @@ int _libR_load_constants() {
 
 static void* libRga_t;
 
+void* get_libRga_t(void) {
+    return libRga_t;
+}
+
 #define LOAD_GA_SYMBOL(name) \
 if (!load_ga_symbol(#name, (void**) &name)) {\
     return 0; \
@@ -560,15 +564,7 @@ static int load_ga_symbol(const char* name, void** ppSymbol) {
     strcpy(last_loaded_symbol, name);
     *ppSymbol = (void*) GetProcAddress((HINSTANCE) libRga_t, name);
     if (*ppSymbol == NULL) {
-
-        *ppSymbol = (void*) GetProcAddress((HINSTANCE) libR_t, name);
-
-        if (*ppSymbol == NULL) {
-            return 0;
-        } else {
-            return 1;
-        }
-
+        return 0;
     } else {
         return 1;
     }
