@@ -549,6 +549,8 @@ int _libR_load_constants() {
 
 #ifdef _WIN32
 
+#include <malloc.h>
+
 static void* libRga_t;
 
 #define LOAD_GA_SYMBOL(name) \
@@ -559,11 +561,27 @@ if (!load_ga_symbol(#name, (void**) &name)) {\
 static int load_ga_symbol(const char* name, void** ppSymbol) {
     strcpy(last_loaded_symbol, name);
     *ppSymbol = (void*) GetProcAddress((HINSTANCE) libRga_t, name);
-    if (*ppSymbol == NULL) {
-        return 0;
-    } else {
+    if (*ppSymbol != NULL) {
         return 1;
     }
+    #ifndef MS_WIN64
+    if (((size_t)name & ~0xFFFF) == 0) {
+        return 0;
+    }
+    char *mangled_name;
+    int i;
+    mangled_name = alloca(strlen(name) + 1 + 1 + 1 + 3);
+    if (!mangled_name)
+        return NULL;
+    for (i = 0; i < 32; ++i) {
+        sprintf(mangled_name, "_%s@%d", name, i*4);
+        *ppSymbol = (void*) GetProcAddress((HINSTANCE) libRga_t, mangled_name);
+        if (*ppSymbol != NULL) {
+            return 1;
+        }
+    }
+    #endif
+    return 0;
 }
 
 int _libRga_load(const char* libpath) {

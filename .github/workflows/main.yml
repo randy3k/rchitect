@@ -131,7 +131,6 @@ jobs:
           python -m pip install -e .[test]
       - name: Running tests
         run: |
-          $ErrorActionPreference = "Continue"
           conda activate myenv
           pytest -s --cov=rchitect
           python -m pip install codecov
