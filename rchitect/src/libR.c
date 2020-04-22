@@ -576,7 +576,8 @@ static int load_ga_symbol(const char* name, void** ppSymbol) {
 
 int _libRga_load(const char* libpath) {
     libRga_t = NULL;
-    libRga_t = (void*)LoadLibraryEx(libpath, NULL, 0);
+    libRga_t = (void*)LoadLibraryEx(
+        libpath, NULL, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
     if (libRga_t == NULL) {
         return 0;
     } else {
