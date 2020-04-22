@@ -559,6 +559,9 @@ if (!load_ga_symbol(#name, (void**) &name)) {\
 }
 
 static int load_ga_symbol(const char* name, void** ppSymbol) {
+    char *mangled_name;
+    int i;
+
     strcpy(last_loaded_symbol, name);
     *ppSymbol = (void*) GetProcAddress((HINSTANCE) libRga_t, name);
     if (*ppSymbol != NULL) {
@@ -568,8 +571,6 @@ static int load_ga_symbol(const char* name, void** ppSymbol) {
     if (((size_t)name & ~0xFFFF) == 0) {
         return 0;
     }
-    char *mangled_name;
-    int i;
     mangled_name = alloca(strlen(name) + 1 + 1 + 1 + 3);
     if (!mangled_name)
         return NULL;
