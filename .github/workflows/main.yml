@@ -125,14 +125,16 @@ jobs:
         run: |
           $ErrorActionPreference = "Continue"
           Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org', type = 'win.binary')"
-      - name: Install
+      - name: Install and running tests
         run: |
           conda activate myenv
           python -m pip install -e .[test]
-      - name: Running tests
-        run: |
           conda activate myenv
           pytest -s --cov=rchitect
+      - name: codecov
+        run: |
+          conda activate myenv
+          $ErrorActionPreference = "Continue"
           python -m pip install codecov
           codecov
         env:
