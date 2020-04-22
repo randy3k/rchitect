@@ -4,10 +4,10 @@ import rchitect
 import sys
 
 if sys.platform.startswith("win"):
-    from ctypes import CDLL
+    from ctypes import WinDLL
     rchitect.utils.ensure_path()
     p = rchitect.utils.libRgapath(rchitect.utils.Rhome())
-    lib = CDLL(p)
+    lib = WinDLL(p)
     print(lib.GA_peekevent)
     print(lib.GA_peekevent())
 
