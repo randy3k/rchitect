@@ -1,3 +1,7 @@
+# v0.3.23
+
+  - fix event processing related functions in windows
+
 # v0.3.22
 
   - better support of event processing
