@@ -30,16 +30,16 @@ def init(args=None):
     libR_loaded = lib.Rf_initialize_R != ffi.NULL
 
     if not libR_loaded:
-        # `system2utf8` may not work before `Rf_initialize_R` because locale may not be set
-        if not lib._libR_load(libRpath(rhome).encode("utf-8")):
-            raise Exception(load_r_error())
-        if not lib._libR_load_symbols():
-            raise Exception(load_r_symbol_error())
         if sys.platform.startswith("win"):
             if not lib._libRga_load(libRgapath(rhome).encode("utf-8")):
                 raise Exception(load_r_error())
             if not lib._libRga_load_symbols():
                 raise Exception(load_r_symbol_error())
+        # `system2utf8` may not work before `Rf_initialize_R` because locale may not be set
+        if not lib._libR_load(libRpath(rhome).encode("utf-8")):
+            raise Exception(load_r_error())
+        if not lib._libR_load_symbols():
+            raise Exception(load_r_symbol_error())
 
     # _libR_is_initialized only works after _libR_load is run.
     if not lib._libR_is_initialized():
