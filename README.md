@@ -39,19 +39,18 @@ d = rcall("sum", c)  # call an R function. Python objects are converted to RObje
 
 ## FAQ
 
-#### How to specify R_HOME location
+#### How to switch to a different R or specify the version of R.
 
-If `rchitect` fails to open the R shared library, user should first
-try to expose the path to R to the `PATH` vaiable.
+There are two options.
 
-In Linux/macOS, you could also export the environment variable `R_HOME`. For example,
+- One could expose the path to the R binary in the `PATH` variable
+- The environment variable `R_BINARY` could also be used to specify the path to R.
+- The environment variable `R_HOME` could also be used to specify R home directory. Note that it is should be set as the result of `R.home()`, not the directory where `R` is located. For example, in Unix
 ```sh
-$ export R_HOME=/usr/local/lib/R
+$ env R_HOME=/usr/local/lib/R radian
 ```
-Sometimes, you may also need to futher specify `LD_LIBRARY_PATH` if R fails to find some shared libraries,
-```sh
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-```
+
+#### Cannot find shared library
 
 Please also make sure that R was installed with the R shared library `libR.so` or `libR.dylib` or `libR.dll`. On Linux, the flag `--enable-R-shlib` may be needed to install R from the source.
 
