@@ -130,7 +130,9 @@ jobs:
           $ErrorActionPreference = "Continue"
           conda activate myenv
           python -m pip install -e .[test]
+          $ErrorActionPreference = "Stop"
           pytest -s --cov=rchitect
+          $ErrorActionPreference = "Continue"
           python -m pip install codecov
           codecov
         env:
