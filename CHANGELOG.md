@@ -1,3 +1,7 @@
+# v0.3.24
+
+  - fix a bug in loading GA_peekevent on windows
+
 # v0.3.23
 
   - fix event processing related functions in windows
