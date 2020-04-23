@@ -599,6 +599,7 @@ int _libRga_load(const char* libpath) {
 
 int _libRga_load_symbols() {
     LOAD_GA_SYMBOL(GA_peekevent);
+    return 1;
 }
 #endif
 
