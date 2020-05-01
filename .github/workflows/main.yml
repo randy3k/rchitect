@@ -2,6 +2,7 @@ name: build
 
 on: [push, pull_request]
 
+
 jobs:
   linux:
     strategy:
@@ -135,6 +136,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      CIBW_MANYLINUX_X86_64_IMAGE: manylinux1
+      CIBW_MANYLINUX_I686_IMAGE: manylinux1
     steps:
       - uses: actions/checkout@v1
       - uses: actions/setup-python@v1
