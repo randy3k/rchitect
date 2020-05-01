@@ -19,7 +19,7 @@ def load_r_symbol_error():
                 system2utf8(ffi.string(lib._libR_dl_error_message())))
 
 
-def init(args=None):
+def init(args=None, register_signal_handlers=True):
 
     if not args:
         args = ["rchitect", "--quiet", "--no-save"]
@@ -47,6 +47,7 @@ def init(args=None):
         _argv = [ffi.new("char[]", a.encode("utf-8")) for a in args]
         argv = ffi.new("char *[]", _argv)
 
+        lib.R_SignalHandlers_t[0] = register_signal_handlers
         lib.Rf_initialize_R(len(argv), argv)
 
         if sys.platform.startswith("win"):

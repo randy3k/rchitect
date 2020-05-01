@@ -455,6 +455,8 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(R_SetParams);
     LOAD_SYMBOL(R_set_command_line_arguments);
 
+    LOAD_SYMBOL_AS(R_SignalHandlers, R_SignalHandlers_t);
+
     LOAD_SYMBOL(Rf_initialize_R);
     LOAD_SYMBOL(setup_Rmainloop);
     LOAD_SYMBOL_AS(run_Rmainloop, _run_Rmainloop);
@@ -628,7 +630,7 @@ void* main_id;
 #endif
 
 
-int cb_read_console_interrupted;
+int cb_interrupted;
 
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
 int cb_read_console_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
@@ -637,10 +639,10 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
     if (getpid() != main_id) abort();
 #endif
     int ret;
-    cb_read_console_interrupted = 0;
+    cb_interrupted = 0;
 
     ret = cb_read_console(p, buf, buflen, add_history);
-    if (cb_read_console_interrupted == 1) {
+    if (cb_interrupted == 1) {
 #ifdef _WIN32
         *UserBreak_t = 1;
 #else
@@ -678,6 +680,14 @@ void cb_polled_events_safe() {
     if (main_id == NULL) main_id = getpid();
     if (getpid() != main_id) return;
     cb_polled_events();
+    if (cb_interrupted == 1) {
+        cb_interrupted = 0;
+#ifdef _WIN32
+        *UserBreak_t = 1;
+#else
+        *R_interrupts_pending_t = 1;
+#endif
+    }
 }
 
 void cb_write_console_safe(const char* s, int bufline, int otype) {

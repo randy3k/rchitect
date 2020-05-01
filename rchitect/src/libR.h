@@ -14,6 +14,8 @@
 
 // begin cdef
 
+extern int cb_interrupted;
+
 char* _libR_last_loaded_symbol(void);
 char* _libR_dl_error_message(void);
 int _libR_load(const char* libpath);
@@ -23,7 +25,6 @@ int _libR_load_constants(void);
 void _libR_set_callback(char* name, void* cb);
 
 int cb_read_console_interruptible(const char *, unsigned char *, int, int);
-extern int cb_read_console_interrupted;
 
 void cb_write_console_safe(const char *, int, int);
 void cb_busy_safe(int);

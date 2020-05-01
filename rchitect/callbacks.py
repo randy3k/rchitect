@@ -142,9 +142,9 @@ def cb_show_message(buf):
     callback.show_message(rconsole2str(ffi.string(buf)))
 
 
-def on_read_console_error(exception, exc_value, traceback):
+def on_callback_error(exception, exc_value, traceback):
     if exception == KeyboardInterrupt:
-        lib.cb_read_console_interrupted = 1
+        lib.cb_interrupted = 1
     elif exception == EOFError:
         pass
     else:
@@ -154,7 +154,7 @@ def on_read_console_error(exception, exc_value, traceback):
 _code = [""]
 
 
-@ffi.def_extern(error=0, onerror=on_read_console_error)
+@ffi.def_extern(error=0, onerror=on_callback_error)
 def cb_read_console(p, buf, buflen, add_history):
     # cache the code as buflen is limited to 4096
     if _code[0]:
@@ -193,7 +193,7 @@ def cb_clean_up(saveact, status, run_last):
     callback.clean_up(saveact, status, run_last)
 
 
-@ffi.def_extern()
+@ffi.def_extern(error=None, onerror=on_callback_error)
 def cb_polled_events():
     console.flush()
     callback.polled_events()

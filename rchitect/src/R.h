@@ -590,6 +590,7 @@ RAPI_EXTERN void (*R_set_command_line_arguments)(int argc, char **argv);
 // Rinterface.h
 
 RAPI_EXTERN int (*Rstd_CleanUp)(int saveact, int status, int RunLast);
+RAPI_EXTERN int *R_SignalHandlers_t;
 
 
 // Rembedded.h
