@@ -116,7 +116,9 @@ jobs:
         run: |
           conda activate myenv
           python -m pip install -e .
+          $ErrorActionPreference = "Continue"
           git clone https://github.com/randy3k/radian.git
+          $ErrorActionPreference = "Stop"
           cd radian
           python -m pip install -e .[test]
           python -m pip install jedi
