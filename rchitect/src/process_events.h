@@ -1,11 +1,13 @@
 #ifndef PROCESS_EVENTS_H__
 #define PROCESS_EVENTS_H__
 
-# include "R.h"
+# include "libR.h"
 
 // begin cdef
 
 void process_events(void);
+
+void polled_events(void);
 
 int peek_event(void);
 

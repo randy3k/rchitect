@@ -20,12 +20,19 @@ void process_events() {
 
 #if defined(_WIN32)
 
+void polled_events() {
+    cb_polled_events();
+}
+
 int peek_event(void) {
     return GA_peekevent();
 }
 
 #else
 
+void polled_events() {
+    R_ToplevelExec(cb_polled_events_interruptible, NULL);
+}
 
 static void Call_R_checkActivity(int *d) {
     *d = R_checkActivity(0, 1);
