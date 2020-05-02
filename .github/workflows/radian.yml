@@ -36,6 +36,7 @@ jobs:
           git clone https://github.com/randy3k/radian.git
           cd radian
           python -m pip install -e .[test]
+          python -m pip install jedi
           pytest -s
 
   macos:
@@ -76,6 +77,7 @@ jobs:
           git clone https://github.com/randy3k/radian.git
           cd radian
           python -m pip install -e .[test]
+          python -m pip install jedi
           pytest -s
 
   windows:
@@ -117,4 +119,5 @@ jobs:
           git clone https://github.com/randy3k/radian.git
           cd radian
           python -m pip install -e .[test]
+          python -m pip install jedi
           pytest -s
