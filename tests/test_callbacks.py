@@ -37,7 +37,7 @@ def test_write_console(mocker):
     mocker_write_console.assert_called_once_with('helloworld', 0)
 
 
-@pytest.mark.skipif(sys.platform.startswith("win") and rversion() < "4", reason="upstream issue")
+@pytest.mark.skipif(sys.platform.startswith("win") and rversion().version[0] < 4, reason="upstream issue")
 def test_write_console_utf8(mocker):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     # windows still doesn't like `𐐀`
