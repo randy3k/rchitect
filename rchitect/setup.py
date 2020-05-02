@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import sys
-import signal
 from six.moves import input as six_input
 
 from rchitect._cffi import ffi, lib
@@ -25,7 +24,7 @@ def load_constant_error():
                 system2utf8(ffi.string(lib._libR_dl_error_message())))
 
 
-def init(args=None, register_signal_handlers=True):
+def init(args=None, register_signal_handlers=False):
 
     if not args:
         args = ["rchitect", "--quiet", "--no-save"]
@@ -78,18 +77,8 @@ def loop():
     lib.run_Rmainloop()
 
 
-def sigint_handler(signum, frame):
-    raise KeyboardInterrupt()
-
-
 def ask_input(s):
-    orig_handler = signal.getsignal(signal.SIGINT)
-    # allow Ctrl+C to throw KeyboardInterrupt in callback
-    signal.signal(signal.SIGINT, sigint_handler)
-    try:
-        return six_input(s)
-    finally:
-        signal.signal(signal.SIGINT, orig_handler)
+    return six_input(s)
 
 
 @def_callback()
