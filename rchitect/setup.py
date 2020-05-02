@@ -4,17 +4,23 @@ import signal
 from six.moves import input as six_input
 
 from rchitect._cffi import ffi, lib
-from .utils import Rhome, libRpath, libRgapath, ensure_path, system2utf8
+from .utils import Rhome, ensure_path, system2utf8
 from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
-def load_r_error():
-    return"Cannot load R shared library. {}".format(
+def load_lib_error():
+    return"Cannot load shared library: {}".format(
         system2utf8(ffi.string(lib._libR_dl_error_message())))
 
 
-def load_r_symbol_error():
+def load_symbol_error():
     return "Cannot load symbol {}: {}".format(
+                system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
+                system2utf8(ffi.string(lib._libR_dl_error_message())))
+
+
+def load_constant_error():
+    return "Cannot load constant {}: {}".format(
                 system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
                 system2utf8(ffi.string(lib._libR_dl_error_message())))
 
@@ -25,21 +31,18 @@ def init(args=None, register_signal_handlers=True):
         args = ["rchitect", "--quiet", "--no-save"]
 
     rhome = Rhome()
+    # microsoft python doesn't load DLL's from PATH
+    # we will need to open the DLL's directly in _libR_load
     ensure_path(rhome)
 
     libR_loaded = lib.Rf_initialize_R != ffi.NULL
 
     if not libR_loaded:
         # `system2utf8` may not work before `Rf_initialize_R` because locale may not be set
-        if not lib._libR_load(libRpath(rhome).encode("utf-8")):
-            raise Exception(load_r_error())
+        if not lib._libR_load(rhome.encode("utf-8")):
+            raise Exception(load_lib_error())
         if not lib._libR_load_symbols():
-            raise Exception(load_r_symbol_error())
-        if sys.platform.startswith("win"):
-            if not lib._libRga_load(libRgapath(rhome).encode("utf-8")):
-                raise Exception(load_r_error())
-            if not lib._libRga_load_symbols():
-                raise Exception(load_r_symbol_error())
+            raise Exception(load_symbol_error())
 
     # _libR_is_initialized only works after _libR_load is run.
     if not lib._libR_is_initialized():
@@ -61,9 +64,7 @@ def init(args=None, register_signal_handlers=True):
 
     if not libR_loaded:
         if not lib._libR_load_constants():
-            raise Exception("Cannot load constant {}: {}".format(
-                system2utf8(ffi.string(lib._libR_last_loaded_symbol()))),
-                system2utf8(ffi.string(lib._libR_dl_error_message())))
+            raise Exception(load_constant_error())
         lib._libR_setup_xptr_callback()
 
         from rchitect.py_tools import inject_py_tools

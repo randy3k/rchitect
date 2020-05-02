@@ -34,6 +34,23 @@ def getRhome(path, throw=False):
     return rhome
 
 
+def verify_Rhome(rhome):
+    if sys.platform.startswith("win"):
+        path = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386", "R.dll")
+    elif sys.platform == "darwin":
+        path = os.path.join(rhome, "lib", "libR.dylib")
+    else:
+        path = os.path.join(rhome, "lib", "libR.so")
+
+    if not os.path.exists(path):
+        if sys.platform.startswith("win"):
+            another_path = os.path.join(
+                rhome, "bin", "i386" if sys.maxsize > 2**32 else "x64", "R.dll")
+            if os.path.exists(another_path):
+                raise RuntimeError("R and python architectures do not match.")
+        raise RuntimeError("R share library ({}) does not exist.".format(path))
+
+
 def Rhome():
     rhome = None
 
@@ -62,35 +79,9 @@ def Rhome():
     else:
         raise RuntimeError("Cannot determine R HOME.")
 
+    verify_Rhome(rhome)
+
     return rhome
-
-
-def libRpath(rhome):
-    if sys.platform.startswith("win"):
-        path = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386", "R.dll")
-    elif sys.platform == "darwin":
-        path = os.path.join(rhome, "lib", "libR.dylib")
-    else:
-        path = os.path.join(rhome, "lib", "libR.so")
-
-    if not os.path.exists(path):
-        if sys.platform.startswith("win"):
-            another_path = os.path.join(
-                rhome, "bin", "i386" if sys.maxsize > 2**32 else "x64", "R.dll")
-            if os.path.exists(another_path):
-                raise RuntimeError("R and python architectures do not match.")
-        raise RuntimeError("Cannot locate R share library.")
-
-    return path
-
-
-def libRgapath(rhome):
-    path = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386", "Rgraphapp.dll")
-
-    if not os.path.exists(path):
-        raise RuntimeError("Cannot locate Rgraphapp share library.")
-
-    return path
 
 
 def ensure_path(rhome=None):

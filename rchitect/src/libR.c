@@ -59,6 +59,7 @@ static int load_symbol(const char* name, void** ppSymbol) {
     }
 }
 
+
 #define LOAD_SYMBOL_AS(name, as) \
 if (!load_symbol(#name, (void**) &as)) \
     return 0;
@@ -67,6 +68,27 @@ if (!load_symbol(#name, (void**) &as)) \
 if (!load_symbol(#name, (void**) &name)) {\
     return 0; \
 }
+
+
+#ifdef _WIN32
+
+static void* libRga_t;
+
+static int load_ga_symbol(const char* name, void** ppSymbol) {
+    strcpy(last_loaded_symbol, name);
+    *ppSymbol = (void*) GetProcAddress((HINSTANCE) libRga_t, name);
+    if (*ppSymbol != NULL) {
+        return 1;
+    }
+    return 0;
+}
+
+#define LOAD_GA_SYMBOL(name) \
+if (!load_ga_symbol(#name, (void**) &name)) {\
+    return 0; \
+}
+
+#endif
 
 static int load_constant(const char* name, void** ppSymbol) {
     void** temp;
@@ -92,20 +114,62 @@ if (!load_constant(#name, (void**) &as)) \
 if (!load_constant(#name, (void**) &name)) \
     return 0;
 
+#define LOAD_WIN_DLL(name) \
+if (sizeof(void*) == 8) { \
+    sprintf(libpath, "%s\\%s\\%s", rhome, "bin\\x64", #name); \
+} else { \
+    sprintf(libpath, "%s\\%s\\%s", rhome, "bin\\i386", #name); \
+} \
+if ((void*)LoadLibraryEx(libpath, NULL, 0x00001100) == NULL) { \
+    free(libpath); \
+    return 0; \
+}
 
-int _libR_load(const char* libpath) {
+int _libR_load(const char* rhome) {
+    char* libpath = malloc(strlen(rhome) + 50);
+
     libR_t = NULL;
 #ifdef _WIN32
+    if (sizeof(void*) == 8) {
+        sprintf(libpath, "%s\\%s", rhome, "bin\\x64\\R.dll");
+    } else {
+        sprintf(libpath, "%s\\%s", rhome, "bin\\i386\\R.dll");
+    }
     libR_t = (void*)LoadLibraryEx(libpath, NULL, 0x00001100);
     // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
+#elif defined(__APPLE__)
+    sprintf(libpath, "%s/%s", rhome, "lib/libR.dylib");
+    libR_t = dlopen(libpath, RTLD_NOW|RTLD_GLOBAL);
 #else
+    sprintf(libpath, "%s/%s", rhome, "lib/libR.so");
     libR_t = dlopen(libpath, RTLD_NOW|RTLD_GLOBAL);
 #endif
     if (libR_t == NULL) {
+        free(libpath);
         return 0;
-    } else {
-        return 1;
     }
+
+#ifdef _WIN32
+    libRga_t = NULL;
+    if (sizeof(void*) == 8) {
+        sprintf(libpath, "%s\\%s", rhome, "bin\\x64\\Rgraphapp.dll");
+    } else {
+        sprintf(libpath, "%s\\%s", rhome, "bin\\i386\\Rgraphapp.dll");
+    }
+    libRga_t = (void*)LoadLibraryEx(libpath, NULL, 0x00001100);
+    // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
+    if (libRga_t == NULL) {
+        free(libpath);
+        return 0;
+    }
+    LOAD_WIN_DLL(Rblas.dll);
+    LOAD_WIN_DLL(Riconv.dll);
+    LOAD_WIN_DLL(Rlapack.dll);
+
+#endif
+
+    free(libpath);
+    return 1;
 }
 
 
@@ -479,6 +543,11 @@ int _libR_load_symbols() {
     LOAD_SYMBOL_AS(R_interrupts_pending, R_interrupts_pending_t)
     #endif
 
+
+    #ifdef _WIN32
+    LOAD_GA_SYMBOL(GA_peekevent);
+    #endif
+
     return 1;
 }
 
@@ -548,48 +617,6 @@ int _libR_load_constants() {
 
     return 1;
 }
-
-
-#ifdef _WIN32
-
-#include <malloc.h>
-
-static void* libRga_t;
-
-#define LOAD_GA_SYMBOL(name) \
-if (!load_ga_symbol(#name, (void**) &name)) {\
-    return 0; \
-}
-
-static int load_ga_symbol(const char* name, void** ppSymbol) {
-    char *mangled_name;
-    int i;
-
-    strcpy(last_loaded_symbol, name);
-    *ppSymbol = (void*) GetProcAddress((HINSTANCE) libRga_t, name);
-    if (*ppSymbol != NULL) {
-        return 1;
-    }
-    return 0;
-}
-
-int _libRga_load(const char* libpath) {
-    libRga_t = NULL;
-    libRga_t = (void*)LoadLibraryEx(libpath, NULL, 0x00001100);
-    // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
-    if (libRga_t == NULL) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
-int _libRga_load_symbols() {
-    LOAD_GA_SYMBOL(GA_peekevent);
-    return 1;
-}
-#endif
-
 
 
 void _libR_set_callback(char* name, void* cb) {
