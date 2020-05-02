@@ -26,9 +26,10 @@ void _libR_set_callback(char* name, void* cb);
 
 int cb_read_console_interruptible(const char *, unsigned char *, int, int);
 
+void cb_polled_events_interruptible();
+
 void cb_write_console_safe(const char *, int, int);
 void cb_busy_safe(int);
-void cb_polled_events_safe();
 
 void _libR_setup_xptr_callback();
 SEXP _libR_xptr_callback(SEXP, SEXP, SEXP, SEXP);

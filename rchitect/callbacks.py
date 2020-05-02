@@ -91,7 +91,7 @@ def setup_rstart(args):
     rstart.home = home
     rstart._ReadConsole = ffi.addressof(lib, "cb_read_console_interruptible")
     rstart._WriteConsole = ffi.NULL
-    rstart.CallBack = ffi.addressof(lib, "cb_polled_events_safe")
+    rstart.CallBack = ffi.addressof(lib, "cb_polled_events_interruptible")
     rstart.ShowMessage = ffi.addressof(lib, "cb_show_message")
     rstart.YesNoCancel = ffi.addressof(lib, "cb_yes_no_cancel")
     rstart.Busy = ffi.addressof(lib, "cb_busy")
@@ -134,7 +134,7 @@ def setup_unix_callbacks():
     setup_callback("ptr_do_dataentry", "do_dataentry")
     setup_callback("ptr_do_dataviewer", "do_dataviewer")
     setup_callback("ptr_R_ProcessEvents", "process_events")
-    setup_callback("R_PolledEvents", "polled_events", "cb_polled_events_safe")
+    setup_callback("R_PolledEvents", "polled_events", "cb_polled_events_interruptible")
 
 
 @ffi.def_extern()

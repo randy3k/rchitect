@@ -3,6 +3,10 @@
 #include "R.h"
 #include <stdio.h>
 
+#ifndef _WIN32
+    #include <unistd.h>  // for getpid
+#endif
+
 static void* libR_t;
 
 static char last_loaded_symbol[100] = "";
@@ -671,6 +675,7 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
 
     ret = cb_read_console(p, buf, buflen, add_history);
     if (cb_interrupted == 1) {
+        cb_interrupted = 0;
 #ifdef _WIN32
         *UserBreak_t = 1;
 #else
@@ -682,16 +687,25 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
 }
 
 
-#ifdef _WIN32
-
-
-void cb_polled_events_safe() {
+void cb_polled_events_interruptible() {
+#ifndef _WIN32
+    if (main_id == NULL) main_id = getpid();
+    if (getpid() != main_id) return;
+#endif
     cb_polled_events();
     if (cb_interrupted == 1) {
         cb_interrupted = 0;
+#ifdef _WIN32
         *UserBreak_t = 1;
+#else
+        *R_interrupts_pending_t = 1;
+#endif
+        R_CheckUserInterrupt();
     }
 }
+
+
+#ifdef _WIN32
 
 // actually we don't use it
 void cb_write_console_safe(const char* s, int bufline, int otype) {
@@ -705,18 +719,6 @@ void cb_busy_safe(int which) {
 
 
 #else
-
-#include <unistd.h>
-
-void cb_polled_events_safe() {
-    if (main_id == NULL) main_id = getpid();
-    if (getpid() != main_id) return;
-    cb_polled_events();
-    if (cb_interrupted == 1) {
-        cb_interrupted = 0;
-        *R_interrupts_pending_t = 1;
-    }
-}
 
 void cb_write_console_safe(const char* s, int bufline, int otype) {
     // TODO: is it possible to capture the output of forks?

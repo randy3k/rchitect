@@ -347,6 +347,7 @@ if sys.platform.startswith("win"):
         callback.polled_events()
 else:
     def polled_events():
+        # TODO: do not set `cb_interrupted` on error
         ptr = lib.R_PolledEvents_t
         if ptr != ffi.NULL:
             ptr[0]()
