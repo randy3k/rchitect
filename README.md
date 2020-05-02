@@ -54,9 +54,6 @@ $ env R_HOME=/usr/local/lib/R radian
 
 Please also make sure that R was installed with the R shared library `libR.so` or `libR.dylib` or `libR.dll`. On Linux, the flag `--enable-R-shlib` may be needed to install R from the source.
 
-#### Microsoft Store python
-
-It is [known](https://github.com/randy3k/radian/issues/120#issuecomment-565695557) that `rchitect` doesn't work with python from Microsoft Store.
 
 ## Wiki
 
