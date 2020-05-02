@@ -1,3 +1,8 @@
+# v0.3.25
+  
+  - support R_SignalHandlers
+  - improve dll loading in windows (microsoft store python should work now)
+
 # v0.3.24
 
   - fix a bug in loading GA_peekevent on windows
