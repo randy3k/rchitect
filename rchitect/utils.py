@@ -24,6 +24,10 @@ def read_registry(key, valueex):
 
 def getRhome(path, throw=False):
     rhome = ""
+
+    if sys.platform.startswith("win") and path and not path.endswith(".exe"):
+        path = path + ".exe"
+
     if not which(path):
         return None
     try:
