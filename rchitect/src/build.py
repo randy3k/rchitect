@@ -21,6 +21,8 @@ if sys.platform.startswith("win"):
         extern int* UserBreak_t;
         extern int* CharacterMode_t;
         extern int* EmitEmbeddedUTF8_t;
+        extern int (*GA_peekevent)(void);
+        extern int (*GA_initapp)(int, char **);
     """)
 else:
     ffibuilder.cdef("""

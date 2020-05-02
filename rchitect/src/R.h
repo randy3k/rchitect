@@ -622,6 +622,7 @@ RAPI_EXTERN int* UserBreak_t;
 RAPI_EXTERN int* CharacterMode_t;
 RAPI_EXTERN int* EmitEmbeddedUTF8_t;
 RAPI_EXTERN int (*GA_peekevent)(void);
+RAPI_EXTERN int (*GA_initapp)(int, char **);
 #else
 // eventloop.h
 RAPI_EXTERN void* R_InputHandlers;

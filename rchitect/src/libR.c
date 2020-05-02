@@ -546,6 +546,7 @@ int _libR_load_symbols() {
 
     #ifdef _WIN32
     LOAD_GA_SYMBOL(GA_peekevent);
+    LOAD_GA_SYMBOL(GA_initapp);
     #endif
 
     return 1;
@@ -683,17 +684,21 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
 
 #ifdef _WIN32
 
-// actually we don't use them
 
 void cb_polled_events_safe() {
     cb_polled_events();
+    if (cb_interrupted == 1) {
+        cb_interrupted = 0;
+        *UserBreak_t = 1;
+    }
 }
 
-
+// actually we don't use it
 void cb_write_console_safe(const char* s, int bufline, int otype) {
     cb_write_console_capturable(s, bufline, otype);
 }
 
+// actually we don't use it
 void cb_busy_safe(int which) {
     cb_busy(which);
 }
@@ -709,11 +714,7 @@ void cb_polled_events_safe() {
     cb_polled_events();
     if (cb_interrupted == 1) {
         cb_interrupted = 0;
-#ifdef _WIN32
-        *UserBreak_t = 1;
-#else
         *R_interrupts_pending_t = 1;
-#endif
     }
 }
 

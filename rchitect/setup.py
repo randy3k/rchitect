@@ -49,15 +49,24 @@ def init(args=None, register_signal_handlers=False):
         _argv = [ffi.new("char[]", a.encode("utf-8")) for a in args]
         argv = ffi.new("char *[]", _argv)
 
-        lib.R_SignalHandlers_t[0] = register_signal_handlers
-        lib.Rf_initialize_R(len(argv), argv)
-
         if sys.platform.startswith("win"):
-            setup_rstart(args)
+            if register_signal_handlers:
+                lib.Rf_initialize_R(len(argv), argv)
+                setup_rstart(args)
+            else:
+                # Rf_initialize_R will set handler for SIGINT
+                # we need to workaround it
+                lib.R_SignalHandlers_t[0] = 0
+                setup_rstart(args)
+                lib.R_set_command_line_arguments(len(argv), argv)
+                lib.GA_initapp(0, ffi.NULL)
             lib.setup_Rmainloop()
+            # require R 4.0
             if lib.EmitEmbeddedUTF8_t != ffi.NULL:
                 lib.EmitEmbeddedUTF8_t[0] = 1
         else:
+            lib.R_SignalHandlers_t[0] = register_signal_handlers
+            lib.Rf_initialize_R(len(argv), argv)
             setup_unix_callbacks()
             lib.setup_Rmainloop()
 

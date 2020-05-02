@@ -91,7 +91,7 @@ def setup_rstart(args):
     rstart.home = home
     rstart._ReadConsole = ffi.addressof(lib, "cb_read_console_interruptible")
     rstart._WriteConsole = ffi.NULL
-    rstart.CallBack = ffi.addressof(lib, "cb_polled_events")
+    rstart.CallBack = ffi.addressof(lib, "cb_polled_events_safe")
     rstart.ShowMessage = ffi.addressof(lib, "cb_show_message")
     rstart.YesNoCancel = ffi.addressof(lib, "cb_yes_no_cancel")
     rstart.Busy = ffi.addressof(lib, "cb_busy")
