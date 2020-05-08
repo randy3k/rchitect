@@ -83,7 +83,7 @@ def setup_rstart(rhome, args):
         rstart.SaveAction = SA_SAVE
     else:
         rstart.SaveAction = SA_SAVEASK
-    rhome = ffi.new("char[]", rhome)
+    rhome = ffi.new("char[]", rhome.encode("utf-8"))
     _protected["rhome"] = rhome
     rstart.rhome = rhome
     home = ffi.new("char[]", ffi.string(lib.getRUser()))
