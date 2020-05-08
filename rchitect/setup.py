@@ -52,12 +52,12 @@ def init(args=None, register_signal_handlers=False):
         if sys.platform.startswith("win"):
             if register_signal_handlers:
                 lib.Rf_initialize_R(len(argv), argv)
-                setup_rstart(args)
+                setup_rstart(rhome, args)
             else:
                 # Rf_initialize_R will set handler for SIGINT
                 # we need to workaround it
                 lib.R_SignalHandlers_t[0] = 0
-                setup_rstart(args)
+                setup_rstart(rhome, args)
                 lib.R_set_command_line_arguments(len(argv), argv)
                 lib.GA_initapp(0, ffi.NULL)
             lib.setup_Rmainloop()

@@ -56,7 +56,7 @@ def undef_callback(name):
 _protected = {}
 
 
-def setup_rstart(args):
+def setup_rstart(rhome, args):
     rstart = ffi.new("Rstart")
     _protected["rstart"] = rstart
     SA_NORESTORE = 0
@@ -83,7 +83,7 @@ def setup_rstart(args):
         rstart.SaveAction = SA_SAVE
     else:
         rstart.SaveAction = SA_SAVEASK
-    rhome = ffi.new("char[]", ffi.string(lib.get_R_HOME()))
+    rhome = ffi.new("char[]", rhome)
     _protected["rhome"] = rhome
     rstart.rhome = rhome
     home = ffi.new("char[]", ffi.string(lib.getRUser()))
