@@ -1,5 +1,9 @@
+# v0.3.26
+
+  fix a bug in detecting unicode escape sequence in Windows
+
 # v0.3.25
-  
+
   - support R_SignalHandlers
   - improve dll loading in windows (microsoft store python should work now)
 
