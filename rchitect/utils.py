@@ -120,7 +120,7 @@ def rversion(rhome=None):
     return version
 
 
-UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe")
+UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe", re.S)
 if sys.version_info[0] >= 3:
     DECODE_ERROR_HANDLER = "backslashreplace"
 else:
