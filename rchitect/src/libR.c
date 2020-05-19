@@ -124,7 +124,7 @@ if (sizeof(void*) == 8) { \
 } else { \
     sprintf(libpath, "%s\\%s\\%s", rhome, "bin\\i386", #name); \
 } \
-if ((void*)LoadLibraryEx(libpath, NULL, 0x00001100) == NULL) { \
+if ((void*)LoadLibraryEx(libpath, NULL, 0) == NULL) { \
     free(libpath); \
     return 0; \
 }
@@ -139,8 +139,7 @@ int _libR_load(const char* rhome) {
     } else {
         sprintf(libpath, "%s\\%s", rhome, "bin\\i386\\R.dll");
     }
-    libR_t = (void*)LoadLibraryEx(libpath, NULL, 0x00001100);
-    // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
+    libR_t = (void*)LoadLibraryEx(libpath, NULL, 0);
 #elif defined(__APPLE__)
     sprintf(libpath, "%s/%s", rhome, "lib/libR.dylib");
     libR_t = dlopen(libpath, RTLD_NOW|RTLD_GLOBAL);
@@ -160,8 +159,7 @@ int _libR_load(const char* rhome) {
     } else {
         sprintf(libpath, "%s\\%s", rhome, "bin\\i386\\Rgraphapp.dll");
     }
-    libRga_t = (void*)LoadLibraryEx(libpath, NULL, 0x00001100);
-    // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
+    libRga_t = (void*)LoadLibraryEx(libpath, NULL, 0);
     if (libRga_t == NULL) {
         free(libpath);
         return 0;
