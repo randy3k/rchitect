@@ -1,3 +1,7 @@
+# v0.3.27
+
+  support conda's R
+
 # v0.3.26
 
   fix a bug in detecting unicode escape sequence in Windows
