@@ -134,9 +134,11 @@ if ((void*)load_dll(libpath) == NULL) { \
 
 void* load_dll(char* libpath) {
     void* lib_t;
-    lib_t = (void*)LoadLibraryEx(libpath, NULL, 0x00001100);
+    // it is needed for microsoft store python
     // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
+    lib_t = (void*)LoadLibraryEx(libpath, NULL, 0x00001100);
     if (lib_t == NULL) {
+        // fallback to the default flag (needed for conda's R)
         lib_t = (void*)LoadLibraryEx(libpath, NULL, 0);
     }
     return lib_t;
