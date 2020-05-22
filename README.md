@@ -41,7 +41,7 @@ d = rcall("sum", c)  # call an R function. Python objects are converted to RObje
 
 #### How to switch to a different R or specify the version of R.
 
-There are two options.
+There are a few options.
 
 - One could expose the path to the R binary in the `PATH` variable
 - The environment variable `R_BINARY` could also be used to specify the path to R.
