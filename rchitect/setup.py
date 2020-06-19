@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import sys
+import os
 from six.moves import input as six_input
 
 from rchitect._cffi import ffi, lib
@@ -24,10 +25,13 @@ def load_constant_error():
                 system2utf8(ffi.string(lib._libR_dl_error_message())))
 
 
-def init(args=None, register_signal_handlers=False):
+def init(args=None, register_signal_handlers=None):
 
     if not args:
         args = ["rchitect", "--quiet", "--no-save"]
+
+    if register_signal_handlers is None:
+        register_signal_handlers = os.environ.get("RCHITECT_REGISTER_SIGNAL_HANDLERS", "1") == "1"
 
     rhome = Rhome()
     # microsoft python doesn't load DLL's from PATH
@@ -78,8 +82,9 @@ def init(args=None, register_signal_handlers=False):
         from rchitect.py_tools import inject_py_tools
         inject_py_tools()
 
-        from rchitect import reticulate
-        reticulate.configure()
+        if os.environ.get("RCHITECT_RETICULATE_CONFIG", "1") != "0":
+            from rchitect import reticulate
+            reticulate.configure()
 
 
 def loop():

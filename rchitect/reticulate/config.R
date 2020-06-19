@@ -1,10 +1,13 @@
+# patch reticulate::py_discover_config
 getOption("rchitect.py_tools")$attach()
 
 ns <- getNamespace("reticulate")
 
-# patch reticulate::py_discover_config
-
 if (.Platform$OS.type == "unix") {
+
+    Sys.setenv(RETICULATE_PYTHON = import("sys")$executable)
+    Sys.setenv(RETICULATE_REMAP_OUTPUT_STREAMS = "0")
+
     py_config <- import("rchitect.py_config")
     native_config <- py_copy(py_config$config())
 
