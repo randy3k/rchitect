@@ -1,7 +1,10 @@
+# v0.3.28
+
+  - a new environemnt variable to stop reticulate code injection
+
 # v0.3.27
 
   - support conda's R
-  - a new environemnt variable to stop reticulate code injection
 
 # v0.3.26
 
