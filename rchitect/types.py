@@ -117,7 +117,7 @@ class RClass(object):
         try:
             return cls._rclasses[rcls]
         except KeyError:
-            T = type(str("RClass_" + rcls), (RClass,), {"__new__": lambda cls: None})
+            T = type(str("RClass_" + rcls), (RClass,), {"__new__": (lambda cls: None)})
             cls._rclasses[rcls] = T
             return T
 
@@ -139,7 +139,7 @@ class datatype(type):
                 T = datatype(
                     str("datatype_{}".format(t.__name__)),
                     (type,),
-                    {"t": t, "__new__": lambda cls: cls.t})
+                    {"t": t, "__new__": (lambda cls: cls.t)})
                 cls._datatypes[t] = T
                 return T
         else:
