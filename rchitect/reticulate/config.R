@@ -9,7 +9,7 @@ ns <- getNamespace("reticulate")
 if (.Platform$OS.type == "unix") {
 
 
-    py_config <- import("rchitect.py_config")
+    py_config <- import("rchitect.reticulate.py_config")
     native_config <- py_copy(py_config$config())
 
     unlockBinding("py_discover_config", ns)
@@ -28,6 +28,11 @@ if (.Platform$OS.type == "unix") {
         ns)
 
     lockBinding("py_discover_config", ns)
+}
+
+# reticulate no longer inserts it, instead, they use PYTHONPATH to initialize python
+if (utils::compareVersion(as.character(packageVersion("reticulate")), "1.17") >= 0) {
+    import("rchitect.reticulate.path")$append_path(system.file("python", package = "reticulate"))
 }
 
 # conversions
