@@ -20,7 +20,7 @@ tryCatch(
     }},
     error = function(e) {{
         if ({settimelimit}) base::setTimeLimit()
-        assign("comps", NULL, env = utils:::.CompletionEnv)
+        assign("comps", NULL, envir = utils:::.CompletionEnv)
     }}
 )
 """
