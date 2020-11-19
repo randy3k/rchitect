@@ -25,7 +25,7 @@ jobs:
           bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
           export PATH="$HOME/miniconda/bin/:$PATH"
           conda create -y -n myenv python=${{ matrix.python }}
-          echo "::add-path::$HOME/miniconda/bin"
+          echo "$HOME/miniconda/bin" >> $GITHUB_PATH
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - name: Install and run tests
@@ -55,7 +55,7 @@ jobs:
           bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
           export PATH="$HOME/miniconda/bin:$PATH"
           conda create -y -n myenv python=${{ matrix.python }} -c conda-forge
-          echo "::add-path::$HOME/miniconda/bin"
+          echo "$HOME/miniconda/bin" >> $GITHUB_PATH
       - name: Install R
         run: |
           if [ "${{ matrix.r }}" = "devel" ]; then
@@ -107,7 +107,7 @@ jobs:
             (new-object net.webclient).DownloadFile($("https://cran.r-project.org/bin/windows/base/old/"+$matches[1]+"/R-"+$matches[1]+"-win.exe"),"C:\R-binary.exe")
           }
           Start-Process -FilePath "C:\R-binary.exe" -Wait -ArgumentList "/VERYSILENT /DIR=C:\R"
-          echo "::add-path::C:\R\bin\x64"
+          echo "C:\R\bin\x64" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Install reticulate
         run: |
           $ErrorActionPreference = "Continue"
