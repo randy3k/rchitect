@@ -68,6 +68,7 @@ void cb_polled_events();
 int  cb_yes_no_cancel(const char *s);
 
 SEXP xptr_callback(SEXP, SEXP, SEXP, SEXP);
+void xptr_finalizer(SEXP);
 
 // end cb cdef
 
