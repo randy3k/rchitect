@@ -2,4 +2,5 @@ import sys
 
 
 def append_path(x):
-    sys.path.append(x)
+    if x not in sys.path:
+        sys.path.append(x)
