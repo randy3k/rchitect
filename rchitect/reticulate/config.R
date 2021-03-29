@@ -6,9 +6,9 @@ Sys.setenv(RETICULATE_REMAP_OUTPUT_STREAMS = "0")
 
 ns <- getNamespace("reticulate")
 
-if (.Platform$OS.type == "unix") {
-
-
+#  only needed for reticulate <1.18.9008
+if (.Platform$OS.type == "unix"  &&
+        utils::compareVersion(as.character(packageVersion("reticulate")), "1.18.9008") == -1) {
     py_config <- import("rchitect.reticulate.py_config")
     native_config <- py_copy(py_config$config())
 
