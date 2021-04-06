@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 import ctypes
+import locale
 from distutils.version import LooseVersion
 if sys.version_info[0] >= 3:
     from shutil import which
@@ -160,6 +161,10 @@ if sys.platform == "win32":
     wctomb.restype = ctypes.c_int
 
     def system2utf8(buf):
+        loc = locale.getlocale()
+        if loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
+            return buf.decode("utf-8", DECODE_ERROR_HANDLER)
+
         wcbuf = ctypes.create_unicode_buffer(1)
         text = ""
         while buf:
@@ -171,6 +176,10 @@ if sys.platform == "win32":
         return text
 
     def utf8tosystem(text):
+        loc = locale.getlocale()
+        if loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
+            return text.encode("utf-8", "backslashreplace")
+
         s = ctypes.create_string_buffer(10)
         buf = b""
         for c in text:
