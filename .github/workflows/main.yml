@@ -118,16 +118,15 @@ jobs:
         run: |
           conda activate myenv
           python -m pip install -e .[test]
-          conda activate myenv
-          pytest -s --cov=rchitect
-      - name: codecov
-        run: |
-          conda activate myenv
-          $ErrorActionPreference = "Continue"
-          python -m pip install codecov
-          codecov
-        env:
-          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+          pytest -s
+      # - name: codecov
+      #   run: |
+      #     conda activate myenv
+      #     $ErrorActionPreference = "Continue"
+      #     python -m pip install codecov
+      #     codecov
+      #   env:
+      #     CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
 
   build_wheels:
     needs: [linux, macos, windows]
