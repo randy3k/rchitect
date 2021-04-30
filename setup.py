@@ -40,7 +40,7 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages('.', exclude=["tests"]),
     package_data={'rchitect': ['reticulate/*.R', 'src/*']},
-    cffi_modules=["rchitect/src/build.py:ffibuilder"],
+    cffi_modules=["build.py:ffibuilder"],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*',
     install_requires=install_requires,
     setup_requires=[

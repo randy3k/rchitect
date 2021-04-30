@@ -4,13 +4,13 @@ import sys
 from cffi import FFI
 ffibuilder = FFI()
 
-cwd = os.path.dirname(os.path.realpath(__file__))
+# cwd = os.path.dirname(os.path.realpath(__file__))
 cdef_pattern = re.compile("// begin cdef([^$]*)// end cdef")
 cb_cdef_pattern = re.compile("// begin cb cdef([^$]*)// end cb cdef")
 
 
 for header_file in ["R.h", "libR.h", "gli.h", "parse.h", "process_events.h"]:
-    with open(os.path.join(cwd, header_file), "r") as f:
+    with open(os.path.join("rchitect", "src", header_file), "r") as f:
         m = cdef_pattern.search(f.read(), re.M)
         ffibuilder.cdef(m.group(1).replace("RAPI_EXTERN", "extern"))
 
@@ -33,7 +33,7 @@ else:
         extern int* R_interrupts_pending_t;
     """)
 
-with open(os.path.join(cwd, "libR.h"), "r") as f:
+with open(os.path.join("rchitect", "src", "libR.h"), "r") as f:
     m = cb_cdef_pattern.search(f.read(), re.M)
     ffibuilder.cdef("""
         extern "Python+C" {{
