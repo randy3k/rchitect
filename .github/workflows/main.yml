@@ -145,7 +145,7 @@ jobs:
         with:
           python-version: '3.7'
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.10.0
+        uses: joerick/cibuildwheel@master
       - uses: actions/upload-artifact@v1
         with:
           name: wheels
