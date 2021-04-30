@@ -122,4 +122,4 @@ jobs:
           cd radian
           python -m pip install -e .[test]
           python -m pip install jedi==0.17.2
-          pytest -s
+          pytest
