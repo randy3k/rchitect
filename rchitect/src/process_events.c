@@ -34,18 +34,18 @@ void polled_events() {
     R_ToplevelExec(cb_polled_events_interruptible, NULL);
 }
 
-static void Call_R_checkActivity(int *d) {
-    *d = R_checkActivity(0, 1);
+static void Call_R_checkActivity(void** what) {
+    *what = R_checkActivity(0, 1);
 }
 
 int peek_event(void) {
     Rboolean ok;
-    int d;
-    ok = R_ToplevelExec(Call_R_checkActivity, &d);
+    void* what;
+    ok = R_ToplevelExec(Call_R_checkActivity, &what);
     if (ok == FALSE) {
         return 0;
     }
-    return d;
+    return what != NULL;
 }
 
 #endif

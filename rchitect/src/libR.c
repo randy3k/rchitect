@@ -673,7 +673,7 @@ void _libR_setup_xptr_callback() {
 
 
 #ifndef _WIN32
-void* main_id;
+int main_id = -1;
 #endif
 
 
@@ -682,7 +682,7 @@ int cb_interrupted;
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
 int cb_read_console_interruptible(const char * p, unsigned char * buf, int buflen, int add_history) {
 #ifndef _WIN32
-    if (main_id == NULL) main_id = getpid();
+    if (main_id == -1) main_id = getpid();
     if (getpid() != main_id) abort();
 #endif
     int ret;
@@ -704,7 +704,7 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
 
 void cb_polled_events_interruptible() {
 #ifndef _WIN32
-    if (main_id == NULL) main_id = getpid();
+    if (main_id == -1) main_id = getpid();
     if (getpid() != main_id) return;
 #endif
     cb_polled_events();
@@ -738,7 +738,7 @@ void cb_busy_safe(int which) {
 void cb_write_console_safe(const char* s, int bufline, int otype) {
     // TODO: is it possible to capture the output of forks?
 
-    if (main_id == NULL) main_id = getpid();
+    if (main_id == -1) main_id = getpid();
     // only capture the main process
     if (getpid() == main_id) {
         // flush anything from printf
@@ -756,7 +756,7 @@ void cb_write_console_safe(const char* s, int bufline, int otype) {
 }
 
 void cb_busy_safe(int which) {
-    if (main_id == NULL) main_id = getpid();
+    if (main_id == -1) main_id = getpid();
     if (getpid() != main_id) return;
     cb_busy(which);
 }
