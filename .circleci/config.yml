@@ -100,7 +100,8 @@ jobs:
       - checkout
       - setup-conda:
           python: <<parameters.python>>
-      - run: Rscript --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
+      # - run: Rscript --quiet -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
+      - run: R --quiet -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - run:
           name: Install and test
           command: |
@@ -124,7 +125,7 @@ jobs:
           r: <<parameters.r>>
       - setup-conda:
           python: <<parameters.python>>
-      - run: Rscript --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
+      - run: Rscript --quiet -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - run:
           name: Install and test
           command: |
@@ -147,7 +148,7 @@ jobs:
           r: <<parameters.r>>
       - setup-conda-windows:
           python: <<parameters.python>>
-      - run: Rscript --slave -e "install.packages('reticulate', repo = 'https://cloud.r-project.org', type = 'win.binary')"
+      - run: Rscript --quiet -e "install.packages('reticulate', repo = 'https://cloud.r-project.org', type = 'win.binary')"
       - run:
           name: Install and test
           command: |
