@@ -52,6 +52,9 @@ commands:
             sudo installer -pkg R.pkg -target /
             sudo ln -sf /Library/Frameworks/R.framework/Resources/bin/R /usr/local/bin/R
             sudo ln -sf /Library/Frameworks/R.framework/Resources/bin/Rscript /usr/local/bin/Rscript
+            if [ "<<parameters.r>>" == "devel" ]; then
+              brew install libpng  # for building reticulate
+            fi
   install-r-windows:
     parameters:
       r:
