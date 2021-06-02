@@ -118,6 +118,8 @@ jobs:
             python -m pip install codecov
             codecov
   macos-test:
+    environment:
+      HOMEBREW_NO_AUTO_UPDATE: 1
     parameters:
       r:
         type: string
@@ -131,7 +133,12 @@ jobs:
           r: <<parameters.r>>
       - setup-conda:
           python: <<parameters.python>>
-      - run: Rscript --quiet -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
+      - run:
+          command: |
+            if [ "<<parameters.r>>" == "devel" ]; then
+              brew install libpng
+            fi
+            Rscript --quiet -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - run:
           name: Install and test
           command: |
