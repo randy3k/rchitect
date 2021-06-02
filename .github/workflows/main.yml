@@ -140,17 +140,13 @@ jobs:
       CIBW_MANYLINUX_X86_64_IMAGE: manylinux1
       CIBW_MANYLINUX_I686_IMAGE: manylinux1
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-python@v1
-        name: Install Python
-        with:
-          python-version: '3.7'
+      - uses: actions/checkout@v2
       - name: Build wheels
-        uses: pypa/cibuildwheel@v1.11.1
-      - uses: actions/upload-artifact@v1
+        uses: pypa/cibuildwheel@v2.0.0a2
+      - uses: actions/upload-artifact@v2
         with:
           name: wheels
-          path: ./wheelhouse
+          path: ./wheelhouse/*.whl
 
   twine:
     name: Upload tarball and wheels
