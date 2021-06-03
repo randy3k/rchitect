@@ -1,3 +1,8 @@
+# v0.3.29 - v0.3.31
+
+  - Avoid partial argument match
+  - better reticulate support
+
 # v0.3.28
 
   - a new environemnt variable to stop reticulate code injection
