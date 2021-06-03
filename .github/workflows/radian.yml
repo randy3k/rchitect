@@ -37,10 +37,4 @@ jobs:
           git clone https://github.com/randy3k/radian.git
           cd radian
           python -m pip install -e .[test]
-          pytest -s --cov=rchitect
-      - name: codecov
-        run: |
-          python -m pip install codecov
-          codecov
-        env:
-          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+          pytest -s
