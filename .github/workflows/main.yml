@@ -134,6 +134,7 @@ jobs:
 
   check_tarball:
     name: Check tarball is installable
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
       - uses: actions/setup-python@v1
