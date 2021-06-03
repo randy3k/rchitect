@@ -132,8 +132,20 @@ jobs:
         env:
           CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
 
+  check_tarball:
+    name: Check tarball is installable
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v1
+        name: Install Python
+        with:
+          python-version: '3.7'
+      - run: |
+          python setup.py sdist
+          pip install dist/rchitect-*.tar.gz
+
   build_wheels_v1:
-    needs: [linux, macos, windows]
+    needs: [linux, macos, windows, check_tarball]
     name: Build wheels on ${{ matrix.os }} for ${{ matrix.build }}
     strategy:
       fail-fast: false
@@ -175,7 +187,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   build_wheels:
-    needs: [linux, macos, windows]
+    needs: [linux, macos, windows, check_tarball]
     name: Build wheels on ${{ matrix.os }}
     strategy:
       fail-fast: false

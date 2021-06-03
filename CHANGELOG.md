@@ -1,3 +1,6 @@
+# v0.3.32
+  - fix wheel build
+
 # v0.3.29 - v0.3.31
 
   - Avoid partial argument match
