@@ -4,6 +4,14 @@ on: [push, pull_request]
 
 
 jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
   pytest:
     name: Running tests on ${{ matrix.os }}
     strategy:
