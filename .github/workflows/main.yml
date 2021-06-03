@@ -1,10 +1,11 @@
-name: build
+name: Main
 
 on: [push, pull_request]
 
 
 jobs:
-  linux:
+  pytest:
+    name: Running tests on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -12,7 +13,8 @@ jobs:
         # r: [3.5, latest, devel]
         python: [3.7]
         # python: [2.7, 3.5, 3.6, 3.7]
-    runs-on: ubuntu-latest
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v1
       - uses: actions/setup-python@v1
@@ -24,11 +26,12 @@ jobs:
           r-version: ${{ matrix.r }}
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate')"
+      - name: Insert LD_LIBRARY_PATH
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        run: echo LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib" >> $GITHUB_ENV
       - name: Install and run tests
-        shell: bash  # to allow `source`
         run: |
           python -m pip install -e .[test]
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest -s --cov=rchitect
       - name: codecov
         run: |
@@ -37,66 +40,68 @@ jobs:
         env:
           CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
 
-  macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        r: [latest]
-        # r: [3.5, latest, devel]
-        python: [3.7]
-        # python: [2.7, 3.5, 3.6, 3.7]
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-python@v1
-        name: Install Python
-        with:
-          python-version: ${{ matrix.python }}
-      - uses: r-lib/actions/setup-r@v1
-        with:
-          r-version: ${{ matrix.r }}
-      - name: Install reticulate
-        run: Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
-      - name: Install and run tests
-        run: |
-          python -m pip install -e .[test]
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
-          pytest -s --cov=rchitect
-      - name: codecov
-        run: |
-          python -m pip install codecov
-          codecov
-        env:
-          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+  # macos:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       r: [latest]
+  #       # r: [3.5, latest, devel]
+  #       python: [3.7]
+  #       # python: [2.7, 3.5, 3.6, 3.7]
+  #   runs-on: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v1
+  #     - uses: actions/setup-python@v1
+  #       name: Install Python
+  #       with:
+  #         python-version: ${{ matrix.python }}
+  #     - uses: r-lib/actions/setup-r@v1
+  #       with:
+  #         r-version: ${{ matrix.r }}
+  #     - name: Install reticulate
+  #       run: Rscript -e "install.packages('reticulate')"
+  #     - name: Install and run tests
+  #       run: |
+  #         python -m pip install -e .[test]
+  #         export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
+  #         pytest -s --cov=rchitect
+  #     - name: codecov
+  #       run: |
+  #         python -m pip install codecov
+  #         codecov
+  #       env:
+  #         CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
 
-  windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        r: [latest]
-        # r: [3.5, latest, devel]
-        python: [3.7]
-        # python: [2.7, 3.5, 3.6, 3.7]
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-python@v1
-        name: Install Python
-        with:
-          python-version: ${{ matrix.python }}
-      - uses: r-lib/actions/setup-r@v1
-        with:
-          r-version: ${{ matrix.r }}
-      - name: Install and run tests
-        run: |
-          python -m pip install -e .[test]
-          pytest -s --cov=rchitect
-      - name: codecov
-        run: |
-          python -m pip install codecov
-          codecov
-        env:
-          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+  # windows:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       r: [latest]
+  #       # r: [3.5, latest, devel]
+  #       python: [3.7]
+  #       # python: [2.7, 3.5, 3.6, 3.7]
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v1
+  #     - uses: actions/setup-python@v1
+  #       name: Install Python
+  #       with:
+  #         python-version: ${{ matrix.python }}
+  #     - uses: r-lib/actions/setup-r@v1
+  #       with:
+  #         r-version: ${{ matrix.r }}
+  #     - name: Install reticulate
+  #       run: Rscript -e "install.packages('reticulate')"
+  #     - name: Install and run tests
+  #       run: |
+  #         python -m pip install -e .[test]
+  #         pytest -s --cov=rchitect
+  #     - name: codecov
+  #       run: |
+  #         python -m pip install codecov
+  #         codecov
+  #       env:
+  #         CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
 
   check_tarball:
     name: Check tarball is installable
@@ -112,7 +117,7 @@ jobs:
           pip install dist/rchitect-*.tar.gz
 
   build_wheels_v1:
-    needs: [linux, macos, windows, check_tarball]
+    needs: [pytest, check_tarball]
     name: Build wheels on ${{ matrix.os }} for ${{ matrix.build }}
     strategy:
       fail-fast: false
@@ -154,7 +159,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   build_wheels:
-    needs: [linux, macos, windows, check_tarball]
+    needs: [pytest, check_tarball]
     name: Build wheels on ${{ matrix.os }}
     strategy:
       fail-fast: false
