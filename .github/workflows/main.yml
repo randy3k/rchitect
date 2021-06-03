@@ -132,31 +132,31 @@ jobs:
         env:
           CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
 
-  build_wheels_py27:
+  build_wheels_v1:
     needs: [linux, macos, windows]
-    name: Build Py2.7 wheels on ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.os }} v1
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            build: 'cp27-*'
+            build: 'cp27-* cp35-*'
           - os: macos-latest
-            build: 'cp27-*'
+            build: 'cp27-* cp35-*'
           - os: windows-latest
-            build: 'cp27-win32'
+            build: 'cp27-win32 cp35-win32'
           - os: windows-latest
-            build: 'cp27-win_amd64'
+            build: 'cp27-win_amd64 cp35-win_amd64'
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: ${{ matrix.build }}
     steps:
       - uses: actions/checkout@v2
-      - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win32'
+      - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win32 cp35-win32'
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
-      - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win_amd64'
+      - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win_amd64 cp35-win_amd64'
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
@@ -174,7 +174,7 @@ jobs:
 
   build_wheels:
     needs: [linux, macos, windows]
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.os }} v2
     strategy:
       fail-fast: false
       matrix:
@@ -196,7 +196,7 @@ jobs:
   twine:
     name: Upload tarball and wheels
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [build_wheels_py27, build_wheels]
+    needs: [build_wheels_v1, build_wheels]
     runs-on: ubuntu-latest
     env:
       TWINE_USERNAME: ${{secrets.TWINE_USERNAME}}
