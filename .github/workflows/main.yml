@@ -13,29 +13,25 @@ jobs:
         python: [3.7]
         # python: [2.7, 3.5, 3.6, 3.7]
     runs-on: ubuntu-latest
-    container: rocker/tidyverse:${{ matrix.r }}
     steps:
       - uses: actions/checkout@v1
-      - name: Install apt-get dependencies
-        run: |
-          apt-get update
-          apt-get install git ssh curl bzip2 libffi-dev -y
-      - name: Setup Miniconda
-        run: |
-          curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh
-          bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
-          export PATH="$HOME/miniconda/bin/:$PATH"
-          conda create -y -n myenv python=${{ matrix.python }}
-          echo "$HOME/miniconda/bin" >> $GITHUB_PATH
+      - uses: actions/setup-python@v1
+        name: Install Python
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: r-lib/actions/setup-r@v1
+        with:
+          r-version: ${{ matrix.r }}
       - name: Install reticulate
-        run: Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
+        run: Rscript -e "install.packages('reticulate')"
       - name: Install and run tests
         shell: bash  # to allow `source`
         run: |
-          source activate myenv
           python -m pip install -e .[test]
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest -s --cov=rchitect
+      - name: codecov
+        run: |
           python -m pip install codecov
           codecov
         env:
@@ -52,34 +48,22 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Setup Miniconda
-        run: |
-          curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o /tmp/miniconda.sh
-          bash /tmp/miniconda.sh -b -f -p $HOME/miniconda
-          export PATH="$HOME/miniconda/bin:$PATH"
-          conda create -y -n myenv python=${{ matrix.python }} -c conda-forge
-          echo "$HOME/miniconda/bin" >> $GITHUB_PATH
-      - name: Install R
-        run: |
-          if [ "${{ matrix.r }}" = "latest" ]; then
-            URL="https://cran.r-project.org/bin/macosx/base/R-release.pkg"
-          elif [ "${{ matrix.r }}" = "devel" ]; then
-            URL="https://mac.r-project.org/high-sierra/R-devel/R-devel.pkg"
-          else
-            R_FILE=$(curl -sL https://cran.r-project.org/bin/macosx/base/ | grep -o 'R-${{ matrix.r }}[0-9\.]*.pkg' | tail -n1)
-            URL="https://cran.r-project.org/bin/macosx/base/$R_FILE"
-          fi
-          echo downloading "$URL"
-          curl -L "$URL" -o R.pkg
-          sudo installer -pkg R.pkg -target /
+      - uses: actions/setup-python@v1
+        name: Install Python
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: r-lib/actions/setup-r@v1
+        with:
+          r-version: ${{ matrix.r }}
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org')"
       - name: Install and run tests
         run: |
-          source activate myenv
           python -m pip install -e .[test]
           export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib"
           pytest -s --cov=rchitect
+      - name: codecov
+        run: |
           python -m pip install codecov
           codecov
         env:
@@ -96,37 +80,19 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Setup Miniconda
-        run: |
-          $env:PATH = "$env:CONDA;$env:CONDA\Scripts;$env:PATH"
-          conda create -y -n myenv python=${{ matrix.python }} -c conda-forge
-          conda init powershell
-      - name: Install R
-        run: |
-          If ('${{ matrix.r }}' -eq 'latest') {
-            (new-object net.webclient).DownloadString("http://cran.rstudio.com/bin/windows/base/") -match 'href="(R-[0-9.]*[a-zA-Z]*-win.exe)"';
-            (new-object net.webclient).DownloadFile($("http://cran.rstudio.com/bin/windows/base/"+$matches[1]),"C:\R-binary.exe")
-          } ElseIf ('${{ matrix.r }}' -eq 'devel') {
-            (new-object net.webclient).DownloadFile("https://cran.r-project.org/bin/windows/base/R-devel-win.exe","C:\R-binary.exe")
-          } Else {
-            (new-object net.webclient).DownloadString("http://cran.rstudio.com/bin/windows/base/old/") -match 'R (${{ matrix.r }}[\\.0-9]*)</a>'
-            (new-object net.webclient).DownloadFile($("https://cran.r-project.org/bin/windows/base/old/"+$matches[1]+"/R-"+$matches[1]+"-win.exe"),"C:\R-binary.exe")
-          }
-          Start-Process -FilePath "C:\R-binary.exe" -Wait -ArgumentList "/VERYSILENT /DIR=C:\R"
-          echo "C:\R\bin\x64" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      - name: Install reticulate
-        run: |
-          $ErrorActionPreference = "Continue"
-          Rscript -e "install.packages('reticulate', repo = 'https://cloud.r-project.org', type = 'win.binary')"
+      - uses: actions/setup-python@v1
+        name: Install Python
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: r-lib/actions/setup-r@v1
+        with:
+          r-version: ${{ matrix.r }}
       - name: Install and run tests
         run: |
-          conda activate myenv
           python -m pip install -e .[test]
           pytest -s --cov=rchitect
       - name: codecov
         run: |
-          conda activate myenv
-          $ErrorActionPreference = "Continue"
           python -m pip install codecov
           codecov
         env:
