@@ -15,7 +15,7 @@ jobs:
           access_token: ${{ github.token }}
 
   pytest:
-    name: Running radian tests on ${{ matrix.os }}
+    name: ${{ matrix.os }} r-${{ matrix.r }} py-${{ matrix.python }}
     strategy:
       fail-fast: false
       matrix:
