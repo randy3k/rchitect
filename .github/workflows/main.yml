@@ -32,9 +32,6 @@ jobs:
         run: |
           echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
           echo "MSSdk=1" >> $GITHUB_ENV
-      - name: Add msbuild to PATH
-        if: matrix.os == 'windows-latest' && matrix.python == '2.7'
-        uses: microsoft/setup-msbuild@v1
       - name: Install Microsoft Visual C++
         if: matrix.os == 'windows-latest' && matrix.python == '2.7'
         uses: ilammy/msvc-dev-cmd@v1
@@ -52,8 +49,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
         run: echo LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib" >> $GITHUB_ENV
       - name: Run tests
-        run: |
-          pytest -s --cov=rchitect
+        run: pytest -s --cov=rchitect
       - name: codecov
         run: |
           python -m pip install codecov
