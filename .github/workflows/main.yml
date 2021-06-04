@@ -30,16 +30,17 @@ jobs:
       - uses: r-lib/actions/setup-r@v1
         with:
           r-version: ${{ matrix.r }}
+      - if: matrix.os == 'windows-latest' && matrix.python == '2.7'
+        shell: bash
+        run: |
+          echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
+          echo "MSSdk=1" >> $GITHUB_ENV
       - name: Add msbuild to PATH
         if: matrix.os == 'windows-latest' && matrix.python == '2.7'
         uses: microsoft/setup-msbuild@v1
-        with:
-          vs-version: 9.0
       - name: Install Microsoft Visual C++
         if: matrix.os == 'windows-latest' && matrix.python == '2.7'
         uses: ilammy/msvc-dev-cmd@v1
-        with:
-          toolset: 9
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate')"
       - name: Install setuptools on Python 2.7
