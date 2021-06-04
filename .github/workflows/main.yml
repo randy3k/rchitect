@@ -30,6 +30,9 @@ jobs:
       - uses: r-lib/actions/setup-r@v1
         with:
           r-version: ${{ matrix.r }}
+      - name: Install Microsoft Visual C++
+        if: matrix.os == 'windows-latest' && matrix.python == '2.7'
+        uses: ilammy/msvc-dev-cmd@v1
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate')"
       - name: Install setuptools on Python 2.7
