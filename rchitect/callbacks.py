@@ -148,7 +148,7 @@ def on_callback_error(exception, exc_value, traceback):
     elif exception == EOFError:
         pass
     else:
-        print(exception, exc_value)
+        print("callback error:", exception, exc_value)
 
 
 _code = [""]
