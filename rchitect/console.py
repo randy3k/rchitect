@@ -27,10 +27,16 @@ def write_console(buf, otype):
 
 
 def read_buffer(b):
-    b.seek(0)
-    out = b.getvalue()
-    b.seek(0)
-    b.truncate(0)
+    out = ""
+    try:
+        b.seek(0)
+        out = b.getvalue()
+        b.seek(0)
+        b.truncate(0)
+    except SystemError:
+        # catch possible exception
+        # see https://github.com/randy3k/radian/issues/288
+        pass
     return out
 
 
