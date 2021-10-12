@@ -84,12 +84,14 @@ class Dispatcher(object):
                         str(signature),
                         str(parent)))
 
-        p = 0
-        for signature in self._ordering:
+        q = 0
+        for p, signature in enumerate(self._ordering):
+            if len(signature) == n and all(map(issubclass, signature, types)):
+                q = p + 1
             if len(signature) == n and all(map(issubclass, types, signature)):
                 break
-            p = p + 1
-        self._ordering.insert(p, types)
+
+        self._ordering.insert(q, types)
 
     def add(self, types, func):
         # support union types
