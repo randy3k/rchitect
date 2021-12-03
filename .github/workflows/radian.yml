@@ -51,8 +51,9 @@ jobs:
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate')"
       - name: Install radian and run tests
+        shell: bash
         run: |
-          if [ "{{ matrix.python }}" == "2.7" ]; then
+          if [ "${{ matrix.python }}" = "2.7" ]; then
             git clone --branch v0.5.12 https://github.com/randy3k/radian
           else
             git clone https://github.com/randy3k/radian
