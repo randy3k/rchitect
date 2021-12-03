@@ -52,7 +52,11 @@ jobs:
         run: Rscript -e "install.packages('reticulate')"
       - name: Install radian and run tests
         run: |
-          git clone https://github.com/randy3k/radian.git
+          if [ "{{ matrix.python }}" == "2.7" ]; then
+            git clone --branch v0.5.12 https://github.com/randy3k/radian
+          else
+            git clone https://github.com/randy3k/radian
+          fi
           cd radian
           python -m pip install -e .[test]
           python -m pip install jedi==0.17.2
