@@ -1,3 +1,7 @@
+# v0.3.34
+
+  - bump version for python 3.10 wheels
+
 # v0.3.32
   - fix wheel build
 
