@@ -67,8 +67,8 @@ def inject_py_tools():
         lib.Rf_protect(obj)
         lib.Rf_protect(key)
         lib.Rf_protect(value)
-        pyo = rcopy(object, obj)
         try:
+            pyo = rcopy(object, obj)
             setattr(pyo, rcopy(key), rcopy(value))
         finally:
             lib.Rf_unprotect(3)
@@ -78,8 +78,8 @@ def inject_py_tools():
         lib.Rf_protect(obj)
         lib.Rf_protect(key)
         lib.Rf_protect(value)
-        pyo = rcopy(object, obj)
         try:
+            pyo = rcopy(object, obj)
             pyo[rcopy(key)] = rcopy(value)
         finally:
             lib.Rf_unprotect(3)
