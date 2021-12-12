@@ -31,8 +31,8 @@ def inject_py_tools():
             fun = eval(fun)
         return fun(*args, **kwargs)
 
-    def py_copy(*args):
-        return robject(*args)
+    def py_copy(*args, **kwargs):
+        return robject(*args, **kwargs)
 
     def py_eval(code):
         return eval(code)
@@ -54,11 +54,11 @@ def inject_py_tools():
         except Exception:
             return None
 
-    def py_object(*args):
+    def py_object(*args, **kwargs):
         if len(args) == 1:
-            return robject("PyObject", rcopy(args[0]))
+            return robject("PyObject", rcopy(args[0], **kwargs))
         elif len(args) == 2:
-            return robject("PyObject", rcopy(rcopy(object, args[0]), args[1]))
+            return robject("PyObject", rcopy(rcopy(object, args[0]), args[1], **kwargs))
 
     def py_print(r):
         rcall_p("cat", repr(r) + "\n")
