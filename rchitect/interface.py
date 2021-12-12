@@ -469,12 +469,12 @@ def rcopy(_, s): # noqa
 def rcopy(_, s, envir=None, asis=False, convert=True): # noqa
     r = RObject(s)  # preserve the closure
 
-    def _(*args, **kwargs):
+    def f(*args, **kwargs):
         return rcall(r, *args, _envir=envir, _asis=asis, _convert=convert, **kwargs)
 
-    _.robject = r
+    f.__robject__ = r
 
-    return _
+    return f
 
 
 # PyObject
@@ -812,8 +812,8 @@ def xptr_callback(exptr, arglist, asis, convert):
 @dispatch(datatype(RClass("function")), Callable)
 def sexp(_, f, invisible=False, asis=False, convert=True): # noqa
 
-    if hasattr(f, "robject"):
-        return unbox(f.robject)
+    if hasattr(f, "__robject__"):
+        return unbox(f.__robject__)
 
     fextptr = new_xptr(f)
     dotlist = rlang("list", lib.R_DotsSymbol)
@@ -917,7 +917,7 @@ def sexpclass(s): # noqa
 
 @dispatch(Callable)
 def sexpclass(f): # noqa
-    if hasattr(f, "robject"):
+    if hasattr(f, "__robject__"):
         return "function"
     else:
         return "PyCallable"
