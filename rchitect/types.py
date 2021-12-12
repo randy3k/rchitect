@@ -109,6 +109,12 @@ class RObject(object):
         except AttributeError:
             pass
 
+    def __repr__(self):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        pass
+
 
 class RClass(object):
     _rclasses = {}

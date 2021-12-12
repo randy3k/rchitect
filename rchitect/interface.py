@@ -282,7 +282,12 @@ def _repr(self):
         return name
 
 
+def _call(self, *args, **kwargs):
+    return rcall(self, *args, **kwargs)
+
+
 RObject.__repr__ = _repr
+RObject.__call__ = _call
 
 
 def getoption_p(key):
@@ -627,10 +632,6 @@ def robject(*args, **kwargs):
         return RObject(sexp(args[0], **kwargs))
     else:
         raise TypeError("wrong number of arguments or argument types")
-
-
-def rfunction(x, **kwargs):
-    return robject("function", x, **kwargs)
 
 
 @dispatch(datatype(RClass("NULL")), type(None))
