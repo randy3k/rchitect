@@ -400,6 +400,15 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(R_RegisterCFinalizerEx);
     LOAD_SYMBOL(R_RunPendingFinalizers);
 
+    LOAD_SYMBOL(R_MakeWeakRef);
+    LOAD_SYMBOL(R_MakeWeakRefC);
+    LOAD_SYMBOL(R_WeakRefKey);
+    LOAD_SYMBOL(R_WeakRefValue);
+    LOAD_SYMBOL(R_RunWeakRefFinalizer);
+    LOAD_SYMBOL(R_PromiseExpr);
+    LOAD_SYMBOL(R_ClosureExpr);
+    LOAD_SYMBOL(R_BytecodeExpr);
+
     LOAD_SYMBOL(R_ToplevelExec);
     LOAD_SYMBOL(R_tryCatch);
     LOAD_SYMBOL(R_tryCatchError);

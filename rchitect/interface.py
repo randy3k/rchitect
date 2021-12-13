@@ -822,6 +822,7 @@ def sexp(_, f, invisible=False, asis=False, convert=True): # noqa
     if hasattr(f, "__robject__"):
         return unbox(f.__robject__)
 
+    # FIXME: memory leaks via JIT compiling fextptr
     fextptr = new_xptr(f)
     dotlist = rlang("list", lib.R_DotsSymbol)
     body = rlang(

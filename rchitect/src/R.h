@@ -392,6 +392,16 @@ RAPI_EXTERN void (*R_RegisterFinalizerEx)(SEXP s, SEXP fun, Rboolean onexit);
 RAPI_EXTERN void (*R_RegisterCFinalizerEx)(SEXP s, R_CFinalizer_t fun, Rboolean onexit);
 RAPI_EXTERN void (*R_RunPendingFinalizers)(void);
 
+RAPI_EXTERN SEXP (*R_MakeWeakRef)(SEXP key, SEXP val, SEXP fin, Rboolean onexit);
+RAPI_EXTERN SEXP (*R_MakeWeakRefC)(SEXP key, SEXP val, R_CFinalizer_t fin, Rboolean onexit);
+RAPI_EXTERN SEXP (*R_WeakRefKey)(SEXP w);
+RAPI_EXTERN SEXP (*R_WeakRefValue)(SEXP w);
+RAPI_EXTERN void (*R_RunWeakRefFinalizer)(SEXP w);
+
+RAPI_EXTERN SEXP (*R_PromiseExpr)(SEXP);
+RAPI_EXTERN SEXP (*R_ClosureExpr)(SEXP);
+RAPI_EXTERN SEXP (*R_BytecodeExpr)(SEXP e);
+
 RAPI_EXTERN Rboolean (*R_ToplevelExec)(void (*fun)(void *), void *data);
 RAPI_EXTERN SEXP (*R_tryCatch)(SEXP (*)(void *), void *, SEXP, SEXP (*)(SEXP, void *), void *, void (*)(void *), void *);
 RAPI_EXTERN SEXP (*R_tryCatchError)(SEXP (*)(void *), void *, SEXP (*)(SEXP, void *), void *);
