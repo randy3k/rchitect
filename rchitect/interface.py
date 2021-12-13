@@ -374,6 +374,17 @@ def greeting():
 # R to Py
 
 
+@contextmanager
+def rcopy_context(**kwargs):
+    old_context = rcopy_context.context.copy()
+    rcopy_context.context.update(kwargs)
+    yield rcopy_context.context
+    rcopy_context.context = old_context
+
+
+rcopy_context.context = {}
+
+
 @dispatch(datatype(type(None)), NILSXP)
 def rcopy(_, s): # noqa
     return None
@@ -473,13 +484,16 @@ def rcopy(_, s): # noqa
 
 
 @dispatch(datatype(FunctionType), (CLOSXP, BUILTINSXP))
-def rcopy(_, s, envir=None, asis=False, convert=True): # noqa
+def rcopy(_, s): # noqa
     r = RObject(s)  # preserve the closure
 
     def f(*args, **kwargs):
-        return rcall(r, *args, _envir=envir, _asis=asis, _convert=convert, **kwargs)
+        return rcall(s, *args, _asis=f.asis, _convert=f.convert, **kwargs)
 
     f.__robject__ = r
+    with rcopy_context() as context:
+        f.asis = context.get('asis', False)
+        f.convert = context.get('convert', True)
 
     return f
 
@@ -512,34 +526,30 @@ def rcopy(_, s): # noqa
     return box(s)
 
 
-@dispatch(datatype(RObject), RObject)
-def rcopy(_, s): # noqa
-    return s
-
-
-@dispatch(object, RObject)
-def rcopy(t, r, **kwargs): # noqa
-    return rcopy(t, unbox(r), **kwargs)
-
-
 # default conversions
 default = RClass("default")
 
 
 @dispatch(SEXP)
-def rcopy(s, **kwargs): # noqa
-    ensure_initialized()
+def rcopy(s): # noqa
     for cls in rclass(s):
         T = rcopytype(RClass(cls), s)
         if T is not RObject:
-            return rcopy(T, s, **kwargs)
+            return rcopy(T, s)
     T = rcopytype(default, s)
-    return rcopy(T, s, **kwargs)
+    return rcopy(T, s)
+
+
+@dispatch(object, RObject)
+def rcopy(t, r, **kwargs): # noqa
+    with rcopy_context(**kwargs):
+        return rcopy(t, unbox(r))
 
 
 @dispatch(RObject)
 def rcopy(r, **kwargs): # noqa
-    return rcopy(unbox(r), **kwargs)
+    with rcopy_context(**kwargs):
+        return rcopy(unbox(r))
 
 
 # PyObject
