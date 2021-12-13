@@ -207,21 +207,28 @@ def rlang(*args, **kwargs):
 def sexp_args(args, kwargs, asis=False):
     nprotect = 0
     try:
+        for a in args:
+            if isinstance(a, SEXP):
+                lib.Rf_protect(a)
+                nprotect += 1
+        for _, v in kwargs.items():
+            if isinstance(v, SEXP):
+                lib.Rf_protect(v)
+                nprotect += 1
         _args = []
         for a in args:
-            _a = sexp_as_py_object(a) if asis else sexp(a)
-            if isinstance(_a, SEXP):
-                lib.Rf_protect(_a)
+            if not isinstance(a, SEXP):
+                a = sexp_as_py_object(a) if asis else sexp(a)
+                lib.Rf_protect(a)
                 nprotect += 1
-            _args.append(_a)
-
+            _args.append(a)
         _kwargs = {}
         for k, v in kwargs.items():
-            _v = sexp_as_py_object(v) if asis else sexp(v)
-            if isinstance(_v, SEXP):
-                lib.Rf_protect(_v)
+            if not isinstance(v, SEXP):
+                v = sexp_as_py_object(v) if asis else sexp(v)
+                lib.Rf_protect(v)
                 nprotect += 1
-            _kwargs[k] = _v
+            _kwargs[k] = v
 
         yield _args, _kwargs
     finally:
