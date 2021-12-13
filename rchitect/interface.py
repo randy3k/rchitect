@@ -273,7 +273,7 @@ def rprint(s):
 
 def _repr(self):
     s = self.s
-    new_env = rcall(("base", "new.env"))
+    new_env = rcall(("base", "new.env"), parent=getoption_p("rchitect.py_tools"))
     lib.Rf_defineVar(rsym_p("x"), unbox(s), unbox(new_env))
     with capture_console(flushable=False):
         try:
