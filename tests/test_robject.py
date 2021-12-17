@@ -7,11 +7,11 @@ from rchitect.interface import rclass, rstring, rint, rdouble
 from collections import OrderedDict
 
 
-def test_booleans():
+def test_booleans(gctorture):
     assert rcall("identical", robject([True, False]), reval("c(TRUE, FALSE)"), _convert=True)
 
 
-def test_numbers():
+def test_numbers(gctorture):
     assert rcall("identical", robject(1), rint(1), _convert=True)
     assert rcall("identical", robject(1.0), rdouble(1), _convert=True)
     assert not rcall("identical", robject(1), rdouble(1), _convert=True)
@@ -26,27 +26,27 @@ def test_numbers():
         robject([complex(1, 2), complex(2, 1)]), reval("c(1 + 2i, 2 + 1i)"), _convert=True)
 
 
-def test_strings():
+def test_strings(gctorture):
     assert rcall("identical", robject("abc"), rstring("abc"), _convert=True)
     assert rcall("identical", robject("β"), rstring("β"), _convert=True)
     assert rcall("identical", robject("你"), rstring("你"), _convert=True)
     assert rcall("identical", robject(['a', 'b']), reval("c('a', 'b')"), _convert=True)
 
 
-def test_raw():
+def test_raw(gctorture):
     assert rcall("rawToChar", robject("raw", b"hello"), _convert=True) == "hello"
 
 
-def test_none():
+def test_none(gctorture):
     assert rcall("identical", robject(None), reval("NULL"), _convert=True)
 
 
-def test_ordered_list():
+def test_ordered_list(gctorture):
     d = OrderedDict([("a", 2), ("b", "hello")])
     assert rcall("identical", robject(d), reval("list(a = 2L, b = 'hello')"), _convert=True)
 
 
-def test_functions():
+def test_functions(gctorture):
     def f(x):
         return x + 3
 

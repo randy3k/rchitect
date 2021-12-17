@@ -7,14 +7,14 @@ import string
 from collections import OrderedDict
 
 
-def test_booleans():
+def test_booleans(gctorture):
     assert rcopy(reval("TRUE")) is True
     assert rcopy(reval("FALSE")) is False
     assert rcopy(list, reval("FALSE")) == [False]
     assert rcopy(reval("c(TRUE, FALSE)")) == [True, False]
 
 
-def test_numbers():
+def test_numbers(gctorture):
     assert rcopy(reval("5")) == 5
     assert rcopy(list, reval("5")) == [5]
     assert rcopy(reval("2 + 1i")) == complex(2, 1)
@@ -23,14 +23,14 @@ def test_numbers():
     assert rcopy(reval("c(1 + 3i, 3 + 2i)")) == [complex(1, 3), complex(3, 2)]
 
 
-def test_strings():
+def test_strings(gctorture):
     assert rcopy(rstring("β")) == "β"
     assert rcopy(rstring("你")) == "你"
     assert rcopy(list, rstring("x")) == ["x"]
     assert rcopy(reval("LETTERS")) == list(string.ascii_uppercase)
 
 
-def test_lists():
+def test_lists(gctorture):
     d = rcopy(reval("list(a = 1, b = 'hello')"))
     assert isinstance(d, OrderedDict)
     assert d["a"] == 1 and d["b"] == "hello"
@@ -42,15 +42,15 @@ def test_lists():
     assert rcopy(tuple, reval("list(1, 2)")) == (1, 2)
 
 
-def test_none():
+def test_none(gctorture):
     assert rcopy(reval("NULL")) is None
 
 
-def test_raw():
+def test_raw(gctorture):
     assert rcopy(reval("as.raw(charToRaw('hello'))")) == b"hello"
 
 
-def test_functions():
+def test_functions(gctorture):
     f = rcopy(reval("function(x) x^2"))
     assert f(3) == 9
     f2 = rcopy(reval("function(x) x^2"), convert=False)

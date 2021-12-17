@@ -9,14 +9,14 @@ import pytest
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
-def test_read_console(mocker):
+def test_read_console(mocker, gctorture):
     mocker.patch("rchitect.setup.ask_input", return_value="hello")
     ret = reval("readline('> ')")
     assert rcopy(ret) == "hello"
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
-def test_read_console_long(mocker):
+def test_read_console_long(mocker, gctorture):
     s = "a" * 5000
     mocker.patch("rchitect.setup.ask_input", return_value=s)
     ret = reval("readline('> ')")
@@ -24,34 +24,34 @@ def test_read_console_long(mocker):
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
-def test_read_console_interrupt(mocker):
+def test_read_console_interrupt(mocker, gctorture):
     mocker.patch("rchitect.setup.ask_input", side_effect=KeyboardInterrupt())
     with pytest.raises(Exception) as excinfo:
         reval("readline('> ')")
     assert str(excinfo.value).startswith("Error")
 
 
-def test_write_console(mocker):
+def test_write_console(mocker, gctorture):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('helloworld')")
     mocker_write_console.assert_called_once_with('helloworld', 0)
 
 
 @pytest.mark.skipif(sys.platform.startswith("win") and rversion().version[0] < 4, reason="upstream issue")
-def test_write_console_utf8(mocker):
+def test_write_console_utf8(mocker, gctorture):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     # windows still doesn't like `𐐀`
     reval("cat('文字')")
     mocker_write_console.assert_called_once_with('文字', 0)
 
 
-def test_write_console_stderr(mocker):
+def test_write_console_stderr(mocker, gctorture):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('helloworld', file = stderr())")
     mocker_write_console.assert_called_once_with('helloworld', 1)
 
 
-def test_yes_no_cancel(mocker):
+def test_yes_no_cancel(mocker, gctorture):
     for (a, v) in [('y', 1), ('n', 2), ('c', 0)]:
         mocker.patch("rchitect.setup.ask_input", return_value=a)
         ret = lib.cb_yes_no_cancel(ffi.new("char[10]", b"> "))
@@ -59,7 +59,7 @@ def test_yes_no_cancel(mocker):
     mocker.resetall()
 
 
-def test_yes_no_cancel_exceptions(mocker):
+def test_yes_no_cancel_exceptions(mocker, gctorture):
     count = [0]
 
     def throw_on_first_run(_):
