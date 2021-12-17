@@ -244,7 +244,7 @@ def rcall_p(f, *args, **kwargs):
     else:
         _envir = lib.R_GlobalEnv
 
-    with protected(_envir):
+    with protected(f, _envir):
         with sexp_args(args, kwargs, _asis) as (a, k):
             with capture_console():
                 status = ffi.new("int[1]")
@@ -260,7 +260,8 @@ def rcall_p(f, *args, **kwargs):
 def rcall(*args, **kwargs):
     _convert = extract(kwargs, "_convert")
     s = rcall_p(*args, **kwargs)
-    return rcopy(s) if _convert else box(s)
+    with protected(s):
+        return rcopy(s) if _convert else box(s)
 
 
 def rprint(s, envir=None):
@@ -851,15 +852,18 @@ def sexp(_, f): # noqa
         invisible = context.get('invisible', False)
         fextptr = new_xptr(f)
         dotlist = rlang("list", lib.R_DotsSymbol)
+        xptr_callback = rstring_p("_libR_xptr_callback")
+        lib.Rf_protect(xptr_callback)
+        nprotect = 1
         body = rlang_p(
             ".Call",
-            rstring_p("_libR_xptr_callback"),
+            xptr_callback,
             fextptr,
             dotlist,
             rlogical(context.get("asis", False)),
             rlogical(context.get("convert", True)))
         lib.Rf_protect(body)
-        nprotect = 1
+        nprotect += 1
         if invisible:
             body = rlang_p("invisible", body)
             lib.Rf_protect(body)
@@ -880,9 +884,10 @@ def sexp(_, s): # noqa
     if (isinstance(s, RObject) or isinstance(s, SEXP)) and "PyObject" in rclass(s):
         return unbox(s)
     p = new_xptr_p(s)
-    setclass(p, "PyObject")
-    with sexp_context() as context:
-        setattrib(p, "convert", sexp(context.get('convert', False)))
+    with protected(p):
+        setclass(p, "PyObject")
+        with sexp_context() as context:
+            setattrib(p, "convert", sexp(context.get('convert', False)))
     return p
 
 
@@ -893,8 +898,10 @@ def sexp(_, f): # noqa
         convert = context.get("convert", False)
         with sexp_context(asis=asis, convert=convert):
             p = sexp(RClass("function"), f)
+            lib.Rf_protect(p)
             setattrib(p, "py_object", sexp(RClass("PyObject"), f))
             setclass(p, ["PyCallable", "PyObject"])
+            lib.Rf_unprotect(1)
     return p
 
 
