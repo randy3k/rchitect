@@ -95,13 +95,15 @@ def inject_py_tools():
         if len(args) == 1:
             lib.Rf_protect(args[0])
             try:
-                return robject("PyObject", rcopy(args[0], **kwargs))
+                with sexp_context(**kwargs):
+                    return robject("PyObject", rcopy(args[0]))
             finally:
                 lib.Rf_unprotect(1)
         elif len(args) == 2:
             lib.Rf_protect(args[1])
             try:
-                return robject("PyObject", rcopy(rcopy(object, args[0]), args[1], **kwargs))
+                with sexp_context(**kwargs):
+                    return robject("PyObject", rcopy(rcopy(object, args[0]), args[1]))
             finally:
                 lib.Rf_unprotect(1)
 
