@@ -195,7 +195,7 @@ def cb_clean_up(saveact, status, run_last):
 
 @ffi.def_extern(error=None, onerror=on_callback_error)
 def cb_polled_events():
-    console.flush()
+    console.flush()  # needed for reval
     callback.polled_events()
 
 

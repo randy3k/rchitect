@@ -115,7 +115,7 @@ def rparse_p(s):
     status = ffi.new("ParseStatus[1]")
     s = lib.Rf_mkString(utf8tosystem(s))
     with protected(s):
-        with capture_console():
+        with capture_console():  # need to capture stderr
             ret = lib.R_ParseVector(s, -1, status, lib.R_NilValue)
             if status[0] != lib.PARSE_OK:
                 err = read_stderr().strip() or "Error"
@@ -138,7 +138,7 @@ def reval_p(s, envir=None):
         else:
             ret = lib.R_NilValue
             status = ffi.new("int[1]")
-            with capture_console():
+            with capture_console():  # need to capture stderr
                 for i in range(0, lib.Rf_length(s)):
                     ret = lib.R_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
                     if status[0] != 0:
@@ -246,7 +246,7 @@ def rcall_p(f, *args, **kwargs):
 
     with protected(f, _envir):
         with sexp_args(args, kwargs, _asis) as (a, k):
-            with capture_console():
+            with capture_console():  # need to capture stderr
                 status = ffi.new("int[1]")
                 lang = rlang_p(f, *a, **k)
                 with protected(lang):
@@ -280,7 +280,7 @@ def rprint(s, envir=None):
 def _repr(self):
     s = self.s
     envir = new_env(parent=getoption_p("rchitect.py_tools"))
-    with capture_console(flushable=False):
+    with capture_console(flushable=False):  # need to capture stdout
         rprint(s, envir=envir)
         output = read_stdout() or ""
 
