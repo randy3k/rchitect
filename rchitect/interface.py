@@ -849,7 +849,8 @@ def xptr_callback(exptr, arglist, asis, convert):
                 args.append(rcopy(lib.VECTOR_ELT(arglist, i)))
 
     ret = f(*args, **kwargs)
-    return sexp(ret) if convert else sexp_as_py_object(ret)
+    with sexp_context(asis=asis, convert=convert):
+        return sexp(ret) if convert else sexp_as_py_object(ret)
 
 
 @dispatch(datatype(RClass("function")), Callable)
@@ -902,7 +903,7 @@ def sexp(_, s): # noqa
     with protected(p):
         setclass(p, "PyObject")
         with sexp_context() as context:
-            setattrib(p, "convert", sexp(context.get('convert', False)))
+            setattrib(p, "convert", sexp(context.get('convert', True)))
     return p
 
 

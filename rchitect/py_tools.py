@@ -7,7 +7,8 @@ import importlib
 from six import text_type
 from types import ModuleType
 
-from .interface import rcopy, robject, rcall_p, rcall, sexp, sexp_context, getattrib_p, new_env
+from .interface import rcopy, robject, rcall_p, rcall, sexp, sexp_as_py_object, \
+        sexp_context, getattrib_p, new_env
 
 
 def get_p(name, envir):
@@ -59,7 +60,8 @@ def inject_py_tools():
             nprotect += 1
             convert = rcopy(convert_p)
             with sexp_context(convert=convert):
-                return sexp(py_get_attr(obj, key))
+                val = py_get_attr(obj, key)
+                return sexp(val) if convert else sexp_as_py_object(val)
         finally:
             lib.Rf_unprotect(nprotect)
 
@@ -78,7 +80,8 @@ def inject_py_tools():
             nprotect += 1
             convert = rcopy(convert_p)
             with sexp_context(convert=convert):
-                return sexp(py_get_item(obj, key))
+                val = py_get_item(obj, key)
+                return sexp(val) if convert else sexp_as_py_object(val)
         finally:
             lib.Rf_unprotect(nprotect)
 
