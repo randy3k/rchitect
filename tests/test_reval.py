@@ -15,8 +15,8 @@ def test_reval():
 
 
 def test_rprint():
-    la = rlang(robject(rprint, asis=True), robject(1))
-    assert rcall("capture.output", la, _convert=True) == ['[1] 1', 'NULL']
+    la = rlang(robject(rprint, asis=True, invisible=True), robject(1))
+    assert rcall("capture.output", la, _convert=True) == "[1] 1"
 
 
 def test_rparse_error():

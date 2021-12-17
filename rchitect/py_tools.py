@@ -7,7 +7,7 @@ import importlib
 from six import text_type
 from types import ModuleType
 
-from .interface import rcopy, robject, rcall_p, rcall
+from .interface import rcopy, robject, rcall_p, rcall, sexp, sexp_context, getattrib_p
 
 
 def get_p(name, envir):
@@ -16,14 +16,16 @@ def get_p(name, envir):
 
 def inject_py_tools():
 
-    def py_import(module):
-        return importlib.import_module(module)
+    def py_import(module, convert=True):
+        with sexp_context(convert=convert):
+            return sexp(importlib.import_module(module))
 
-    def py_import_builtins():
-        if sys.version >= "3":
-            return importlib.import_module("builtins")
-        else:
-            return importlib.import_module("__builtin__")
+    def py_import_builtins(convert=True):
+        with sexp_context(convert=convert):
+            if sys.version >= "3":
+                return sexp(importlib.import_module("builtins"))
+            else:
+                return sexp(importlib.import_module("__builtin__"))
 
     def py_call(fun, *args, **kwargs):
         # todo: suuport .asis and .convert
@@ -45,8 +47,22 @@ def inject_py_tools():
                 pass
         return getattr(obj, key)
 
+    def py_get_attr2(robj, rkey):
+        obj = rcopy(robj)
+        key = rcopy(rkey)
+        convert = rcopy(getattrib_p(robj, "convert"))
+        with sexp_context(convert=convert):
+            return sexp(py_get_attr(obj, key))
+
     def py_get_item(obj, key):
         return obj[key]
+
+    def py_get_item2(robj, rkey):
+        obj = rcopy(robj)
+        key = rcopy(rkey)
+        convert = rcopy(getattrib_p(robj, "convert"))
+        with sexp_context(convert=convert):
+            return sexp(py_get_item(obj, key))
 
     def py_names(obj):
         try:
@@ -134,8 +150,8 @@ def inject_py_tools():
     assign("names.PyObject", _rfunction(py_names, convert=True), e)
     assign("print.PyObject", _rfunction(py_print, invisible=True, convert=False), e)
     assign(".DollarNames.PyObject", _rfunction(py_names, convert=True), e)
-    assign("$.PyObject", _rfunction(py_get_attr, convert=True), e)
-    assign("[.PyObject", _rfunction(py_get_item, convert=True), e)
+    assign("$.PyObject", _rfunction(py_get_attr2, asis=True, convert=True), e)
+    assign("[.PyObject", _rfunction(py_get_item2, asis=True, convert=True), e)
     assign("$<-.PyObject", _rfunction(py_set_attr, invisible=True, asis=True, convert=False), e)
     assign("[<-.PyObject", _rfunction(py_set_item, invisible=True, asis=True, convert=False), e)
     assign("&.PyObject", _rfunction(operator.and_, invisible=True, convert=False), e)

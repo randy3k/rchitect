@@ -638,17 +638,26 @@ def rcopytype(_, s): # noqa
 
 # Py to R
 
+@contextmanager
+def sexp_context(**kwargs):
+    old_context = sexp_context.context.copy()
+    sexp_context.context.update(kwargs)
+    yield sexp_context.context
+    sexp_context.context = old_context
 
-# python to r conversions
+
+sexp_context.context = {}
+
 
 def robject(*args, **kwargs):
     ensure_initialized()
-    if len(args) == 2 and isinstance(args[0], string_types):
-        return RObject(sexp(RClass(args[0]), args[1], **kwargs))
-    elif len(args) == 1:
-        return RObject(sexp(args[0], **kwargs))
-    else:
-        raise TypeError("wrong number of arguments or argument types")
+    with sexp_context(**kwargs):
+        if len(args) == 2 and isinstance(args[0], string_types):
+            return RObject(sexp(RClass(args[0]), args[1]))
+        elif len(args) == 1:
+            return RObject(sexp(args[0]))
+        else:
+            raise TypeError("wrong number of arguments or argument types")
 
 
 @dispatch(datatype(RClass("NULL")), type(None))
@@ -791,7 +800,11 @@ def sexp_dots():  # noqa
 
 
 def sexp_as_py_object(obj):
-    if callable(obj):
+    if isinstance(obj, SEXP):
+        return obj
+    elif isinstance(obj, RObject):
+        return unbox(obj)
+    elif callable(obj):
         return sexp(RClass("PyCallable"), obj)
     else:
         return sexp(RClass("PyObject"), obj)
@@ -827,23 +840,29 @@ def xptr_callback(exptr, arglist, asis, convert):
 
 
 @dispatch(datatype(RClass("function")), Callable)
-def sexp(_, f, invisible=False, asis=False, convert=True): # noqa
-
+def sexp(_, f): # noqa
     if hasattr(f, "__robject__"):
+        # R function wrapped by python function
         return unbox(f.__robject__)
 
-    # FIXME: memory leaks via JIT compiling fextptr
-    fextptr = new_xptr(f)
-    dotlist = rlang("list", lib.R_DotsSymbol)
-    body = rlang(
-        ".Call", rstring("_libR_xptr_callback"), fextptr, dotlist,
-        rlogical(asis), rlogical(convert))
-    if invisible:
-        body = rlang("invisible", body)
-    lang = rlang_p(rsym("function"), sexp_dots(), body)
-    status = ffi.new("int[1]")
-    val = lib.R_tryEval(lang, lib.R_GlobalEnv, status)
-    return val
+    with sexp_context() as context:
+        # FIXME: memory leaks via JIT compiling fextptr
+        invisible = context.get('invisible', False)
+        fextptr = new_xptr(f)
+        dotlist = rlang("list", lib.R_DotsSymbol)
+        body = rlang(
+            ".Call",
+            rstring("_libR_xptr_callback"),
+            fextptr,
+            dotlist,
+            rlogical(context.get("asis", False)),
+            rlogical(context.get("convert", True)))
+        if invisible:
+            body = rlang("invisible", body)
+        lang = rlang_p(rsym("function"), sexp_dots(), body)
+        status = ffi.new("int[1]")
+        val = lib.R_tryEval(lang, lib.R_GlobalEnv, status)
+        return val
 
 
 @dispatch(datatype(RClass("PyObject")), object)
@@ -852,14 +871,20 @@ def sexp(_, s): # noqa
         return unbox(s)
     p = new_xptr_p(s)
     setclass(p, "PyObject")
+    with sexp_context() as context:
+        setattrib(p, "convert", sexp(context.get('convert', False)))
     return p
 
 
 @dispatch(datatype(RClass("PyCallable")), Callable)
-def sexp(_, f, invisible=False, asis=False, convert=True): # noqa
-    p = sexp(RClass("function"), f, invisible=invisible, asis=asis, convert=convert)
-    setattrib(p, "py_object", sexp(RClass("PyObject"), f))
-    setclass(p, ["PyCallable", "PyObject"])
+def sexp(_, f): # noqa
+    with sexp_context() as context:
+        asis = context.get("asis", False)
+        convert = context.get("convert", False)
+        with sexp_context(asis=asis, convert=convert):
+            p = sexp(RClass("function"), f)
+            setattrib(p, "py_object", sexp(RClass("PyObject"), f))
+            setclass(p, ["PyCallable", "PyObject"])
     return p
 
 
@@ -882,9 +907,9 @@ def sexp(r): # noqa
 
 
 @dispatch(object)
-def sexp(s, **kwargs): # noqa
+def sexp(s): # noqa
     rcls = sexpclass(s)
-    return sexp(RClass(rcls), s, **kwargs)
+    return sexp(RClass(rcls), s)
 
 
 @dispatch(bool)
