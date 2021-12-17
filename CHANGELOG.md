@@ -1,3 +1,7 @@
+# v0.3.35
+
+  - fix serveral memory related issues
+
 # v0.3.34
 
   - bump version for python 3.10 wheels
