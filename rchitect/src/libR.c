@@ -702,7 +702,8 @@ int cb_read_console_interruptible(const char * p, unsigned char * buf, int bufle
 #endif
     int ret;
     cb_interrupted = 0;
-
+    // flush buffered stdio
+    fflush(NULL);
     ret = cb_read_console(p, buf, buflen, add_history);
     if (cb_interrupted == 1) {
         cb_interrupted = 0;
@@ -756,16 +757,12 @@ void cb_write_console_safe(const char* s, int bufline, int otype) {
     if (main_id == -1) main_id = getpid();
     // only capture the main process
     if (getpid() == main_id) {
-        // flush anything from printf
-        fflush(NULL);
         cb_write_console_capturable(s, bufline, otype);
     } else {
         if (otype == 0) {
             printf("%s", s);
-            fflush(stdout);
         } else {
             fprintf(stderr, "%s", s);
-            fflush(stderr);
         }
     }
 }
