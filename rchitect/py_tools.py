@@ -48,21 +48,39 @@ def inject_py_tools():
         return getattr(obj, key)
 
     def py_get_attr2(robj, rkey):
-        obj = rcopy(robj)
-        key = rcopy(rkey)
-        convert = rcopy(getattrib_p(robj, "convert"))
-        with sexp_context(convert=convert):
-            return sexp(py_get_attr(obj, key))
+        lib.Rf_protect(robj)
+        lib.Rf_protect(rkey)
+        nprotect = 2
+        try:
+            obj = rcopy(robj)
+            key = rcopy(rkey)
+            convert_p = getattrib_p(robj, "convert")
+            lib.Rf_protect(convert_p)
+            nprotect += 1
+            convert = rcopy(convert_p)
+            with sexp_context(convert=convert):
+                return sexp(py_get_attr(obj, key))
+        finally:
+            lib.Rf_unprotect(nprotect)
 
     def py_get_item(obj, key):
         return obj[key]
 
     def py_get_item2(robj, rkey):
-        obj = rcopy(robj)
-        key = rcopy(rkey)
-        convert = rcopy(getattrib_p(robj, "convert"))
-        with sexp_context(convert=convert):
-            return sexp(py_get_item(obj, key))
+        lib.Rf_protect(robj)
+        lib.Rf_protect(rkey)
+        nprotect = 2
+        try:
+            obj = rcopy(robj)
+            key = rcopy(rkey)
+            convert_p = getattrib_p(robj, "convert")
+            lib.Rf_protect(convert_p)
+            nprotect += 1
+            convert = rcopy(convert_p)
+            with sexp_context(convert=convert):
+                return sexp(py_get_item(obj, key))
+        finally:
+            lib.Rf_unprotect(nprotect)
 
     def py_names(obj):
         try:
@@ -72,9 +90,17 @@ def inject_py_tools():
 
     def py_object(*args, **kwargs):
         if len(args) == 1:
-            return robject("PyObject", rcopy(args[0], **kwargs))
+            lib.Rf_protect(args[0])
+            try:
+                return robject("PyObject", rcopy(args[0], **kwargs))
+            finally:
+                lib.Rf_unprotect(1)
         elif len(args) == 2:
-            return robject("PyObject", rcopy(rcopy(object, args[0]), args[1], **kwargs))
+            lib.Rf_protect(args[1])
+            try:
+                return robject("PyObject", rcopy(rcopy(object, args[0]), args[1], **kwargs))
+            finally:
+                lib.Rf_unprotect(1)
 
     def py_print(r):
         rcall_p("cat", repr(r) + "\n")

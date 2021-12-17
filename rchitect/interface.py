@@ -130,14 +130,14 @@ def rparse(s):
 @dispatch(EXPRSXP)
 def reval_p(s, envir=None):
     ensure_initialized()
-    if envir:
-        # `sys.frame()` doesn't work with R_tryEval as it doesn't create R stacks,
-        # we use `base::eval` instead.
-        ret = rcall_p(("base", "eval"), s, _envir=envir)
-    else:
-        ret = lib.R_NilValue
-        status = ffi.new("int[1]")
-        with protected(s):
+    with protected(s):
+        if envir:
+            # `sys.frame()` doesn't work with R_tryEval as it doesn't create R stacks,
+            # we use `base::eval` instead.
+            ret = rcall_p(("base", "eval"), s, _envir=envir)
+        else:
+            ret = lib.R_NilValue
+            status = ffi.new("int[1]")
             with capture_console():
                 for i in range(0, lib.Rf_length(s)):
                     ret = lib.R_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
@@ -248,10 +248,12 @@ def rcall_p(f, *args, **kwargs):
         with sexp_args(args, kwargs, _asis) as (a, k):
             with capture_console():
                 status = ffi.new("int[1]")
-                val = lib.R_tryEval(rlang_p(f, *a, **k), _envir, status)
-                if status[0] != 0:
-                    err = read_stderr().strip() or "Error"
-                    raise RuntimeError("{}".format(err))
+                lang = rlang_p(f, *a, **k)
+                with protected(lang):
+                    val = lib.R_tryEval(lang, _envir, status)
+                    if status[0] != 0:
+                        err = read_stderr().strip() or "Error"
+                        raise RuntimeError("{}".format(err))
     return val
 
 
@@ -261,25 +263,24 @@ def rcall(*args, **kwargs):
     return rcopy(s) if _convert else box(s)
 
 
-def rprint(s):
-    new_env = rcall(("base", "new.env"))
-    lib.Rf_defineVar(rsym_p("x"), unbox(s), unbox(new_env))
+def rprint(s, envir=None):
     with protected(s):
-        try:
-            rcall(("base", "print"), rsym("x"), _envir=new_env)
-        finally:
-            lib.Rf_defineVar(rsym_p("x"), lib.R_NilValue, unbox(new_env))
+        symx = rsym_p("x")
+        with protected(symx):
+            if not envir:
+                envir = rcall(("base", "new.env"))
+            lib.Rf_defineVar(symx, unbox(s), unbox(envir))
+            try:
+                rcall(("base", "print"), symx, _envir=envir)
+            finally:
+                lib.Rf_defineVar(symx, lib.R_NilValue, unbox(envir))
 
 
 def _repr(self):
     s = self.s
-    new_env = rcall(("base", "new.env"), parent=getoption_p("rchitect.py_tools"))
-    lib.Rf_defineVar(rsym_p("x"), unbox(s), unbox(new_env))
+    envir = rcall(("base", "new.env"), parent=getoption_p("rchitect.py_tools"))
     with capture_console(flushable=False):
-        try:
-            rcall(("base", "print"), rsym_p("x"), _envir=new_env)
-        finally:
-            lib.Rf_defineVar(rsym_p("x"), lib.R_NilValue, unbox(new_env))
+        rprint(s, envir=envir)
         output = read_stdout() or ""
 
     name = "RObject{{{}}}".format(str(sexptype(s)))
@@ -850,18 +851,27 @@ def sexp(_, f): # noqa
         invisible = context.get('invisible', False)
         fextptr = new_xptr(f)
         dotlist = rlang("list", lib.R_DotsSymbol)
-        body = rlang(
+        body = rlang_p(
             ".Call",
-            rstring("_libR_xptr_callback"),
+            rstring_p("_libR_xptr_callback"),
             fextptr,
             dotlist,
             rlogical(context.get("asis", False)),
             rlogical(context.get("convert", True)))
+        lib.Rf_protect(body)
+        nprotect = 1
         if invisible:
-            body = rlang("invisible", body)
-        lang = rlang_p(rsym("function"), sexp_dots(), body)
+            body = rlang_p("invisible", body)
+            lib.Rf_protect(body)
+            nprotect += 1
+
+        lang = rlang_p(rsym_p("function"), sexp_dots(), body)
+        lib.Rf_protect(lang)
+        nprotect += 1
+
         status = ffi.new("int[1]")
         val = lib.R_tryEval(lang, lib.R_GlobalEnv, status)
+        lib.Rf_unprotect(nprotect)
         return val
 
 

@@ -18,7 +18,9 @@ def new_xptr_p(x):
     hp = ffi.cast("void*", h)
     _global_set[hp] = h
     s = lib.R_MakeExternalPtr(hp, lib.R_NilValue, lib.R_NilValue)
+    lib.Rf_protect(s)
     lib.R_RegisterCFinalizerEx(s, ffi.addressof(lib, "xptr_finalizer"), 1)
+    lib.Rf_unprotect(1)
     return s
 
 
