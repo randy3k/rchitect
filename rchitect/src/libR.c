@@ -663,7 +663,12 @@ char xptr_callback_error_message[100];
 SEXP _libR_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis, SEXP convert) {
     SEXP result;
     xptr_callback_error_occured = 0;
+    Rf_protect(exptr);
+    Rf_protect(arglist);
+    Rf_protect(asis);
+    Rf_protect(convert);
     result = xptr_callback(exptr, arglist, asis, convert);
+    Rf_unprotect(4);
     if (xptr_callback_error_occured == 1) {
         Rf_error("%s", xptr_callback_error_message);
     }
