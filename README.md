@@ -1,6 +1,5 @@
 # Interoperate R with Python
 
-[![Build status](https://ci.appveyor.com/api/projects/status/4o9m8q61m755xc2a/branch/master?svg=true)](https://ci.appveyor.com/project/randy3k/rchitect/branch/master)
 [![Main](https://github.com/randy3k/rchitect/actions/workflows/main.yml/badge.svg)](https://github.com/randy3k/rchitect/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/randy3k/rchitect/branch/master/graph/badge.svg)](https://codecov.io/gh/randy3k/rchitect)
 [![pypi](https://img.shields.io/pypi/v/rchitect.svg)](https://pypi.org/project/rchitect/)
