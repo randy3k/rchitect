@@ -79,7 +79,7 @@ jobs:
         include:
           - os: ubuntu-latest
             build: 'cp27-* cp35-*'
-          - os: macos-latest
+          - os: macos-10.15
             build: 'cp27-* cp35-*'
           - os: windows-latest
             build: 'cp27-win32'
