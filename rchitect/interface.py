@@ -848,17 +848,21 @@ def sexp(_, f): # noqa
         return unbox(f.__robject__)
 
     with sexp_context() as context:
-        # FIXME: memory leaks via JIT compiling fextptr
+        nprotect = 0
         invisible = context.get('invisible', False)
+        env = rcall_p(("base", "new.env"))
+        lib.Rf_protect(env)
+        nprotect += 1
         fextptr = new_xptr(f)
+        lib.Rf_defineVar(rsym_p("pointer"), unbox(fextptr), env)
         dotlist = rlang("list", lib.R_DotsSymbol)
         xptr_callback = rstring_p("_libR_xptr_callback")
         lib.Rf_protect(xptr_callback)
-        nprotect = 1
+        nprotect += 1
         body = rlang_p(
             ".Call",
             xptr_callback,
-            fextptr,
+            rsym_p("pointer"),
             dotlist,
             rlogical(context.get("asis", False)),
             rlogical(context.get("convert", True)))
@@ -874,7 +878,7 @@ def sexp(_, f): # noqa
         nprotect += 1
 
         status = ffi.new("int[1]")
-        val = lib.R_tryEval(lang, lib.R_GlobalEnv, status)
+        val = lib.R_tryEval(lang, env, status)
         lib.Rf_unprotect(nprotect)
         return val
 
