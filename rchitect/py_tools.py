@@ -7,7 +7,7 @@ import importlib
 from six import text_type
 from types import ModuleType
 
-from .interface import rcopy, robject, rcall_p, rcall, sexp, sexp_context, getattrib_p
+from .interface import rcopy, robject, rcall_p, rcall, sexp, sexp_context, getattrib_p, new_env
 
 
 def get_p(name, envir):
@@ -155,7 +155,7 @@ def inject_py_tools():
     def _rfunction(x, **kwargs):
         return robject("function", x, **kwargs)
 
-    e = rcall(("base", "new.env"), parent=lib.R_GlobalEnv)
+    e = new_env(parent=lib.R_GlobalEnv)
     kwarg = {"rchitect.py_tools": e}
     rcall(("base", "options"), **kwarg)
 

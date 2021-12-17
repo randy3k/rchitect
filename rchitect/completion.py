@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from rchitect.interface import rcall, reval, rcopy, rstring, rint
+from rchitect.interface import rcall, reval, rcopy, rstring, rint, new_env
 from six import text_type
 
 
@@ -32,7 +32,7 @@ def complete_token(timeout=0):
             CompleteCode.format(
                 settimelimit="TRUE" if timeout > 0 else "FALSE",
                 timeout=str(timeout)),
-            envir=rcall("new.env")
+            envir=new_env()
         )
     except Exception:
         if timeout:

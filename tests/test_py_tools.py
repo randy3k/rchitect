@@ -2,12 +2,12 @@
 from __future__ import unicode_literals
 
 from rchitect import rcall, reval, rcopy
-from rchitect.interface import rclass
+from rchitect.interface import rclass, new_env
 import os
 
 
 def test_py_tools():
-    env = rcall(("base", "new.env"))
+    env = new_env()
     reval("getOption('rchitect.py_tools')$attach()", envir=env)
     assert "import" in rcall("names", env, _convert=True)
 

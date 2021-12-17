@@ -535,6 +535,7 @@ int _libR_load_symbols() {
     // LOAD_SYMBOL(Rf_ComplexFromReal);
 
     LOAD_SYMBOL(R_ProcessEvents);
+    LOAD_SYMBOL(Rf_NewEnvironment);
 
     // LOAD_SYMBOL(Rf_PrintVersion);
     // LOAD_SYMBOL(Rf_PrintVersion_part_1);

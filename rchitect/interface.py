@@ -269,7 +269,7 @@ def rprint(s, envir=None):
         symx = rsym_p("x")
         with protected(symx):
             if not envir:
-                envir = rcall(("base", "new.env"))
+                envir = new_env()
             lib.Rf_defineVar(symx, unbox(s), unbox(envir))
             try:
                 rcall(("base", "print"), symx, _envir=envir)
@@ -279,7 +279,7 @@ def rprint(s, envir=None):
 
 def _repr(self):
     s = self.s
-    envir = rcall(("base", "new.env"), parent=getoption_p("rchitect.py_tools"))
+    envir = new_env(parent=getoption_p("rchitect.py_tools"))
     with capture_console(flushable=False):
         rprint(s, envir=envir)
         output = read_stdout() or ""
@@ -357,6 +357,17 @@ def polled_events():
 
 def peek_event():
     return lib.peek_event()
+
+
+def new_env_p(parent=None):
+    with protected(parent):
+        if not parent:
+            parent = lib.R_GlobalEnv
+        return lib.Rf_NewEnvironment(lib.R_NilValue, lib.R_NilValue, unbox(parent))
+
+
+def new_env(parent=None):
+    return box(new_env_p(parent))
 
 
 def set_hook(event, fun):
@@ -850,7 +861,7 @@ def sexp(_, f): # noqa
     with sexp_context() as context:
         nprotect = 0
         invisible = context.get('invisible', False)
-        env = rcall_p(("base", "new.env"))
+        env = new_env_p()
         lib.Rf_protect(env)
         nprotect += 1
         fextptr = new_xptr(f)

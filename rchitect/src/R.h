@@ -552,6 +552,7 @@ RAPI_EXTERN void    (*R_ShowMessage)(const char *s);
 
 RAPI_EXTERN void (*R_ProcessEvents)(void);
 
+RAPI_EXTERN SEXP (*Rf_NewEnvironment)(SEXP, SEXP, SEXP);
 // RAPI_EXTERN void (*Rf_PrintVersion)(char *, size_t len);
 // RAPI_EXTERN void (*Rf_PrintVersion_part_1)(char *, size_t len);
 // RAPI_EXTERN void (*Rf_PrintVersionString)(char *, size_t len);

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import os
-from rchitect.interface import rcall, rcopy, set_hook, package_event
+from rchitect.interface import rcall, rcopy, set_hook, package_event, new_env
 
 
 def configure():
@@ -8,7 +8,7 @@ def configure():
         rcall(
             ("base", "source"),
             os.path.join(os.path.dirname(__file__), "config.R"),
-            rcall(("base", "new.env")))
+            new_env())
 
     if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
         _configure()
