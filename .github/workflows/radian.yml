@@ -54,7 +54,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.python }}" = "2.7" ]; then
-            git clone --branch v0.5.12 https://github.com/randy3k/radian
+            git clone --branch py2 https://github.com/randy3k/radian
           else
             git clone https://github.com/randy3k/radian
           fi
