@@ -865,8 +865,12 @@ def sexp(_, f): # noqa
         env = new_env_p()
         lib.Rf_protect(env)
         nprotect += 1
-        fextptr = new_xptr(f)
-        lib.Rf_defineVar(rsym_p("pointer"), unbox(fextptr), env)
+        fp = new_xptr_p(f)
+        lib.Rf_protect(fp)
+        nprotect += 1
+        setclass(fp, "PyObject")
+
+        lib.Rf_defineVar(rsym_p("pointer"), fp, env)
         dotlist = rlang("list", lib.R_DotsSymbol)
         xptr_callback = rstring_p("_libR_xptr_callback")
         lib.Rf_protect(xptr_callback)
@@ -891,6 +895,9 @@ def sexp(_, f): # noqa
 
         status = ffi.new("int[1]")
         val = lib.R_tryEval(lang, env, status)
+        lib.Rf_protect(val)
+        nprotect += 1
+        setattrib(val, "py_object", fp)
         lib.Rf_unprotect(nprotect)
         return val
 
@@ -915,7 +922,6 @@ def sexp(_, f): # noqa
         with sexp_context(asis=asis, convert=convert):
             p = sexp(RClass("function"), f)
             lib.Rf_protect(p)
-            setattrib(p, "py_object", sexp(RClass("PyObject"), f))
             setclass(p, ["PyCallable", "PyObject"])
             lib.Rf_unprotect(1)
     return p

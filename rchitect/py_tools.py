@@ -105,7 +105,7 @@ def inject_py_tools():
             finally:
                 lib.Rf_unprotect(1)
 
-    def py_print(r):
+    def py_print(r, **kwargs):
         rcall_p("cat", repr(r) + "\n")
 
     def py_set_attr(obj, key, value):
