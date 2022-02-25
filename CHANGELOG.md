@@ -1,3 +1,8 @@
+# v0.3.36
+
+  - improve flush system
+  - bug fixes for pytools
+
 # v0.3.35
 
   - fix serveral memory related issues
