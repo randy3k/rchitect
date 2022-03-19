@@ -9,7 +9,7 @@ reticulate_version <- as.character(packageVersion("reticulate"))
 
 #  only needed for reticulate <1.18.9008
 if (.Platform$OS.type == "unix"  &&
-        utils::compareVersion(reticulate_version, "1.18.9008") == -1) {
+        utils::compareVersion(reticulate_version, "1.18.9008") < 0) {
     py_config <- import("rchitect.reticulate.py_config")
     native_config <- py_copy(py_config$config())
 
@@ -32,7 +32,8 @@ if (.Platform$OS.type == "unix"  &&
 }
 
 # reticulate no longer inserts it, instead, they use PYTHONPATH to initialize python
-if (utils::compareVersion(reticulate_version, "1.17") >= 0) {
+if (utils::compareVersion(reticulate_version, "1.17") >= 0 &&
+        utils::compareVersion(reticulate_version, "1.19") < 0) {
     import("rchitect.reticulate.path")$append_path(system.file("python", package = "reticulate"))
 }
 
