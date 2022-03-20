@@ -1,7 +1,7 @@
 #include <Python.h>
-#include "gli.h"
+#include "gil.h"
 
-// cffi releases GLI look, so we need to ensure it. Mainly needed for loading reticulate.
+// cffi releases GIL, so we need to ensure it. Mainly needed for loading reticulate.
 
 void run_Rmainloop(void) {
     PyGILState_STATE gstate;

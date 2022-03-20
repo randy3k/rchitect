@@ -1,5 +1,5 @@
-#ifndef GLI_H__
-#define GLI_H__
+#ifndef GIL_H__
+#define GIL_H__
 
 # include "R.h"
 
@@ -11,4 +11,4 @@ SEXP R_tryEval(SEXP, SEXP, int *);
 
 // end cdef
 
-#endif /* end of include guard: GLI_H__ */
+#endif /* end of include guard: GIL_H__ */
