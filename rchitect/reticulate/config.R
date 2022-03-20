@@ -33,7 +33,7 @@ if (.Platform$OS.type == "unix"  &&
 
 # reticulate no longer inserts it, instead, they use PYTHONPATH to initialize python
 if (utils::compareVersion(reticulate_version, "1.17") >= 0 &&
-        utils::compareVersion(reticulate_version, "1.19") < 0) {
+        (.Platform$OS.type == "windows" || utils::compareVersion(reticulate_version, "1.19") < 0)) {
     import("rchitect.reticulate.path")$append_path(system.file("python", package = "reticulate"))
 }
 
