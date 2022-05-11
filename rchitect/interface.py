@@ -41,7 +41,7 @@ def extract(kwargs, key, default=None):
 def ensure_initialized():
     if lib.Rf_initialize_R == ffi.NULL:
         from .setup import init
-        init()
+        init(register_callbacks=False, register_signal_handlers=False)
 
 
 @contextmanager

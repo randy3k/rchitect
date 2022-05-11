@@ -25,10 +25,13 @@ def load_constant_error():
                 system2utf8(ffi.string(lib._libR_dl_error_message())))
 
 
-def init(args=None, register_signal_handlers=None):
+def init(args=None, register_callbacks=None, register_signal_handlers=None):
 
     if not args:
         args = ["rchitect", "--quiet", "--no-save"]
+
+    if register_callbacks is None:
+        register_callbacks = os.environ.get("RCHITECT_REGISTER_CALLBACKS", "1") == "1"
 
     if register_signal_handlers is None:
         register_signal_handlers = os.environ.get("RCHITECT_REGISTER_SIGNAL_HANDLERS", "1") == "1"
@@ -73,6 +76,15 @@ def init(args=None, register_signal_handlers=None):
             lib.Rf_initialize_R(len(argv), argv)
             setup_unix_callbacks()
             lib.setup_Rmainloop()
+
+    else:
+        # it is to allow `reticulate::import("radian")$main()`.
+        if register_callbacks:
+            if sys.platform.startswith("win"):
+                raise Exception(
+                    "setting callbacks after R initialization on Windows is not allowed.")
+            else:
+                setup_unix_callbacks()
 
     if not libR_loaded:
         if not lib._libR_load_constants():
