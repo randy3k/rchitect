@@ -17,10 +17,12 @@ def test_read_console(mocker, gctorture):
 
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
 def test_read_console_long(mocker, gctorture):
-    s = "a" * 5000
-    mocker.patch("rchitect.setup.ask_input", return_value=s)
-    ret = reval("readline('> ')")
-    assert rcopy(ret) == s
+    for h in [2000, 4094, 4095, 4096, 4097, 5000]:
+        s = "b" * h
+        mocker.patch("rchitect.setup.ask_input", return_value=s)
+        ret = reval("readline('> ')")
+        assert rcopy(ret) == s
+        assert len(rcopy(ret)) == len(s)
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")

@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from rchitect._cffi import ffi, lib
 from .utils import rconsole2str, utf8tosystem
 from . import console
+from .interface import parse_result
 
 
 class Callback(object):
@@ -151,7 +152,7 @@ def on_callback_error(exception, exc_value, traceback):
         print("callback error:", exception, exc_value)
 
 
-_code = [""]
+_code = [b""]
 
 
 @ffi.def_extern(error=0, onerror=on_callback_error)
@@ -167,11 +168,16 @@ def cb_read_console(p, buf, buflen, add_history):
         _code[0] = code
 
     buf = ffi.cast("char*", buf)
-    nb = min(len(code), buflen - 2)
-    buf[0:nb] = code[0:nb]
-    if nb < buflen - 2:
+
+    if len(code) < buflen:
+        nb = len(code)
+        buf[0:nb] = code[0:nb]
         buf[nb] = b'\n'
         buf[nb + 1] = b'\x00'
+    elif len(code) >= buflen:
+        nb = buflen - 1
+        buf[0:nb] = code[0:nb]
+        buf[nb] = b'\00'
 
     _code[0] = _code[0][nb:]
     return 1

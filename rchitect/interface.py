@@ -110,16 +110,24 @@ def rsym(s, t=None):
     return box(rsym_p(s, t))
 
 
-def rparse_p(s):
-    ensure_initialized()
+def parse_result(s):
     status = ffi.new("ParseStatus[1]")
-    s = lib.Rf_mkString(utf8tosystem(s))
+    s = lib.Rf_mkString(s)
     with protected(s):
         with capture_console():  # need to capture stderr
             ret = lib.R_ParseVector(s, -1, status, lib.R_NilValue)
             if status[0] != lib.PARSE_OK:
                 err = read_stderr().strip() or "Error"
-                raise RuntimeError("{}".format(err))
+            else:
+                err = None
+            return ret, status[0], err
+
+
+def rparse_p(s):
+    ensure_initialized()
+    ret, status, err = parse_result(utf8tosystem(s))
+    if status != lib.PARSE_OK:
+        raise RuntimeError("{}".format(err))
     return ret
 
 
