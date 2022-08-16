@@ -1,4 +1,12 @@
+# v0.3.37
+   - sys.path insertion no longer needed for reticulate >= 1.19
+   - allow setting callbacks after R initialization
+   - disable reticulate in py2
+   - install also askpass
+   - fix a bug of reading > 4096 bytes in cb_read_console
+
 # v0.3.36
+
 
   - improve flush system
   - bug fixes for pytools
