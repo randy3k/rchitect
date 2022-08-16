@@ -177,7 +177,7 @@ def cb_read_console(p, buf, buflen, add_history):
     elif len(code) >= buflen:
         nb = buflen - 1
         buf[0:nb] = code[0:nb]
-        buf[nb] = b'\00'
+        buf[nb] = b'\x00'
 
     _code[0] = _code[0][nb:]
     return 1
