@@ -110,7 +110,7 @@ def rsym(s, t=None):
     return box(rsym_p(s, t))
 
 
-def parse_result(s):
+def parse_text(s):
     status = ffi.new("ParseStatus[1]")
     s = lib.Rf_mkString(s)
     with protected(s):
@@ -125,7 +125,7 @@ def parse_result(s):
 
 def rparse_p(s):
     ensure_initialized()
-    ret, status, err = parse_result(utf8tosystem(s))
+    ret, status, err = parse_text(utf8tosystem(s))
     if status != lib.PARSE_OK:
         raise RuntimeError("{}".format(err))
     return ret

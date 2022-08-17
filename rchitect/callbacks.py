@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from rchitect._cffi import ffi, lib
 from .utils import rconsole2str, utf8tosystem
 from . import console
-from .interface import parse_result
 
 
 class Callback(object):
