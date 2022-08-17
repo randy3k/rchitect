@@ -5,7 +5,7 @@ from .types import RObject, SEXP, RClass, sexptype, datatype
 from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, CPLXSXP, STRSXP, \
     VECSXP, EXPRSXP, EXTPTRSXP, RAWSXP, S4SXP
 from .types import box, unbox
-from .xptr import new_xptr, new_xptr_p, from_xptr
+from .xptr import new_xptr_p, from_xptr
 from .console import capture_console, read_stdout, read_stderr
 from .utils import utf8tosystem
 
@@ -112,20 +112,28 @@ def rsym(s, t=None):
 
 def parse_text(s):
     status = ffi.new("ParseStatus[1]")
-    s = lib.Rf_mkString(s)
-    with protected(s):
-        with capture_console():  # need to capture stderr
-            ret = lib.R_ParseVector(s, -1, status, lib.R_NilValue)
-            if status[0] != lib.PARSE_OK:
-                err = read_stderr().strip() or "Error"
-            else:
-                err = None
-            return ret, status[0], err
+    s = lib.Rf_mkString(utf8tosystem(s))
+    with protected(s), capture_console():  # need to capture stderr
+        ret = lib.R_ParseVector(s, -1, status, lib.R_NilValue)
+        if status[0] != lib.PARSE_OK:
+            err = read_stderr().strip() or "Error"
+        else:
+            err = None
+        return ret, status[0], err
+
+
+def parse_text_incomplete(s):
+    _, status, _ = parse_text(s)
+    return status == lib.PARSE_INCOMPLETE
+
+
+def parse_text_complete(s):
+    return not parse_text_incomplete(s)
 
 
 def rparse_p(s):
     ensure_initialized()
-    ret, status, err = parse_text(utf8tosystem(s))
+    ret, status, err = parse_text(s)
     if status != lib.PARSE_OK:
         raise RuntimeError("{}".format(err))
     return ret
