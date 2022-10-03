@@ -68,9 +68,9 @@ def test_py_tools():
     assert not rcall("attributes", ret, _convert=True)['convert']
 
     ret = reval("""
-        radian <- import("radian")
-        radian$xxxx <- 3L
-        radian
+        rchitect <- import("rchitect")
+        rchitect$xxxx <- 3L
+        rchitect
     """, envir=env)
     assert rcopy(ret).xxxx == 3
     assert rcall("attributes", ret, _convert=True)['convert']
