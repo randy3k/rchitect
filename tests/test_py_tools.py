@@ -50,6 +50,7 @@ def test_py_tools():
         x
     """, envir=env)
     assert rcopy(ret) == [1, 2, 4]
+    assert not rcall("attributes", ret, _convert=True)['convert']
 
     ret = reval("""
         d <- dict(a = 1L, b = 2L)
@@ -64,6 +65,15 @@ def test_py_tools():
         foo
     """, envir=env)
     assert rcopy(ret).x == 1
+    assert not rcall("attributes", ret, _convert=True)['convert']
+
+    ret = reval("""
+        radian <- import("radian")
+        radian$xxxx <- 3L
+        radian
+    """, envir=env)
+    assert rcopy(ret).xxxx == 3
+    assert rcall("attributes", ret, _convert=True)['convert']
 
     assert rcopy(reval("py_unicode('hello')", envir=env)) == "hello"
 

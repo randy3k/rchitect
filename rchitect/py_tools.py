@@ -119,7 +119,7 @@ def inject_py_tools():
             setattr(pyo, rcopy(key), rcopy(value))
         finally:
             lib.Rf_unprotect(3)
-        return pyo
+        return obj
 
     def py_set_item(obj, key, value):
         lib.Rf_protect(obj)
@@ -130,7 +130,7 @@ def inject_py_tools():
             pyo[rcopy(key)] = rcopy(value)
         finally:
             lib.Rf_unprotect(3)
-        return pyo
+        return obj
 
     def py_dict(**kwargs):
         narg = len(kwargs)
