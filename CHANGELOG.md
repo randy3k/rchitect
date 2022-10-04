@@ -1,3 +1,7 @@
+# v0.3.38
+
+ - return unmodified python objects in py_set_attr/py_set_item
+
 # v0.3.37
    - sys.path insertion no longer needed for reticulate >= 1.19
    - allow setting callbacks after R initialization
