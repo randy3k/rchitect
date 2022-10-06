@@ -1,3 +1,7 @@
+# v0.3.39
+
+- bump to v0.3.39 for release
+
 # v0.3.38
 
  - return unmodified python objects in py_set_attr/py_set_item
