@@ -1,3 +1,7 @@
+# v0.3.40
+
+- bump to v0.3.40 for release
+
 # v0.3.39
 
 - bump to v0.3.39 for release

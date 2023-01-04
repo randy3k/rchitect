@@ -22,7 +22,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
         name: Install Python
         with:
@@ -91,7 +91,7 @@ jobs:
     env:
       CIBW_BUILD: ${{ matrix.build }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win32'
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -107,7 +107,7 @@ jobs:
           echo "MSSdk=1" >> $GITHUB_ENV
       - name: Build wheels
         uses: pypa/cibuildwheel@v1.11.1
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -125,10 +125,10 @@ jobs:
       CIBW_BEFORE_BUILD_MACOS: "pip install --no-binary :all: cffi"
       CIBW_ARCHS_MACOS: "x86_64 arm64"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.3.0
-      - uses: actions/upload-artifact@v2
+        uses: pypa/cibuildwheel@v2.11.4
+      - uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -142,7 +142,7 @@ jobs:
       TWINE_USERNAME: ${{secrets.TWINE_USERNAME}}
       TWINE_PASSWORD: ${{secrets.TWINE_PASSWORD}}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
         name: Install Python
         with:
@@ -151,7 +151,7 @@ jobs:
       - run: |
           python setup.py sdist
           python -m twine upload dist/*
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v3
         with:
           name: wheels
           path: ./wheelhouse
