@@ -122,7 +122,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       # a wheel with wrong arch might be installed
-      CIBW_BEFORE_BUILD_MACOS: "pip install --no-binary :all: cffi"
+      CIBW_BEFORE_BUILD_MACOS: "pip install -U setuptools wheel cffi"
       CIBW_ARCHS_MACOS: "x86_64 arm64"
     steps:
       - uses: actions/checkout@v3
