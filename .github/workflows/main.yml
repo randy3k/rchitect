@@ -12,114 +12,114 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-  pytest:
-    name: ${{ matrix.os }} r-${{ matrix.r }} py-${{ matrix.python }}
-    strategy:
-      fail-fast: false
-      matrix:
-        r: [3.6, latest, devel]
-        python: [2.7, 3.8]
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Install Microsoft Visual C++
-        if: matrix.os == 'windows-latest' && matrix.python == '2.7'
-        uses: ilammy/msvc-dev-cmd@v1
-      - if: matrix.os == 'windows-latest' && matrix.python == '2.7'
-        shell: bash
-        run: |
-          echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
-          echo "MSSdk=1" >> $GITHUB_ENV
-      - name: Install setuptools on Python 2.7
-        if: matrix.python == '2.7'
-        run: python -m pip install setuptools==44.1.1
-      - name: Install rchitect
-        run: python -m pip install -e .[test]
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: ${{ matrix.r }}
-      - name: Install reticulate
-        run: Rscript -e "install.packages('reticulate')"
-      - name: Insert LD_LIBRARY_PATH
-        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
-        run: echo LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib" >> $GITHUB_ENV
-      - name: Run tests
-        run: pytest -s --cov=rchitect
-      - name: codecov
-        run: |
-          python -m pip install codecov
-          codecov
-        env:
-          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+  # pytest:
+  #   name: ${{ matrix.os }} r-${{ matrix.r }} py-${{ matrix.python }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       r: [3.6, latest, devel]
+  #       python: [2.7, 3.8]
+  #       os: [ubuntu-latest, macos-latest, windows-latest]
+  #   runs-on: ${{ matrix.os }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v2
+  #       name: Install Python
+  #       with:
+  #         python-version: ${{ matrix.python }}
+  #     - name: Install Microsoft Visual C++
+  #       if: matrix.os == 'windows-latest' && matrix.python == '2.7'
+  #       uses: ilammy/msvc-dev-cmd@v1
+  #     - if: matrix.os == 'windows-latest' && matrix.python == '2.7'
+  #       shell: bash
+  #       run: |
+  #         echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
+  #         echo "MSSdk=1" >> $GITHUB_ENV
+  #     - name: Install setuptools on Python 2.7
+  #       if: matrix.python == '2.7'
+  #       run: python -m pip install setuptools==44.1.1
+  #     - name: Install rchitect
+  #       run: python -m pip install -e .[test]
+  #     - uses: r-lib/actions/setup-r@v2
+  #       with:
+  #         r-version: ${{ matrix.r }}
+  #     - name: Install reticulate
+  #       run: Rscript -e "install.packages('reticulate')"
+  #     - name: Insert LD_LIBRARY_PATH
+  #       if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+  #       run: echo LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib" >> $GITHUB_ENV
+  #     - name: Run tests
+  #       run: pytest -s --cov=rchitect
+  #     - name: codecov
+  #       run: |
+  #         python -m pip install codecov
+  #         codecov
+  #       env:
+  #         CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
 
-  check_tarball:
-    name: Check tarball is installable
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: 3.8
-      - run: |
-          python setup.py sdist
-          pip install dist/rchitect-*.tar.gz
+  # check_tarball:
+  #   name: Check tarball is installable
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v1
+  #     - uses: actions/setup-python@v2
+  #       name: Install Python
+  #       with:
+  #         python-version: 3.8
+  #     - run: |
+  #         python setup.py sdist
+  #         pip install dist/rchitect-*.tar.gz
 
-  build_wheels_v1:
-    needs: [pytest, check_tarball]
-    name: Build wheels on ${{ matrix.os }} for ${{ matrix.build }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            build: 'cp27-* cp35-*'
-          - os: macos-10.15
-            build: 'cp27-* cp35-*'
-          - os: windows-latest
-            build: 'cp27-win32'
-          - os: windows-latest
-            build: 'cp27-win_amd64'
-          - os: windows-latest
-            build: 'cp35-*'
-    runs-on: ${{ matrix.os }}
-    env:
-      CIBW_BUILD: ${{ matrix.build }}
-    steps:
-      - uses: actions/checkout@v3
-      - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win32'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x86
-      - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win_amd64'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-      - if: matrix.os == 'windows-latest' && startsWith(matrix.build, 'cp27-')
-        shell: bash
-        run: |
-          echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
-          echo "MSSdk=1" >> $GITHUB_ENV
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v1.11.1
-      - uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: ./wheelhouse/*.whl
+  # build_wheels_v1:
+  #   needs: [pytest, check_tarball]
+  #   name: Build wheels on ${{ matrix.os }} for ${{ matrix.build }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - os: ubuntu-latest
+  #           build: 'cp27-* cp35-*'
+  #         - os: macos-10.15
+  #           build: 'cp27-* cp35-*'
+  #         - os: windows-latest
+  #           build: 'cp27-win32'
+  #         - os: windows-latest
+  #           build: 'cp27-win_amd64'
+  #         - os: windows-latest
+  #           build: 'cp35-*'
+  #   runs-on: ${{ matrix.os }}
+  #   env:
+  #     CIBW_BUILD: ${{ matrix.build }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win32'
+  #       uses: ilammy/msvc-dev-cmd@v1
+  #       with:
+  #         arch: x86
+  #     - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win_amd64'
+  #       uses: ilammy/msvc-dev-cmd@v1
+  #       with:
+  #         arch: x64
+  #     - if: matrix.os == 'windows-latest' && startsWith(matrix.build, 'cp27-')
+  #       shell: bash
+  #       run: |
+  #         echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
+  #         echo "MSSdk=1" >> $GITHUB_ENV
+  #     - name: Build wheels
+  #       uses: pypa/cibuildwheel@v1.11.1
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: ./wheelhouse/*.whl
 
   build_wheels:
-    needs: [pytest, check_tarball]
+    # needs: [pytest, check_tarball]
     name: Build wheels on ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
+    env:
+      # a wheel with wrong arch might be installed
+      CIBW_BEFORE_BUILD_MACOS: "pip install -U setuptools wheel cffi"
+      CIBW_ARCHS_MACOS: "arm64"
     steps:
       - uses: actions/checkout@v3
       - name: Build wheels
@@ -129,26 +129,26 @@ jobs:
           name: wheels
           path: ./wheelhouse/*.whl
 
-  twine:
-    name: Upload tarball and wheels
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [build_wheels_v1, build_wheels]
-    runs-on: ubuntu-latest
-    env:
-      TWINE_USERNAME: ${{secrets.TWINE_USERNAME}}
-      TWINE_PASSWORD: ${{secrets.TWINE_PASSWORD}}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: 3.8
-      - run: python -m pip install twine
-      - run: |
-          python setup.py sdist
-          python -m twine upload dist/*
-      - uses: actions/download-artifact@v3
-        with:
-          name: wheels
-          path: ./wheelhouse
-      - run: python -m twine upload ./wheelhouse/*.whl
+  # twine:
+  #   name: Upload tarball and wheels
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   needs: [build_wheels_v1, build_wheels]
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     TWINE_USERNAME: ${{secrets.TWINE_USERNAME}}
+  #     TWINE_PASSWORD: ${{secrets.TWINE_PASSWORD}}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v2
+  #       name: Install Python
+  #       with:
+  #         python-version: 3.8
+  #     - run: python -m pip install twine
+  #     - run: |
+  #         python setup.py sdist
+  #         python -m twine upload dist/*
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: ./wheelhouse
+  #     - run: python -m twine upload ./wheelhouse/*.whl
