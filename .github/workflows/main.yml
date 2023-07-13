@@ -35,7 +35,7 @@ jobs:
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate')"
       - name: Insert LD_LIBRARY_PATH
-        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        if: matrix.os == 'ubuntu-latest' || startsWith(matrix.os, 'macos')
         run: echo LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib" >> $GITHUB_ENV
       - name: Run tests
         run: pytest -s --cov=rchitect
