@@ -17,4 +17,4 @@ __all__ = [
     "robject"
 ]
 
-__version__ = '0.3.40'
+__version__ = '0.4.1'

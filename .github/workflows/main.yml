@@ -67,13 +67,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            build: 'cp27-* cp35-*'
-          - os: macos-13
-            build: 'cp27-* cp35-*'
-          - os: windows-latest
-            build: 'cp27-win32'
-          - os: windows-latest
-            build: 'cp27-win_amd64'
+            build: 'cp35-*'
+          - os: macos-10
+            build: 'cp35-*'
           - os: windows-latest
             build: 'cp35-*'
     runs-on: ${{ matrix.os }}
@@ -81,19 +77,6 @@ jobs:
       CIBW_BUILD: ${{ matrix.build }}
     steps:
       - uses: actions/checkout@v3
-      - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win32'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x86
-      - if: matrix.os == 'windows-latest' && matrix.build == 'cp27-win_amd64'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-      - if: matrix.os == 'windows-latest' && startsWith(matrix.build, 'cp27-')
-        shell: bash
-        run: |
-          echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
-          echo "MSSdk=1" >> $GITHUB_ENV
       - name: Build wheels
         uses: pypa/cibuildwheel@v1.11.1
       - uses: actions/upload-artifact@v3
