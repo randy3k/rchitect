@@ -1,3 +1,6 @@
+# v0.4
+- require python 3.6+
+
 # v0.3.40
 
 - bump to v0.3.40 for release

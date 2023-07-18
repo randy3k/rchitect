@@ -19,7 +19,7 @@ jobs:
       matrix:
         r: [4.1, latest, devel]
         python: [3.8]
-        os: [ubuntu-latest, macos-13, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -59,38 +59,13 @@ jobs:
           python setup.py sdist
           pip install dist/rchitect-*.tar.gz
 
-  build_wheels_v1:
-    needs: [pytest, check_tarball]
-    name: Build wheels on ${{ matrix.os }} for ${{ matrix.build }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            build: 'cp35-*'
-          - os: macos-11
-            build: 'cp35-*'
-          - os: windows-latest
-            build: 'cp35-*'
-    runs-on: ${{ matrix.os }}
-    env:
-      CIBW_BUILD: ${{ matrix.build }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v1.11.1
-      - uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: ./wheelhouse/*.whl
-
   build_wheels:
     needs: [pytest, check_tarball]
     name: Build wheels on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-13, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     env:
       # a wheel with wrong arch might be installed
@@ -108,7 +83,8 @@ jobs:
   twine:
     name: Upload tarball and wheels
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [build_wheels_v1, build_wheels]
+    needs: 
+      - build_wheels
     runs-on: ubuntu-latest
     env:
       TWINE_USERNAME: ${{secrets.TWINE_USERNAME}}

@@ -38,7 +38,7 @@ setup(
     packages=find_packages('.', exclude=["tests"]),
     package_data={'rchitect': ['reticulate/*.R', 'src/*']},
     cffi_modules=["build.py:ffibuilder"],
-    python_requires='>=3.5',
+    python_requires='>=3.6',
     install_requires=install_requires,
     setup_requires=[
         'cffi>=1.10.0',
