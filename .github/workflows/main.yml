@@ -68,7 +68,7 @@ jobs:
         include:
           - os: ubuntu-latest
             build: 'cp35-*'
-          - os: macos-10
+          - os: macos-11
             build: 'cp35-*'
           - os: windows-latest
             build: 'cp35-*'
