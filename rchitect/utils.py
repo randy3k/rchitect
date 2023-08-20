@@ -79,6 +79,12 @@ def Rhome():
     except Exception:
         rhome = ""
 
+    try:
+        if sys.platform.startswith("win") and not rhome:
+            rhome = read_registry("Software\\WOW6432Node\\R-Core\\R", "InstallPath")[0]
+    except Exception:
+        rhome = ""
+
     if rhome:
         os.environ['R_HOME'] = rhome
     else:
