@@ -1,4 +1,9 @@
-# v0.4
+# v0.4.2
+- try again with WOW6432Node entry
+- compare to sys.version_info
+
+
+# v0.4.1
 - require python 3.6+
 
 # v0.3.40
