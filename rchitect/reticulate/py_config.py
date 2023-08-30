@@ -3,7 +3,7 @@ import sys
 import ctypes
 import ctypes.util
 
-if sys.version < '3.4':
+if sys.version_info[:3] < (3, 4, 0):
     import imp
 
     def module_exists(name):

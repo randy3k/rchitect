@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from six import text_type, string_types
 from types import FunctionType
 from collections import OrderedDict
-if sys.version >= "3":
+if sys.version_info[0] >= 3:
     from collections.abc import Callable
     long = int
 else:
@@ -722,7 +722,7 @@ def sexp(_, s): # noqa
     return rstring_p(s)
 
 
-if sys.version >= "3":
+if sys.version_info[0] >= 3:
     @dispatch(datatype(RClass("raw")), bytes)
     def sexp(_, s): # noqa
         n = len(s)
