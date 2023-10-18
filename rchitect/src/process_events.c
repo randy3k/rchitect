@@ -41,7 +41,7 @@ static void Call_R_checkActivity(void** what) {
 int peek_event(void) {
     Rboolean ok;
     void* what;
-    ok = R_ToplevelExec(Call_R_checkActivity, &what);
+    ok = R_ToplevelExec((void (*)(void *)) &Call_R_checkActivity, &what);
     if (ok == FALSE) {
         return 0;
     }
