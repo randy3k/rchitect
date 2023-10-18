@@ -1,3 +1,7 @@
+# v0.4.4
+
+- fix incompatible point type error in clang 16
+
 # v0.4.3
 
 - remove Rf_applyClosure to support R devel
