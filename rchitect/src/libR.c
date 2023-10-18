@@ -49,77 +49,53 @@ char* _libR_dl_error_message() {
 }
 
 
-static int load_symbol(const char* name, void** ppSymbol) {
+static int load_symbol(void* lib_t, const char* name, void** symbol_t, int unwrap) {
+    void** temp;
     strcpy(last_loaded_symbol, name);
 #ifdef _WIN32
-    *ppSymbol = (void*) GetProcAddress((HINSTANCE) libR_t, name);
+    temp = (void**) GetProcAddress((HINSTANCE) lib_t, name);
 #else
-    *ppSymbol = dlsym(libR_t, name);
+    temp = (void**) dlsym(lib_t, name);
 #endif
-    if (*ppSymbol == NULL) {
+    if (temp == NULL) {
         return 0;
     } else {
+        if (unwrap) {
+            *symbol_t = *temp;
+        } else {
+            *symbol_t = (void *) temp;
+        }
         return 1;
     }
 }
 
 
 #define LOAD_SYMBOL_AS(name, as) \
-if (!load_symbol(#name, (void**) &as)) \
+if (!load_symbol(libR_t, #name, (void**) &as, 0)) \
     return 0;
 
 #define LOAD_SYMBOL(name) \
-if (!load_symbol(#name, (void**) &name)) {\
+if (!load_symbol(libR_t, #name, (void**) &name, 0)) {\
     return 0; \
 }
+
+#define LOAD_CONSTANT_AS(name, as) \
+if (!load_symbol(libR_t, #name, (void**) &as, 1)) \
+    return 0;
+
+#define LOAD_CONSTANT(name) \
+if (!load_symbol(libR_t, #name, (void**) &name, 1)) \
+    return 0;
 
 
 #ifdef _WIN32
 
 static void* libRga_t;
 
-static int load_ga_symbol(const char* name, void** ppSymbol) {
-    strcpy(last_loaded_symbol, name);
-    *ppSymbol = (void*) GetProcAddress((HINSTANCE) libRga_t, name);
-    if (*ppSymbol != NULL) {
-        return 1;
-    }
-    return 0;
-}
-
 #define LOAD_GA_SYMBOL(name) \
-if (!load_ga_symbol(#name, (void**) &name)) {\
+if (!load_symbol(libRga_t, #name, (void**) &name), 0) {\
     return 0; \
 }
-
-#endif
-
-static int load_constant(const char* name, void** ppSymbol) {
-    void** temp;
-    strcpy(last_loaded_symbol, name);
-#ifdef _WIN32
-    temp = (void**) GetProcAddress((HINSTANCE) libR_t, name);
-#else
-    temp = (void**) dlsym(libR_t, name);
-#endif
-    if (temp == NULL) {
-        return 0;
-    } else {
-        *ppSymbol = *temp;
-        return 1;
-    }
-}
-
-#define LOAD_CONSTANT_AS(name, as) \
-if (!load_constant(#name, (void**) &as)) \
-    return 0;
-
-#define LOAD_CONSTANT(name) \
-if (!load_constant(#name, (void**) &name)) \
-    return 0;
-
-
-#ifdef _WIN32
 
 #define LOAD_WIN_DLL(name) \
 if (sizeof(void*) == 8) { \
@@ -195,7 +171,7 @@ int _libR_load(const char* rhome) {
 int _libR_is_initialized(void) {
     void* p;
     if (libR_t == NULL) return 0;
-    if (!load_constant("R_GlobalEnv", (void**) &p)) return 0;
+    if (!load_symbol(libR_t, "R_GlobalEnv", (void**) &p, 1)) return 0;
     return p != NULL;
 }
 
@@ -562,7 +538,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(getRUser)
     LOAD_SYMBOL_AS(UserBreak, UserBreak_t)
     LOAD_SYMBOL_AS(CharacterMode, CharacterMode_t)
-    if (!load_symbol("EmitEmbeddedUTF8", (void**) &EmitEmbeddedUTF8_t)) {
+    if (!load_symbol(libR_t, "EmitEmbeddedUTF8", (void**) &EmitEmbeddedUTF8_t, 0)) {
         EmitEmbeddedUTF8_t = NULL;
     }
     #else
@@ -651,7 +627,7 @@ int _libR_load_constants() {
 
 void _libR_set_callback(char* name, void* cb) {
     void** p;
-    if (load_symbol(name, (void**) &p)) {
+    if (load_symbol(libR_t, name, (void**) &p, 0)) {
         *p = cb;
     } else {
         printf("error setting callback of %s\n", name);
