@@ -582,7 +582,7 @@ int _libR_load_symbols() {
 }
 
 int _libR_load_constants() {
-
+    // these constants could be only loaded after R has initialized.
     LOAD_CONSTANT(R_GlobalEnv);
     LOAD_CONSTANT(R_EmptyEnv);
     LOAD_CONSTANT(R_BaseEnv);

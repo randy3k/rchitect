@@ -9,7 +9,7 @@ from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
 def load_lib_error():
-    return"Cannot load shared library: {}".format(
+    return "Cannot load shared library: {}".format(
         system2utf8(ffi.string(lib._libR_dl_error_message())))
 
 
