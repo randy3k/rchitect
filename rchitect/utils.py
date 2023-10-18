@@ -5,11 +5,12 @@ import subprocess
 import sys
 import ctypes
 import locale
-from distutils.version import LooseVersion
-if sys.version_info[0] >= 3:
-    from shutil import which
+from shutil import which
+
+if sys.version_info[:3] >= (3, 12, 0):
+    from pkg_resources import parse_version
 else:
-    from backports.shutil_which import which
+    from distutils.version import LooseVersion as parse_version
 
 if sys.platform.startswith('win'):
     if sys.version_info[0] >= 3:
@@ -121,9 +122,9 @@ def rversion(rhome=None):
         output = subprocess.check_output(
             [os.path.join(rhome, "bin", "R"), "--slave", "-e", "cat(as.character(getRversion()))"],
             stderr=subprocess.STDOUT).decode("utf-8").strip()
-        version = LooseVersion(output)
+        version = parse_version(output)
     except Exception:
-        version = LooseVersion("1000.0.0")
+        version = parse_version("1000.0.0")
     return version
 
 
