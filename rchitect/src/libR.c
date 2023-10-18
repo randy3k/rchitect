@@ -290,7 +290,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_allocVector3);
     LOAD_SYMBOL(Rf_any_duplicated);
     LOAD_SYMBOL(Rf_any_duplicated3);
-    LOAD_SYMBOL(Rf_applyClosure);
+    // LOAD_SYMBOL(Rf_applyClosure);
     LOAD_SYMBOL(Rf_arraySubscript);
     LOAD_SYMBOL(Rf_classgets);
     LOAD_SYMBOL(Rf_copyMatrix);

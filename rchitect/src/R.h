@@ -272,7 +272,7 @@ RAPI_EXTERN SEXP (*Rf_allocSExp)(SEXPTYPE);
 RAPI_EXTERN SEXP (*Rf_allocVector3)(SEXPTYPE, R_xlen_t, void*);
 RAPI_EXTERN R_xlen_t (*Rf_any_duplicated)(SEXP x, Rboolean from_last);
 RAPI_EXTERN R_xlen_t (*Rf_any_duplicated3)(SEXP x, SEXP incomp, Rboolean from_last);
-RAPI_EXTERN SEXP (*Rf_applyClosure)(SEXP, SEXP, SEXP, SEXP, SEXP);
+// RAPI_EXTERN SEXP (*Rf_applyClosure)(SEXP, SEXP, SEXP, SEXP, SEXP);
 RAPI_EXTERN SEXP (*Rf_arraySubscript)(int, SEXP, SEXP, SEXP (*)(SEXP,SEXP), SEXP (*)(SEXP, int), SEXP);
 RAPI_EXTERN SEXP (*Rf_classgets)(SEXP, SEXP);
 RAPI_EXTERN void (*Rf_copyMatrix)(SEXP, SEXP, Rboolean);
