@@ -1,3 +1,8 @@
+# v0.4.3
+
+- remove Rf_applyClosure to support R devel
+- deprecate the use of distutils
+
 # v0.4.2
 - try again with WOW6432Node entry
 - compare to sys.version_info
