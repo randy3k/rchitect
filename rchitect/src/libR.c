@@ -93,7 +93,7 @@ if (!load_symbol(libR_t, #name, (void**) &name, 1)) \
 static void* libRga_t;
 
 #define LOAD_GA_SYMBOL(name) \
-if (!load_symbol(libRga_t, #name, (void**) &name), 0) {\
+if (!load_symbol(libRga_t, #name, (void**) &name, 0)) {\
     return 0; \
 }
 
