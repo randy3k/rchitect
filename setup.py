@@ -26,6 +26,9 @@ install_requires = [
     'six>=1.9.0'
 ]
 
+if sys.version_info[:3] >= (3, 12, 0):
+    install_requires += "setuptools>=68.0.0"
+
 setup(
     name='rchitect',
     author='Randy Lai',
