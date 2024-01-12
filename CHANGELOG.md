@@ -1,3 +1,7 @@
+# v0.4.5
+
+- require setuptools for python 3.12
+
 # v0.4.4
 
 - fix incompatible point type error in clang 16
