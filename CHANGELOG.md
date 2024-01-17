@@ -1,3 +1,8 @@
+# v0.4.6
+
+- require packaging and python 3.7+
+
+
 # v0.4.5
 
 - require setuptools for python 3.12
