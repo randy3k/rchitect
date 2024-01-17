@@ -1,6 +1,5 @@
 import os
 import re
-import sys
 from setuptools import setup, find_packages
 
 
@@ -23,11 +22,9 @@ def get_version(package):
 
 install_requires = [
     'cffi>=1.10.0',
-    'six>=1.9.0'
+    'six>=1.9.0',
+    'packaging>=23.0'
 ]
-
-if sys.version_info[:3] >= (3, 12, 0):
-    install_requires += "setuptools>=68.0.0"
 
 setup(
     name='rchitect',
@@ -41,7 +38,7 @@ setup(
     packages=find_packages('.', exclude=["tests"]),
     package_data={'rchitect': ['reticulate/*.R', 'src/*']},
     cffi_modules=["build.py:ffibuilder"],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=install_requires,
     setup_requires=[
         'cffi>=1.10.0',

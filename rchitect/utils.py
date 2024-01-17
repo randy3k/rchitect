@@ -7,10 +7,7 @@ import ctypes
 import locale
 from shutil import which
 
-if sys.version_info[:3] >= (3, 12, 0):
-    from pkg_resources import parse_version
-else:
-    from distutils.version import LooseVersion as parse_version
+from packaging.version import parse as parse_version
 
 if sys.platform.startswith('win'):
     if sys.version_info[0] >= 3:
