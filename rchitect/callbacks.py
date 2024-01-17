@@ -182,7 +182,7 @@ def cb_read_console(p, buf, buflen, add_history):
     return 1
 
 
-@ffi.def_extern()
+@ffi.def_extern(error=None, onerror=on_callback_error)
 def cb_write_console_capturable(buf, bufline, otype):
     text = rconsole2str(ffi.string(buf))
     console.write_console(text, otype)
