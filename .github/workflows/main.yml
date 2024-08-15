@@ -6,15 +6,11 @@ on:
   pull_request:
     branches: [main, master]
 
-jobs:
-  cleanup:
-    name: Cancel Previous Runs
-    runs-on: ubuntu-latest
-    steps:
-      - uses: styfle/cancel-workflow-action@0.12.0
-        with:
-          access_token: ${{ github.token }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   pytest:
     name: ${{ matrix.os }} r-${{ matrix.r }} py-${{ matrix.python }}
     strategy:
