@@ -1,3 +1,9 @@
+# v0.4.7
+
+- allow interruption in write_console
+- some symbols are removed
+
+
 # v0.4.6
 
 - require packaging and python 3.7+
