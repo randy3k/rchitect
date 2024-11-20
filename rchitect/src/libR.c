@@ -135,10 +135,10 @@ int _libR_load(const char* rhome) {
     libR_t = load_dll(libpath);
 #elif defined(__APPLE__)
     sprintf(libpath, "%s/%s", rhome, "lib/libR.dylib");
-    libR_t = dlopen(libpath, RTLD_NOW|RTLD_GLOBAL);
+    libR_t = dlopen(libpath, RTLD_NOW|RTLD_LOCAL);
 #else
     sprintf(libpath, "%s/%s", rhome, "lib/libR.so");
-    libR_t = dlopen(libpath, RTLD_NOW|RTLD_GLOBAL);
+    libR_t = dlopen(libpath, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
 #endif
     if (libR_t == NULL) {
         free(libpath);
