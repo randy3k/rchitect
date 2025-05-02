@@ -15,7 +15,7 @@ static void _process_events(void* n) {
 }
 
 void process_events() {
-    R_ToplevelExec(_process_events, NULL);
+    R_ToplevelExec((void (*)(void *)) _process_events, NULL);
 }
 
 #if defined(_WIN32)
@@ -31,7 +31,7 @@ int peek_event(void) {
 #else
 
 void polled_events() {
-    R_ToplevelExec(cb_polled_events_interruptible, NULL);
+    R_ToplevelExec((void (*)(void *)) cb_polled_events_interruptible, NULL);
 }
 
 static void Call_R_checkActivity(void** what) {
