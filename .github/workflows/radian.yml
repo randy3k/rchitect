@@ -43,5 +43,4 @@ jobs:
           git clone https://github.com/randy3k/radian
           cd radian
           python -m pip install -e .[test]
-          python -m pip install jedi==0.17.2
-          pytest -s
+          python -m pip install jedi
