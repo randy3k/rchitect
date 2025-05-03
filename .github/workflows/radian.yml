@@ -35,6 +35,9 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.r }}
+      - name: Install libpng-dev
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libpng-dev          
       - name: Install reticulate and askpass
         run: Rscript -e "install.packages(c('reticulate', 'askpass'))"
       - name: Install radian and run tests
@@ -44,3 +47,4 @@ jobs:
           cd radian
           python -m pip install -e .[test]
           python -m pip install jedi
+          pytest -s
