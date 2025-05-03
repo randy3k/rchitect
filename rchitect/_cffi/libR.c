@@ -97,12 +97,16 @@ if (!load_symbol(libRga_t, #name, (void**) &name, 0)) {\
     return 0; \
 }
 
+#if defined(_M_ARM64)
+    #define WIN_BIN "bin"
+#elif defined(_M_IX86)
+    #define WIN_BIN "bin\\i386"
+#else
+    #define WIN_BIN "bin\\x64"
+#endif
+
 #define LOAD_WIN_DLL(name) \
-if (sizeof(void*) == 8) { \
-    sprintf(libpath, "%s\\%s\\%s", rhome, "bin\\x64", #name); \
-} else { \
-    sprintf(libpath, "%s\\%s\\%s", rhome, "bin\\i386", #name); \
-} \
+    sprintf(libpath, "%s\\%s\\%s", rhome, WIN_BIN, #name); \
 if ((void*)load_dll(libpath) == NULL) { \
     free(libpath); \
     return 0; \
@@ -127,11 +131,7 @@ int _libR_load(const char* rhome) {
 
     libR_t = NULL;
 #ifdef _WIN32
-    if (sizeof(void*) == 8) {
-        sprintf(libpath, "%s\\%s", rhome, "bin\\x64\\R.dll");
-    } else {
-        sprintf(libpath, "%s\\%s", rhome, "bin\\i386\\R.dll");
-    }
+    sprintf(libpath, "%s\\%s\\%s", rhome, WIN_BIN, "R.dll");
     libR_t = load_dll(libpath);
 #elif defined(__APPLE__)
     sprintf(libpath, "%s/%s", rhome, "lib/libR.dylib");
@@ -147,11 +147,7 @@ int _libR_load(const char* rhome) {
 
 #ifdef _WIN32
     libRga_t = NULL;
-    if (sizeof(void*) == 8) {
-        sprintf(libpath, "%s\\%s", rhome, "bin\\x64\\Rgraphapp.dll");
-    } else {
-        sprintf(libpath, "%s\\%s", rhome, "bin\\i386\\Rgraphapp.dll");
-    }
+    sprintf(libpath, "%s\\%s\\%s", rhome, WIN_BIN, "Rgraphapp.dll");
     libRga_t = load_dll(libpath);
     if (libRga_t == NULL) {
         free(libpath);
