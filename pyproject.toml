@@ -12,14 +12,11 @@ license = { file = "LICENSE" }
 requires-python = ">=3.7"
 dependencies = ['cffi>=1.10.0', 'six>=1.9.0', 'packaging>=23.0']
 
-# Corresponds to extras_require
 [project.optional-dependencies]
 dev = ["pytest", "pytest-mock", "pytest-cov"]
 
-# Corresponds to url arguments
 [project.urls]
 Homepage = "https://github.com/randy3k/rchitect"
-# Add other URLs like Bug Tracker, Documentation etc.
 
 [tool.setuptools]
 packages = { find = { where = ["."], exclude = ["tests*"] } }
@@ -27,6 +24,5 @@ packages = { find = { where = ["."], exclude = ["tests*"] } }
 [tool.setuptools.package-data]
 rchitect = ["reticulate/*.R", "_cffi/*"]
 
-# Configuration for dynamic version reading
 [tool.setuptools.dynamic]
 version = {attr = "rchitect.__version__"}

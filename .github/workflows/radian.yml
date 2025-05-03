@@ -45,6 +45,6 @@ jobs:
         run: |
           git clone https://github.com/randy3k/radian
           cd radian
-          python -m pip install -e .[test]
+          python -m pip install -e .[dev]
           python -m pip install jedi
           pytest -s
