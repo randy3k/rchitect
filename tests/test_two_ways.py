@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 from rchitect import rcopy, reval, robject
 from rchitect.interface import unbox
 

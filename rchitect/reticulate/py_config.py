@@ -1,25 +1,13 @@
-from __future__ import unicode_literals
 import sys
 import ctypes
 import ctypes.util
+import importlib.util
 
-if sys.version_info[:3] < (3, 4, 0):
-    import imp
-
-    def module_exists(name):
-        try:
-            imp.find_module(name)
-            return True
-        except ImportError:
-            return False
-else:
-    import importlib.util
-
-    def module_exists(name):
-        if importlib.util.find_spec(name):
-            return True
-        else:
-            return False
+def module_exists(name):
+    if importlib.util.find_spec(name):
+        return True
+    else:
+        return False
 
 
 def config():

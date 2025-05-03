@@ -1,13 +1,10 @@
-from __future__ import unicode_literals
-
 from rchitect.interface import rcall, reval, rcopy, new_env
-from six import text_type
 
 
 def assign_line_buffer(buf):
     rcall(reval("utils:::.assignLinebuffer"), buf)
     rcall(reval("utils:::.assignEnd"), len(buf))
-    token = rcopy(text_type, rcall(reval("utils:::.guessTokenFromLine")))
+    token = rcopy(str, rcall(reval("utils:::.guessTokenFromLine")))
     return token
 
 

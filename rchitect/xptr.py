@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from rchitect._cffi import ffi, lib
 from .types import box, unbox
 

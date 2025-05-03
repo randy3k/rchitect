@@ -1,28 +1,29 @@
-from __future__ import unicode_literals
 import sys
 import os
-from six.moves import input as six_input
 
 from rchitect._cffi import ffi, lib
-from .utils import Rhome, ensure_path, system2utf8
+from .utils import get_rhome, ensure_path, system2utf8
 from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
 def load_lib_error():
     return "Cannot load shared library: {}".format(
-        system2utf8(ffi.string(lib._libR_dl_error_message())))
+        system2utf8(ffi.string(lib._libR_dl_error_message()))
+    )
 
 
 def load_symbol_error():
     return "Cannot load symbol {}: {}".format(
-                system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
-                system2utf8(ffi.string(lib._libR_dl_error_message())))
+        system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
+        system2utf8(ffi.string(lib._libR_dl_error_message())),
+    )
 
 
 def load_constant_error():
     return "Cannot load constant {}: {}".format(
-                system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
-                system2utf8(ffi.string(lib._libR_dl_error_message())))
+        system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
+        system2utf8(ffi.string(lib._libR_dl_error_message())),
+    )
 
 
 def init(args=None, register_callbacks=None, register_signal_handlers=None):
@@ -34,9 +35,11 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
         register_callbacks = os.environ.get("RCHITECT_REGISTER_CALLBACKS", "1") == "1"
 
     if register_signal_handlers is None:
-        register_signal_handlers = os.environ.get("RCHITECT_REGISTER_SIGNAL_HANDLERS", "1") == "1"
+        register_signal_handlers = (
+            os.environ.get("RCHITECT_REGISTER_SIGNAL_HANDLERS", "1") == "1"
+        )
 
-    rhome = Rhome()
+    rhome = get_rhome()
     # microsoft python doesn't load DLL's from PATH
     # we will need to open the DLL's directly in _libR_load
     ensure_path(rhome)
@@ -82,7 +85,8 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
         if register_callbacks:
             if sys.platform.startswith("win"):
                 raise Exception(
-                    "setting callbacks after R initialization on Windows is not allowed.")
+                    "setting callbacks after R initialization on Windows is not allowed."
+                )
             else:
                 setup_unix_callbacks()
 
@@ -92,10 +96,12 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
         lib._libR_setup_xptr_callback()
 
         from rchitect.py_tools import inject_py_tools
+
         inject_py_tools()
 
         if os.environ.get("RCHITECT_RETICULATE_CONFIG", "1") != "0":
             from rchitect import reticulate
+
             reticulate.configure()
 
 
@@ -104,7 +110,7 @@ def loop():
 
 
 def ask_input(s):
-    return six_input(s)
+    return input(s)
 
 
 @def_callback()

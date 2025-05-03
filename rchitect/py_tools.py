@@ -1,10 +1,8 @@
-from __future__ import unicode_literals, absolute_import
 from rchitect._cffi import lib
 
 import operator
 import sys
 import importlib
-from six import text_type
 from types import ModuleType
 
 from .interface import rcopy, robject, rcall_p, rcall, sexp, sexp_as_py_object, \
@@ -30,7 +28,7 @@ def inject_py_tools():
 
     def py_call(fun, *args, **kwargs):
         # todo: suuport .asis and .convert
-        if isinstance(fun, text_type):
+        if isinstance(fun, str):
             fun = eval(fun)
         return fun(*args, **kwargs)
 
@@ -151,7 +149,7 @@ def inject_py_tools():
             lib.Rf_unprotect(narg)
 
     def py_unicode(obj):
-        return text_type(obj)
+        return str(obj)
 
     def assign(name, value, envir):
         rcall(("base", "assign"), name, value, envir=envir)

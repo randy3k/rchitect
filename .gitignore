@@ -5,5 +5,5 @@ rchitect.egg-info/
 .eggs/
 .pytest_cache/
 .coverage
-/build/
+build/
 .venv/

@@ -1,9 +1,22 @@
-from __future__ import unicode_literals, absolute_import
 from rchitect._cffi import ffi, lib
 from .dispatch import dispatch
 from .types import RObject, SEXP, RClass, sexptype, datatype
-from .types import NILSXP, CLOSXP, ENVSXP, BUILTINSXP, LGLSXP, INTSXP, REALSXP, CPLXSXP, STRSXP, \
-    VECSXP, EXPRSXP, EXTPTRSXP, RAWSXP, S4SXP
+from .types import (
+    NILSXP,
+    CLOSXP,
+    ENVSXP,
+    BUILTINSXP,
+    LGLSXP,
+    INTSXP,
+    REALSXP,
+    CPLXSXP,
+    STRSXP,
+    VECSXP,
+    EXPRSXP,
+    EXTPTRSXP,
+    RAWSXP,
+    S4SXP,
+)
 from .types import box, unbox
 from .xptr import new_xptr_p, from_xptr
 from .console import capture_console, read_stdout, read_stderr
@@ -14,19 +27,16 @@ import sys
 import ctypes
 import struct
 from contextlib import contextmanager
-from six import text_type, string_types
 from types import FunctionType
 from collections import OrderedDict
-if sys.version_info[0] >= 3:
-    from collections.abc import Callable
-    long = int
-else:
-    from collections import Callable
+from collections.abc import Callable
+
 
 dispatch.add_dispatch_policy(type, datatype)
 dispatch.add_dispatch_policy(
     ffi.CData,
-    lambda x: sexptype(x) if ffi.typeof(x) == ffi.typeof('SEXP') else ffi.CData)
+    lambda x: sexptype(x) if ffi.typeof(x) == ffi.typeof("SEXP") else ffi.CData,
+)
 
 
 def extract(kwargs, key, default=None):
@@ -41,6 +51,7 @@ def extract(kwargs, key, default=None):
 def ensure_initialized():
     if lib.Rf_initialize_R == ffi.NULL:
         from .setup import init
+
         init(register_callbacks=False, register_signal_handlers=False)
 
 
@@ -83,7 +94,7 @@ def rdouble(s):
 
 def rchar_p(s):
     isascii = all(ord(c) < 128 for c in s)
-    b = s.encode('utf-8')
+    b = s.encode("utf-8")
     return lib.Rf_mkCharLenCE(b, len(b), lib.CE_NATIVE if isascii else lib.CE_UTF8)
 
 
@@ -164,13 +175,13 @@ def reval_p(s, envir=None):
 
 
 @dispatch(RObject)
-def reval_p(s, envir=None): # noqa
+def reval_p(s, envir=None):  # noqa
     with protected(envir):
         return reval_p(unbox(s), envir=envir)
 
 
-@dispatch(string_types)
-def reval_p(s, envir=None): # noqa
+@dispatch(str)
+def reval_p(s, envir=None):  # noqa
     with protected(envir):
         return reval_p(rparse_p(s), envir=envir)
 
@@ -184,7 +195,7 @@ def as_call(x):
         return x
     elif isinstance(x, RObject):
         return unbox(x)
-    elif isinstance(x, string_types):
+    elif isinstance(x, str):
         return rsym_p(x)
     elif isinstance(x, tuple) and len(x) == 2:
         return rsym_p(*x)
@@ -334,12 +345,12 @@ def setoption(key, value):
 
 
 def getattrib_p(s, key):
-    return lib.Rf_getAttrib(unbox(s), rsym_p(key) if isinstance(key, string_types) else key)
+    return lib.Rf_getAttrib(unbox(s), rsym_p(key) if isinstance(key, str) else key)
 
 
 def setattrib(s, key, value):
     with protected(s, value):
-        lib.Rf_setAttrib(unbox(s), rsym_p(key) if isinstance(key, string_types) else key, value)
+        lib.Rf_setAttrib(unbox(s), rsym_p(key) if isinstance(key, str) else key, value)
 
 
 def getnames_p(s):
@@ -360,7 +371,7 @@ def setclass(s, classes):
 
 
 def rclass(s, singleString=0):
-    return rcopy(text_type if singleString else list, getclass_p(s, singleString))
+    return rcopy(str if singleString else list, getclass_p(s, singleString))
 
 
 def process_events():
@@ -396,8 +407,12 @@ def package_event(pkg, event):
 
 def greeting():
     info = rcopy(rcall("R.Version"))
-    return "{} -- \"{}\"\nPlatform: {} ({}-bit)\n".format(
-        info["version.string"], info["nickname"], info["platform"], 8 * struct.calcsize("P"))
+    return '{} -- "{}"\nPlatform: {} ({}-bit)\n'.format(
+        info["version.string"],
+        info["nickname"],
+        info["platform"],
+        8 * struct.calcsize("P"),
+    )
 
 
 # R to Py
@@ -415,87 +430,90 @@ rcopy_context.context = {}
 
 
 @dispatch(datatype(type(None)), NILSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return None
 
 
 @dispatch(datatype(list), NILSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return []
 
 
 @dispatch(datatype(int), INTSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return lib.INTEGER(s)[0]
 
 
 @dispatch(datatype(list), INTSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return [lib.INTEGER(s)[i] for i in range(lib.Rf_length(s))]
 
 
 @dispatch(datatype(bool), LGLSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return bool(lib.LOGICAL(s)[0])
 
 
 @dispatch(datatype(list), LGLSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return [bool(lib.LOGICAL(s)[i]) for i in range(lib.Rf_length(s))]
 
 
 @dispatch(datatype(float), REALSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return lib.REAL(s)[0]
 
 
 @dispatch(datatype(list), REALSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return [lib.REAL(s)[i] for i in range(lib.Rf_length(s))]
 
 
 @dispatch(datatype(complex), CPLXSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     z = lib.COMPLEX(s)[0]
     return complex(z.r, z.i)
 
 
 @dispatch(datatype(list), CPLXSXP)
-def rcopy(_, s): # noqa
-    return [complex(lib.COMPLEX(s)[i].r, lib.COMPLEX(s)[i].i) for i in range(lib.Rf_length(s))]
+def rcopy(_, s):  # noqa
+    return [
+        complex(lib.COMPLEX(s)[i].r, lib.COMPLEX(s)[i].i)
+        for i in range(lib.Rf_length(s))
+    ]
 
 
 def _string(s):
-    return text_type(ffi.string(lib.Rf_translateCharUTF8(s)).decode("utf-8"))
+    return str(ffi.string(lib.Rf_translateCharUTF8(s)).decode("utf-8"))
 
 
 @dispatch(datatype(bytes), RAWSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return ffi.string(lib.RAW(s), lib.Rf_length(s))
 
 
-@dispatch(datatype(text_type), STRSXP)
-def rcopy(_, s): # noqa
+@dispatch(datatype(str), STRSXP)
+def rcopy(_, s):  # noqa
     return _string(lib.STRING_ELT(s, 0))
 
 
 @dispatch(datatype(list), STRSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return [_string(lib.STRING_ELT(s, i)) for i in range(lib.Rf_length(s))]
 
 
 @dispatch(datatype(list), VECSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return [rcopy(lib.VECTOR_ELT(s, i)) for i in range(lib.Rf_length(s))]
 
 
 @dispatch(datatype(tuple), VECSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return tuple(rcopy(list, s))
 
 
 @dispatch(datatype(dict), VECSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     ret = dict()
     names = rnames(s)
     for i in range(lib.Rf_length(s)):
@@ -504,7 +522,7 @@ def rcopy(_, s): # noqa
 
 
 @dispatch(datatype(OrderedDict), VECSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     ret = OrderedDict()
     names = rnames(s)
     for i in range(lib.Rf_length(s)):
@@ -513,7 +531,7 @@ def rcopy(_, s): # noqa
 
 
 @dispatch(datatype(FunctionType), (CLOSXP, BUILTINSXP))
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     r = RObject(s)  # preserve the closure
 
     def f(*args, **kwargs):
@@ -521,37 +539,37 @@ def rcopy(_, s): # noqa
 
     f.__robject__ = r
     with rcopy_context() as context:
-        f.asis = context.get('asis', False)
-        f.convert = context.get('convert', True)
+        f.asis = context.get("asis", False)
+        f.convert = context.get("convert", True)
 
     return f
 
 
 # PyObject
 @dispatch(datatype(object), EXTPTRSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     # FIXME: check if s really is a PyObject
     return from_xptr(s)
 
 
 # reticulate's python.builtin.object
 @dispatch(datatype(object), ENVSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     x = rcall(("base", "get"), "pyobj", s)
     p = ffi.cast("uintptr_t", lib.R_ExternalPtrAddr(unbox(x)))
-    d = long(p)
+    d = int(p)
     obj = ctypes.cast(d, ctypes.py_object)
     return obj.value
 
 
 # PyCallable or reticulate's python.builtin.function
 @dispatch(datatype(object), CLOSXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return rcopy(getattrib_p(s, "py_object"))
 
 
 @dispatch(datatype(RObject), SEXP)
-def rcopy(_, s): # noqa
+def rcopy(_, s):  # noqa
     return box(s)
 
 
@@ -560,7 +578,7 @@ default = RClass("default")
 
 
 @dispatch(SEXP)
-def rcopy(s): # noqa
+def rcopy(s):  # noqa
     for cls in rclass(s):
         T = rcopytype(RClass(cls), s)
         if T is not RObject:
@@ -570,102 +588,103 @@ def rcopy(s): # noqa
 
 
 @dispatch(object, RObject)
-def rcopy(t, r, **kwargs): # noqa
+def rcopy(t, r, **kwargs):  # noqa
     with rcopy_context(**kwargs):
         return rcopy(t, unbox(r))
 
 
 @dispatch(RObject)
-def rcopy(r, **kwargs): # noqa
+def rcopy(r, **kwargs):  # noqa
     with rcopy_context(**kwargs):
         return rcopy(unbox(r))
 
 
 # PyObject
 @dispatch(datatype(RClass("PyObject")), EXTPTRSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return object
 
 
 # PyCallable
 @dispatch(datatype(RClass("PyCallable")), CLOSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return object
 
 
 # reticulate class
 @dispatch(datatype(RClass("python.builtin.object")), ENVSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return object
 
 
 # reticulate function
 @dispatch(datatype(RClass("python.builtin.function")), CLOSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return object
 
 
 @dispatch(datatype(default), NILSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return type(None)
 
 
 @dispatch(datatype(default), INTSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return int if lib.Rf_length(s) == 1 else list
 
 
 @dispatch(datatype(default), LGLSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return bool if lib.Rf_length(s) == 1 else list
 
 
 @dispatch(datatype(default), REALSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return float if lib.Rf_length(s) == 1 else list
 
 
 @dispatch(datatype(default), CPLXSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return complex if lib.Rf_length(s) == 1 else list
 
 
 @dispatch(datatype(default), RAWSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return bytes
 
 
 @dispatch(datatype(default), STRSXP)
-def rcopytype(_, s): # noqa
-    return text_type if lib.Rf_length(s) == 1 else list
+def rcopytype(_, s):  # noqa
+    return str if lib.Rf_length(s) == 1 else list
 
 
 @dispatch(datatype(default), VECSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return list if lib.Rf_isNull(getnames_p(s)) else OrderedDict
 
 
 @dispatch(datatype(default), BUILTINSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return FunctionType
 
 
 @dispatch(datatype(default), CLOSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return FunctionType
 
 
 @dispatch(datatype(default), EXTPTRSXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return RObject
 
 
 @dispatch(object, SEXP)
-def rcopytype(_, s): # noqa
+def rcopytype(_, s):  # noqa
     return RObject
 
 
 # Py to R
+
 
 @contextmanager
 def sexp_context(**kwargs):
@@ -681,7 +700,7 @@ sexp_context.context = {}
 def robject(*args, **kwargs):
     ensure_initialized()
     with sexp_context(**kwargs):
-        if len(args) == 2 and isinstance(args[0], string_types):
+        if len(args) == 2 and isinstance(args[0], str):
             return RObject(sexp(RClass(args[0]), args[1]))
         elif len(args) == 1:
             return RObject(sexp(args[0]))
@@ -690,41 +709,42 @@ def robject(*args, **kwargs):
 
 
 @dispatch(datatype(RClass("NULL")), type(None))
-def sexp(_, n): # noqa
+def sexp(_, n):  # noqa
     return lib.R_NilValue
 
 
 @dispatch(datatype(RClass("logical")), bool)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     return rlogical_p(s)
 
 
 @dispatch(datatype(RClass("integer")), int)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     return rint_p(s)
 
 
 @dispatch(datatype(RClass("numeric")), float)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     return rdouble_p(s)
 
 
 @dispatch(datatype(RClass("complex")), complex)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     c = ffi.new("Rcomplex*")
     c.r = s.real
     c.i = s.imag
     return lib.Rf_ScalarComplex(c[0])
 
 
-@dispatch(datatype(RClass("character")), string_types)
-def sexp(_, s): # noqa
+@dispatch(datatype(RClass("character")), str)
+def sexp(_, s):  # noqa
     return rstring_p(s)
 
 
 if sys.version_info[0] >= 3:
+
     @dispatch(datatype(RClass("raw")), bytes)
-    def sexp(_, s): # noqa
+    def sexp(_, s):  # noqa
         n = len(s)
         x = lib.Rf_allocVector(lib.RAWSXP, n)
         with protected(x):
@@ -732,9 +752,11 @@ if sys.version_info[0] >= 3:
             for i in range(n):
                 p[i] = s[i]
         return x
+
 else:
+
     @dispatch(datatype(RClass("raw")), bytes)
-    def sexp(_, s): # noqa
+    def sexp(_, s):  # noqa
         n = len(s)
         x = lib.Rf_allocVector(lib.RAWSXP, n)
         with protected(x):
@@ -745,7 +767,7 @@ else:
 
 
 @dispatch(datatype(RClass("logical")), list)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     n = len(s)
     x = lib.Rf_allocVector(lib.LGLSXP, n)
     with protected(x):
@@ -756,7 +778,7 @@ def sexp(_, s): # noqa
 
 
 @dispatch(datatype(RClass("integer")), list)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     n = len(s)
     x = lib.Rf_allocVector(lib.INTSXP, n)
     with protected(x):
@@ -767,7 +789,7 @@ def sexp(_, s): # noqa
 
 
 @dispatch(datatype(RClass("numeric")), list)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     n = len(s)
     x = lib.Rf_allocVector(lib.REALSXP, n)
     with protected(x):
@@ -778,7 +800,7 @@ def sexp(_, s): # noqa
 
 
 @dispatch(datatype(RClass("complex")), list)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     n = len(s)
     x = lib.Rf_allocVector(lib.CPLXSXP, n)
     with protected(x):
@@ -790,19 +812,19 @@ def sexp(_, s): # noqa
 
 
 @dispatch(datatype(RClass("character")), list)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     n = len(s)
     x = lib.Rf_allocVector(lib.STRSXP, n)
     with protected(x):
         for i in range(n):
             isascii = all(ord(c) < 128 for c in s[i])
-            b = s[i].encode('utf-8')
+            b = s[i].encode("utf-8")
             lib.SET_STRING_ELT(x, i, lib.Rf_mkCharLenCE(b, len(b), 0 if isascii else 1))
     return x
 
 
 @dispatch(datatype(RClass("list")), (list, tuple))
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     n = len(s)
     x = lib.Rf_allocVector(lib.VECSXP, n)
     with protected(x):
@@ -812,7 +834,7 @@ def sexp(_, s): # noqa
 
 
 @dispatch(datatype(RClass("list")), (dict, OrderedDict))
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     v = sexp(RClass("list"), list(s.values()))
     with protected(v):
         k = sexp(RClass("character"), list(s.keys()))
@@ -870,14 +892,14 @@ def xptr_callback(exptr, arglist, asis, convert):
 
 
 @dispatch(datatype(RClass("function")), Callable)
-def sexp(_, f): # noqa
+def sexp(_, f):  # noqa
     if hasattr(f, "__robject__"):
         # R function wrapped by python function
         return unbox(f.__robject__)
 
     with sexp_context() as context:
         nprotect = 0
-        invisible = context.get('invisible', False)
+        invisible = context.get("invisible", False)
         env = new_env_p()
         lib.Rf_protect(env)
         nprotect += 1
@@ -897,7 +919,8 @@ def sexp(_, f): # noqa
             rsym_p("pointer"),
             dotlist,
             rlogical(context.get("asis", False)),
-            rlogical(context.get("convert", True)))
+            rlogical(context.get("convert", True)),
+        )
         lib.Rf_protect(body)
         nprotect += 1
         if invisible:
@@ -919,19 +942,19 @@ def sexp(_, f): # noqa
 
 
 @dispatch(datatype(RClass("PyObject")), object)
-def sexp(_, s): # noqa
+def sexp(_, s):  # noqa
     if (isinstance(s, RObject) or isinstance(s, SEXP)) and "PyObject" in rclass(s):
         return unbox(s)
     p = new_xptr_p(s)
     with protected(p):
         setclass(p, "PyObject")
         with sexp_context() as context:
-            setattrib(p, "convert", sexp(context.get('convert', True)))
+            setattrib(p, "convert", sexp(context.get("convert", True)))
     return p
 
 
 @dispatch(datatype(RClass("PyCallable")), Callable)
-def sexp(_, f): # noqa
+def sexp(_, f):  # noqa
     with sexp_context() as context:
         asis = context.get("asis", False)
         convert = context.get("convert", False)
@@ -947,7 +970,7 @@ def sexp(_, f): # noqa
 
 
 @dispatch(type(None))
-def sexp(n): # noqa
+def sexp(n):  # noqa
     return lib.R_NilValue
 
 
@@ -957,43 +980,43 @@ def sexp(x):  # noqa
 
 
 @dispatch(RObject)
-def sexp(r): # noqa
+def sexp(r):  # noqa
     return unbox(r)
 
 
 @dispatch(object)
-def sexp(s): # noqa
+def sexp(s):  # noqa
     rcls = sexpclass(s)
     return sexp(RClass(rcls), s)
 
 
 @dispatch(bool)
-def sexpclass(s): # noqa
+def sexpclass(s):  # noqa
     return "logical"
 
 
 @dispatch(int)
-def sexpclass(s): # noqa
+def sexpclass(s):  # noqa
     return "integer"
 
 
 @dispatch(float)
-def sexpclass(s): # noqa
+def sexpclass(s):  # noqa
     return "numeric"
 
 
 @dispatch(complex)
-def sexpclass(s): # noqa
+def sexpclass(s):  # noqa
     return "complex"
 
 
-@dispatch(string_types)
-def sexpclass(s): # noqa
+@dispatch(str)
+def sexpclass(s):  # noqa
     return "character"
 
 
 @dispatch(list)
-def sexpclass(s): # noqa
+def sexpclass(s):  # noqa
     if all(isinstance(x, bool) for x in s):
         return "logical"
     elif all(isinstance(x, int) for x in s):
@@ -1002,19 +1025,19 @@ def sexpclass(s): # noqa
         return "numeric"
     elif all(isinstance(x, complex) for x in s):
         return "complex"
-    elif all(isinstance(x, string_types) for x in s):
+    elif all(isinstance(x, str) for x in s):
         return "character"
 
     return "list"
 
 
 @dispatch((tuple, dict, OrderedDict))
-def sexpclass(s): # noqa
+def sexpclass(s):  # noqa
     return "list"
 
 
 @dispatch(Callable)
-def sexpclass(f): # noqa
+def sexpclass(f):  # noqa
     if hasattr(f, "__robject__"):
         return "function"
     else:
@@ -1022,5 +1045,5 @@ def sexpclass(f): # noqa
 
 
 @dispatch(object)
-def sexpclass(f): # noqa
+def sexpclass(f):  # noqa
     return "PyObject"

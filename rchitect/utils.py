@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import os
 import re
 import subprocess
@@ -11,14 +10,15 @@ from shutil import which
 from packaging.version import parse as parse_version
 
 if sys.platform.startswith("win"):
-    if sys.version_info[0] >= 3:
-        from winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, KEY_READ
-    else:
-        from _winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, KEY_READ
+    from winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, KEY_READ
 
 
 def is_arm():
     return platform.machine().lower() == "arm64"
+
+
+def is_64bit():
+    return sys.maxsize > 2**32
 
 
 def read_registry(key, valueex):
@@ -26,7 +26,7 @@ def read_registry(key, valueex):
     return QueryValueEx(reg_key, valueex)
 
 
-def getRhome(path, throw=False):
+def _get_rhome(path, throw=False):
     rhome = ""
 
     if sys.platform.startswith("win") and path and not path.endswith(".exe"):
@@ -42,31 +42,32 @@ def getRhome(path, throw=False):
     return rhome
 
 
-def verify_Rhome(rhome):
+def path_for_libR(rhome):
+    # TODO: better support R_ARCH
     if sys.platform.startswith("win"):
-        path = os.path.join(
-            rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386", "R.dll"
-        )
+        if is_arm():
+            return os.path.join(rhome, "bin", "R.dll")
+        elif is_64bit():
+            return os.path.join(rhome, "bin", "x64", "R.dll")
+        else:
+            return os.path.join(rhome, "bin", "i386", "R.dll")
     elif sys.platform == "darwin":
-        path = os.path.join(rhome, "lib", "libR.dylib")
+        return os.path.join(rhome, "lib", "libR.dylib")
     else:
-        path = os.path.join(rhome, "lib", "libR.so")
-
-    if not os.path.exists(path):
-        if sys.platform.startswith("win"):
-            another_path = os.path.join(
-                rhome, "bin", "i386" if sys.maxsize > 2**32 else "x64", "R.dll"
-            )
-            if os.path.exists(another_path):
-                raise RuntimeError("R and python architectures do not match.")
-        raise RuntimeError("R share library ({}) does not exist.".format(path))
+        return os.path.join(rhome, "lib", "libR.so")
 
 
+# Do not use this, use get_rhome() instead!
 def Rhome():
+    return get_rhome()
+
+
+# use this instead!
+def get_rhome():
     rhome = None
 
     if "R_BINARY" in os.environ:
-        rhome = getRhome(os.environ["R_BINARY"], throw=True)
+        rhome = _get_rhome(os.environ["R_BINARY"], throw=True)
         if not rhome:
             raise RuntimeError(
                 "R binary ({}) does not exist.".format(os.environ["R_BINARY"])
@@ -79,7 +80,7 @@ def Rhome():
         return rhome
 
     if not rhome:
-        rhome = getRhome("R")
+        rhome = _get_rhome("R")
 
     try:
         if sys.platform.startswith("win") and not rhome:
@@ -98,25 +99,20 @@ def Rhome():
     else:
         raise RuntimeError("Cannot determine R HOME.")
 
-    verify_Rhome(rhome)
+    libR_path = path_for_libR(rhome)
+    if not os.path.exists(libR_path):
+        raise RuntimeError("R share library ({}) does not exist.".format(libR_path))
 
     return rhome
 
 
 def ensure_path(rhome=None):
     if not rhome:
-        rhome = Rhome()
+        rhome = get_rhome()
     if sys.platform.startswith("win"):
-        # TODO: better support R_ARCH
-        if is_arm:
-            libRdir = os.path.join(rhome, "bin")
-        elif sys.maxsize > 2**32:
-            libRdir = os.path.join(rhome, "bin", "x64")
-        else:
-            libRdir = os.path.join(rhome, "bin", "i386")
-
-        # make sure Rblas.dll can be reasysched
+        libRdir = os.path.dirname(path_for_libR(rhome))
         try:
+            # make sure Rblas.dll can be reachable
             msvcrt = ctypes.cdll.msvcrt
             msvcrt._wgetenv.restype = ctypes.c_wchar_p
             path = msvcrt._wgetenv(ctypes.c_wchar_p("PATH"))
@@ -130,13 +126,13 @@ def ensure_path(rhome=None):
 
 def rversion(rhome=None):
     if not rhome:
-        rhome = Rhome()
+        rhome = get_rhome()
     try:
         output = (
             subprocess.check_output(
                 [
                     os.path.join(rhome, "bin", "R"),
-                    "--slave",
+                    "--no-echo",
                     "-e",
                     "cat(as.character(getRversion()))",
                 ],
@@ -152,10 +148,6 @@ def rversion(rhome=None):
 
 
 UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe", re.S)
-if sys.version_info[0] >= 3:
-    DECODE_ERROR_HANDLER = "backslashreplace"
-else:
-    DECODE_ERROR_HANDLER = "replace"
 
 
 def rconsole2str(buf):
@@ -163,7 +155,7 @@ def rconsole2str(buf):
     m = UTFPATTERN.search(buf)
     while m:
         a, b = m.span()
-        ret += system2utf8(buf[:a]) + m.group(1).decode("utf-8", DECODE_ERROR_HANDLER)
+        ret += system2utf8(buf[:a]) + m.group(1).decode("utf-8", "backslashreplace")
         buf = buf[b:]
         m = UTFPATTERN.search(buf)
     ret += system2utf8(buf)

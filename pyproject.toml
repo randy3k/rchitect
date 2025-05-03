@@ -10,7 +10,7 @@ description = "Mapping R API to Python"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.7"
-dependencies = ['cffi>=1.10.0', 'six>=1.9.0', 'packaging>=23.0']
+dependencies = ['cffi>=1.10.0', 'packaging>=23.0']
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-mock", "pytest-cov"]
