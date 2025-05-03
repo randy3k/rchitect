@@ -5,7 +5,6 @@
 [![pypi](https://img.shields.io/pypi/v/rchitect.svg)](https://pypi.org/project/rchitect/)
 [![Conda version](https://img.shields.io/conda/vn/conda-forge/rchitect.svg)](https://anaconda.org/conda-forge/rchitect)
 
-
 ## Installation
 
 ```sh
@@ -38,21 +37,21 @@ d = rcall("sum", c)  # call an R function. Python objects are converted to RObje
 
 ## FAQ
 
-#### How to switch to a different R or specify the version of R.
+#### How to switch to a different R or specify the version of R
 
 There are a few options.
 
 - One could expose the path to the R binary in the `PATH` variable
 - The environment variable `R_BINARY` could also be used to specify the path to R.
 - The environment variable `R_HOME` could also be used to specify R home directory. Note that it is should be set as the result of `R.home()`, not the directory where `R` is located. For example, in Unix
+
 ```sh
-$ env R_HOME=/usr/local/lib/R radian
+env R_HOME=/usr/local/lib/R radian
 ```
 
 #### Cannot find shared library
 
 Please also make sure that R was installed with the R shared library `libR.so` or `libR.dylib` or `libR.dll`. On Linux, the flag `--enable-R-shlib` may be needed to install R from the source.
-
 
 ## Wiki
 
