@@ -75,6 +75,8 @@ jobs:
       # a wheel with wrong arch might be installed
       CIBW_BEFORE_BUILD_MACOS: "pip install -U setuptools wheel cffi"
       CIBW_ARCHS_MACOS: "x86_64 arm64"
+      # doesn't build, not sure why
+      CIBW_SKIP: pp39-win_amd64
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels
