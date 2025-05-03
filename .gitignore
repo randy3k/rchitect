@@ -6,3 +6,4 @@ rchitect.egg-info/
 .pytest_cache/
 .coverage
 /build/
+.venv/

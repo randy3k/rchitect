@@ -3,17 +3,22 @@ import os
 import re
 import subprocess
 import sys
+import platform
 import ctypes
 import locale
 from shutil import which
 
 from packaging.version import parse as parse_version
 
-if sys.platform.startswith('win'):
+if sys.platform.startswith("win"):
     if sys.version_info[0] >= 3:
         from winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, KEY_READ
     else:
         from _winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, KEY_READ
+
+
+def is_arm():
+    return platform.machine().lower() == "arm64"
 
 
 def read_registry(key, valueex):
@@ -39,7 +44,9 @@ def getRhome(path, throw=False):
 
 def verify_Rhome(rhome):
     if sys.platform.startswith("win"):
-        path = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386", "R.dll")
+        path = os.path.join(
+            rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386", "R.dll"
+        )
     elif sys.platform == "darwin":
         path = os.path.join(rhome, "lib", "libR.dylib")
     else:
@@ -48,7 +55,8 @@ def verify_Rhome(rhome):
     if not os.path.exists(path):
         if sys.platform.startswith("win"):
             another_path = os.path.join(
-                rhome, "bin", "i386" if sys.maxsize > 2**32 else "x64", "R.dll")
+                rhome, "bin", "i386" if sys.maxsize > 2**32 else "x64", "R.dll"
+            )
             if os.path.exists(another_path):
                 raise RuntimeError("R and python architectures do not match.")
         raise RuntimeError("R share library ({}) does not exist.".format(path))
@@ -57,13 +65,15 @@ def verify_Rhome(rhome):
 def Rhome():
     rhome = None
 
-    if 'R_BINARY' in os.environ:
-        rhome = getRhome(os.environ['R_BINARY'], throw=True)
+    if "R_BINARY" in os.environ:
+        rhome = getRhome(os.environ["R_BINARY"], throw=True)
         if not rhome:
-            raise RuntimeError("R binary ({}) does not exist.".format(os.environ['R_BINARY']))
+            raise RuntimeError(
+                "R binary ({}) does not exist.".format(os.environ["R_BINARY"])
+            )
 
-    if not rhome and 'R_HOME' in os.environ:
-        rhome = os.environ['R_HOME']
+    if not rhome and "R_HOME" in os.environ:
+        rhome = os.environ["R_HOME"]
         if not os.path.isdir(rhome):
             raise RuntimeError("R_HOME ({}) does not exist.".format(rhome))
         return rhome
@@ -84,7 +94,7 @@ def Rhome():
         rhome = ""
 
     if rhome:
-        os.environ['R_HOME'] = rhome
+        os.environ["R_HOME"] = rhome
     else:
         raise RuntimeError("Cannot determine R HOME.")
 
@@ -97,9 +107,15 @@ def ensure_path(rhome=None):
     if not rhome:
         rhome = Rhome()
     if sys.platform.startswith("win"):
-        libRdir = os.path.join(rhome, "bin", "x64" if sys.maxsize > 2**32 else "i386")
+        # TODO: better support R_ARCH
+        if is_arm:
+            libRdir = os.path.join(rhome, "bin")
+        elif sys.maxsize > 2**32:
+            libRdir = os.path.join(rhome, "bin", "x64")
+        else:
+            libRdir = os.path.join(rhome, "bin", "i386")
 
-        # make sure Rblas.dll can be reached
+        # make sure Rblas.dll can be reasysched
         try:
             msvcrt = ctypes.cdll.msvcrt
             msvcrt._wgetenv.restype = ctypes.c_wchar_p
@@ -116,9 +132,19 @@ def rversion(rhome=None):
     if not rhome:
         rhome = Rhome()
     try:
-        output = subprocess.check_output(
-            [os.path.join(rhome, "bin", "R"), "--slave", "-e", "cat(as.character(getRversion()))"],
-            stderr=subprocess.STDOUT).decode("utf-8").strip()
+        output = (
+            subprocess.check_output(
+                [
+                    os.path.join(rhome, "bin", "R"),
+                    "--slave",
+                    "-e",
+                    "cat(as.character(getRversion()))",
+                ],
+                stderr=subprocess.STDOUT,
+            )
+            .decode("utf-8")
+            .strip()
+        )
         version = parse_version(output)
     except Exception:
         version = parse_version("1000.0.0")
@@ -157,7 +183,8 @@ if sys.platform == "win32":
     mbtowc.argtypes = [
         ctypes.POINTER(ctypes.c_wchar),
         ctypes.POINTER(ctypes.c_char),
-        ctypes.c_size_t]
+        ctypes.c_size_t,
+    ]
     mbtowc.restype = ctypes.c_int
 
     wctomb = ctypes.cdll.msvcrt.wctomb
@@ -199,6 +226,7 @@ if sys.platform == "win32":
         return buf
 
 else:
+
     def system2utf8(buf):
         return buf.decode("utf-8", DECODE_ERROR_HANDLER)
 
