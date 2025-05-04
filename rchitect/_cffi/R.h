@@ -1,7 +1,7 @@
 #ifndef R_H__
 #define R_H__
 
-# include <stddef.h>
+#include <stddef.h>
 
 #ifndef LIBR
 #define RAPI_EXTERN extern
@@ -12,8 +12,8 @@
 // begin cdef
 typedef unsigned char Rbyte;
 
-typedef enum {Bytes, Chars, Width} nchar_type;
-typedef void * (*DL_FUNC)();
+typedef enum { Bytes, Chars, Width } nchar_type;
+typedef void *(*DL_FUNC)();
 
 typedef int R_len_t;
 
@@ -22,33 +22,33 @@ typedef ptrdiff_t R_xlen_t;
 
 typedef unsigned int SEXPTYPE;
 
-static const unsigned int NILSXP     =  0;
-static const unsigned int SYMSXP     =  1;
-static const unsigned int LISTSXP    =  2;
-static const unsigned int CLOSXP     =  3;
-static const unsigned int ENVSXP     =  4;
-static const unsigned int PROMSXP    =  5;
-static const unsigned int LANGSXP    =  6;
-static const unsigned int SPECIALSXP =  7;
-static const unsigned int BUILTINSXP =  8;
-static const unsigned int CHARSXP    =  9;
-static const unsigned int LGLSXP     = 10;
-static const unsigned int INTSXP     = 13;
-static const unsigned int REALSXP    = 14;
-static const unsigned int CPLXSXP    = 15;
-static const unsigned int STRSXP     = 16;
-static const unsigned int DOTSXP     = 17;
-static const unsigned int ANYSXP     = 18;
-static const unsigned int VECSXP     = 19;
-static const unsigned int EXPRSXP    = 20;
-static const unsigned int BCODESXP   = 21;
-static const unsigned int EXTPTRSXP  = 22;
+static const unsigned int NILSXP = 0;
+static const unsigned int SYMSXP = 1;
+static const unsigned int LISTSXP = 2;
+static const unsigned int CLOSXP = 3;
+static const unsigned int ENVSXP = 4;
+static const unsigned int PROMSXP = 5;
+static const unsigned int LANGSXP = 6;
+static const unsigned int SPECIALSXP = 7;
+static const unsigned int BUILTINSXP = 8;
+static const unsigned int CHARSXP = 9;
+static const unsigned int LGLSXP = 10;
+static const unsigned int INTSXP = 13;
+static const unsigned int REALSXP = 14;
+static const unsigned int CPLXSXP = 15;
+static const unsigned int STRSXP = 16;
+static const unsigned int DOTSXP = 17;
+static const unsigned int ANYSXP = 18;
+static const unsigned int VECSXP = 19;
+static const unsigned int EXPRSXP = 20;
+static const unsigned int BCODESXP = 21;
+static const unsigned int EXTPTRSXP = 22;
 static const unsigned int WEAKREFSXP = 23;
-static const unsigned int RAWSXP     = 24;
-static const unsigned int S4SXP      = 25;
-static const unsigned int NEWSXP     = 30;
-static const unsigned int FREESXP    = 31;
-static const unsigned int FUNSXP     = 99;
+static const unsigned int RAWSXP = 24;
+static const unsigned int S4SXP = 25;
+static const unsigned int NEWSXP = 30;
+static const unsigned int FREESXP = 31;
+static const unsigned int FUNSXP = 99;
 
 typedef struct {
     double r;
@@ -58,26 +58,25 @@ typedef struct {
 typedef enum { FALSE = 0, TRUE } Rboolean;
 
 struct sxpinfo_struct {
-    SEXPTYPE type      :  5;
-    unsigned int scalar:  1;
-    unsigned int obj   :  1;
-    unsigned int alt   :  1;
-    unsigned int gp    : 16;
-    unsigned int mark  :  1;
-    unsigned int debug :  1;
-    unsigned int trace :  1;
-    unsigned int spare :  1;
-    unsigned int gcgen :  1;
-    unsigned int gccls :  3;
+    SEXPTYPE type : 5;
+    unsigned int scalar : 1;
+    unsigned int obj : 1;
+    unsigned int alt : 1;
+    unsigned int gp : 16;
+    unsigned int mark : 1;
+    unsigned int debug : 1;
+    unsigned int trace : 1;
+    unsigned int spare : 1;
+    unsigned int gcgen : 1;
+    unsigned int gccls : 3;
     unsigned int named : 16;
     unsigned int extra : 16;
 };
 
 struct vecsxp_struct {
-    R_xlen_t    length;
-    R_xlen_t    truelength;
+    R_xlen_t length;
+    R_xlen_t truelength;
 };
-
 
 struct primsxp_struct {
     int offset;
@@ -130,7 +129,7 @@ typedef struct SEXPREC {
 typedef struct SEXPREC *SEXP;
 
 // Rinternals.h
-RAPI_EXTERN const char* (*R_CHAR)(SEXP x);
+RAPI_EXTERN const char *(*R_CHAR)(SEXP x);
 RAPI_EXTERN Rboolean (*Rf_isNull)(SEXP s);
 RAPI_EXTERN Rboolean (*Rf_isSymbol)(SEXP s);
 RAPI_EXTERN Rboolean (*Rf_isLogical)(SEXP s);
@@ -144,18 +143,18 @@ RAPI_EXTERN Rboolean (*Rf_isObject)(SEXP s);
 RAPI_EXTERN int (*TYPEOF)(SEXP x);
 RAPI_EXTERN int (*IS_S4_OBJECT)(SEXP x);
 
-RAPI_EXTERN int  (*LENGTH)(SEXP x);
+RAPI_EXTERN int (*LENGTH)(SEXP x);
 RAPI_EXTERN R_xlen_t (*XLENGTH)(SEXP x);
-RAPI_EXTERN R_xlen_t  (*TRUELENGTH)(SEXP x);
+RAPI_EXTERN R_xlen_t (*TRUELENGTH)(SEXP x);
 RAPI_EXTERN void (*SETLENGTH)(SEXP x, R_xlen_t v);
 RAPI_EXTERN void (*SET_TRUELENGTH)(SEXP x, R_xlen_t v);
-RAPI_EXTERN int  (*IS_LONG_VEC)(SEXP x);
-RAPI_EXTERN int  (*LEVELS)(SEXP x);
-RAPI_EXTERN int  (*SETLEVELS)(SEXP x, int v);
+RAPI_EXTERN int (*IS_LONG_VEC)(SEXP x);
+RAPI_EXTERN int (*LEVELS)(SEXP x);
+RAPI_EXTERN int (*SETLEVELS)(SEXP x, int v);
 
 // Vector Access Functions
 RAPI_EXTERN int *(*LOGICAL)(SEXP x);
-RAPI_EXTERN int  *(*INTEGER)(SEXP x);
+RAPI_EXTERN int *(*INTEGER)(SEXP x);
 RAPI_EXTERN Rbyte *(*RAW)(SEXP x);
 RAPI_EXTERN double *(*REAL)(SEXP x);
 RAPI_EXTERN Rcomplex *(*COMPLEX)(SEXP x);
@@ -178,7 +177,7 @@ RAPI_EXTERN SEXP (*CDDDR)(SEXP e);
 RAPI_EXTERN SEXP (*CADDR)(SEXP e);
 RAPI_EXTERN SEXP (*CADDDR)(SEXP e);
 RAPI_EXTERN SEXP (*CAD4R)(SEXP e);
-RAPI_EXTERN int  (*MISSING)(SEXP x);
+RAPI_EXTERN int (*MISSING)(SEXP x);
 RAPI_EXTERN void (*SET_MISSING)(SEXP x, int v);
 RAPI_EXTERN void (*SET_TAG)(SEXP x, SEXP y);
 RAPI_EXTERN SEXP (*SETCAR)(SEXP x, SEXP y);
@@ -256,7 +255,7 @@ RAPI_EXTERN int (*Rf_asInteger)(SEXP x);
 RAPI_EXTERN double (*Rf_asReal)(SEXP x);
 RAPI_EXTERN Rcomplex (*Rf_asComplex)(SEXP x);
 
-RAPI_EXTERN char * (*Rf_acopy_string)(const char *);
+RAPI_EXTERN char *(*Rf_acopy_string)(const char *);
 // RAPI_EXTERN void (*Rf_addMissingVarsToNewEnv)(SEXP, SEXP);
 RAPI_EXTERN SEXP (*Rf_alloc3DArray)(SEXPTYPE, int, int, int);
 RAPI_EXTERN SEXP (*Rf_allocArray)(SEXPTYPE, SEXP);
@@ -269,11 +268,11 @@ RAPI_EXTERN SEXP (*Rf_allocMatrix)(SEXPTYPE, int, int);
 RAPI_EXTERN SEXP (*Rf_allocList)(int);
 RAPI_EXTERN SEXP (*Rf_allocS4Object)(void);
 RAPI_EXTERN SEXP (*Rf_allocSExp)(SEXPTYPE);
-RAPI_EXTERN SEXP (*Rf_allocVector3)(SEXPTYPE, R_xlen_t, void*);
+RAPI_EXTERN SEXP (*Rf_allocVector3)(SEXPTYPE, R_xlen_t, void *);
 RAPI_EXTERN R_xlen_t (*Rf_any_duplicated)(SEXP x, Rboolean from_last);
 RAPI_EXTERN R_xlen_t (*Rf_any_duplicated3)(SEXP x, SEXP incomp, Rboolean from_last);
 // RAPI_EXTERN SEXP (*Rf_applyClosure)(SEXP, SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP (*Rf_arraySubscript)(int, SEXP, SEXP, SEXP (*)(SEXP,SEXP), SEXP (*)(SEXP, int), SEXP);
+RAPI_EXTERN SEXP (*Rf_arraySubscript)(int, SEXP, SEXP, SEXP (*)(SEXP, SEXP), SEXP (*)(SEXP, int), SEXP);
 RAPI_EXTERN SEXP (*Rf_classgets)(SEXP, SEXP);
 RAPI_EXTERN void (*Rf_copyMatrix)(SEXP, SEXP, Rboolean);
 RAPI_EXTERN void (*Rf_copyListMatrix)(SEXP, SEXP, Rboolean);
@@ -301,7 +300,7 @@ RAPI_EXTERN SEXP (*Rf_findVarInFrame3)(SEXP, SEXP, Rboolean);
 RAPI_EXTERN SEXP (*Rf_getAttrib)(SEXP, SEXP);
 RAPI_EXTERN SEXP (*Rf_GetArrayDimnames)(SEXP);
 RAPI_EXTERN SEXP (*Rf_GetColNames)(SEXP);
-RAPI_EXTERN void (*Rf_GetMatrixDimnames)(SEXP, SEXP*, SEXP*, const char**, const char**);
+RAPI_EXTERN void (*Rf_GetMatrixDimnames)(SEXP, SEXP *, SEXP *, const char **, const char **);
 RAPI_EXTERN SEXP (*Rf_GetOption1)(SEXP);
 RAPI_EXTERN int (*Rf_GetOptionDigits)(void);
 RAPI_EXTERN int (*Rf_GetOptionWidth)(void);
@@ -327,7 +326,7 @@ RAPI_EXTERN int (*Rf_ncols)(SEXP);
 RAPI_EXTERN int (*Rf_nrows)(SEXP);
 RAPI_EXTERN SEXP (*Rf_nthcdr)(SEXP, int);
 
-RAPI_EXTERN int (*R_nchar)(SEXP string, nchar_type type_, Rboolean allowNA, Rboolean keepNA, const char* msg_name);
+RAPI_EXTERN int (*R_nchar)(SEXP string, nchar_type type_, Rboolean allowNA, Rboolean keepNA, const char *msg_name);
 RAPI_EXTERN Rboolean (*Rf_pmatch)(SEXP, SEXP, Rboolean);
 RAPI_EXTERN Rboolean (*Rf_psmatch)(const char *, const char *, Rboolean);
 RAPI_EXTERN SEXP (*R_ParseEvalString)(const char *, SEXP);
@@ -335,17 +334,17 @@ RAPI_EXTERN void (*Rf_PrintValue)(SEXP);
 // RAPI_EXTERN void (*Rf_printwhere)(void);
 // RAPI_EXTERN void (*Rf_readS3VarsFromFrame)(SEXP, SEXP*, SEXP*, SEXP*, SEXP*, SEXP*, SEXP*);
 RAPI_EXTERN SEXP (*Rf_setAttrib)(SEXP, SEXP, SEXP);
-RAPI_EXTERN void (*Rf_setSVector)(SEXP*, int, SEXP);
+RAPI_EXTERN void (*Rf_setSVector)(SEXP *, int, SEXP);
 RAPI_EXTERN void (*Rf_setVar)(SEXP, SEXP, SEXP);
 // RAPI_EXTERN SEXP (*Rf_stringSuffix)(SEXP, int);
 RAPI_EXTERN SEXPTYPE (*Rf_str2type)(const char *);
 RAPI_EXTERN Rboolean (*Rf_StringBlank)(SEXP);
-RAPI_EXTERN SEXP (*Rf_substitute)(SEXP,SEXP);
+RAPI_EXTERN SEXP (*Rf_substitute)(SEXP, SEXP);
 RAPI_EXTERN SEXP (*Rf_topenv)(SEXP, SEXP);
-RAPI_EXTERN const char * (*Rf_translateChar)(SEXP);
-RAPI_EXTERN const char * (*Rf_translateChar0)(SEXP);
-RAPI_EXTERN const char * (*Rf_translateCharUTF8)(SEXP);
-RAPI_EXTERN const char * (*Rf_type2char)(SEXPTYPE);
+RAPI_EXTERN const char *(*Rf_translateChar)(SEXP);
+RAPI_EXTERN const char *(*Rf_translateChar0)(SEXP);
+RAPI_EXTERN const char *(*Rf_translateCharUTF8)(SEXP);
+RAPI_EXTERN const char *(*Rf_type2char)(SEXPTYPE);
 RAPI_EXTERN SEXP (*Rf_type2rstr)(SEXPTYPE);
 RAPI_EXTERN SEXP (*Rf_type2str)(SEXPTYPE);
 RAPI_EXTERN SEXP (*Rf_type2str_nowarn)(SEXPTYPE);
@@ -359,14 +358,7 @@ RAPI_EXTERN SEXP (*Rf_asS4)(SEXP, Rboolean, int);
 RAPI_EXTERN SEXP (*Rf_S3Class)(SEXP);
 RAPI_EXTERN int (*Rf_isBasicClass)(const char *);
 
-typedef enum {
-    CE_NATIVE = 0,
-    CE_UTF8   = 1,
-    CE_LATIN1 = 2,
-    CE_BYTES  = 3,
-    CE_SYMBOL = 5,
-    CE_ANY    =99
-} cetype_t;
+typedef enum { CE_NATIVE = 0, CE_UTF8 = 1, CE_LATIN1 = 2, CE_BYTES = 3, CE_SYMBOL = 5, CE_ANY = 99 } cetype_t;
 
 RAPI_EXTERN cetype_t (*Rf_getCharCE)(SEXP);
 RAPI_EXTERN SEXP (*Rf_mkCharCE)(const char *, cetype_t);
@@ -403,7 +395,8 @@ RAPI_EXTERN SEXP (*R_ClosureExpr)(SEXP);
 RAPI_EXTERN SEXP (*R_BytecodeExpr)(SEXP e);
 
 RAPI_EXTERN Rboolean (*R_ToplevelExec)(void (*fun)(void *), void *data);
-RAPI_EXTERN SEXP (*R_tryCatch)(SEXP (*)(void *), void *, SEXP, SEXP (*)(SEXP, void *), void *, void (*)(void *), void *);
+RAPI_EXTERN SEXP (*R_tryCatch)(SEXP (*)(void *), void *, SEXP, SEXP (*)(SEXP, void *), void *, void (*)(void *),
+                               void *);
 RAPI_EXTERN SEXP (*R_tryCatchError)(SEXP (*)(void *), void *, SEXP (*)(SEXP, void *), void *);
 
 RAPI_EXTERN void (*R_RestoreHashCount)(SEXP rho);
@@ -438,9 +431,9 @@ RAPI_EXTERN void (*R_RunExitFinalizers)(void);
 
 RAPI_EXTERN Rboolean (*R_compute_identical)(SEXP, SEXP, int);
 
-RAPI_EXTERN SEXP     (*Rf_allocVector)(SEXPTYPE, R_xlen_t);
+RAPI_EXTERN SEXP (*Rf_allocVector)(SEXPTYPE, R_xlen_t);
 RAPI_EXTERN Rboolean (*Rf_conformable)(SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_elt)(SEXP, int);
+RAPI_EXTERN SEXP (*Rf_elt)(SEXP, int);
 RAPI_EXTERN Rboolean (*Rf_inherits)(SEXP, const char *);
 RAPI_EXTERN Rboolean (*Rf_isArray)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isFactor)(SEXP);
@@ -463,36 +456,35 @@ RAPI_EXTERN Rboolean (*Rf_isVector)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isVectorAtomic)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isVectorList)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isVectorizable)(SEXP);
-RAPI_EXTERN SEXP     (*Rf_lang1)(SEXP);
-RAPI_EXTERN SEXP     (*Rf_lang2)(SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_lang3)(SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_lang4)(SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_lang5)(SEXP, SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_lang6)(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_lastElt)(SEXP);
-RAPI_EXTERN R_len_t  (*Rf_length)(SEXP);
-RAPI_EXTERN SEXP     (*Rf_list1)(SEXP);
-RAPI_EXTERN SEXP     (*Rf_list2)(SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_list3)(SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_list4)(SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_list5)(SEXP, SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_list6)(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_listAppend)(SEXP, SEXP);
-RAPI_EXTERN SEXP     (*Rf_mkNamed)(SEXPTYPE, const char **);
-RAPI_EXTERN SEXP     (*Rf_mkString)(const char *);
-RAPI_EXTERN int  (*Rf_nlevels)(SEXP);
-RAPI_EXTERN int  (*Rf_stringPositionTr)(SEXP, const char *);
-RAPI_EXTERN SEXP     (*Rf_ScalarComplex)(Rcomplex);
-RAPI_EXTERN SEXP     (*Rf_ScalarInteger)(int);
-RAPI_EXTERN SEXP     (*Rf_ScalarLogical)(int);
-RAPI_EXTERN SEXP     (*Rf_ScalarRaw)(Rbyte);
-RAPI_EXTERN SEXP     (*Rf_ScalarReal)(double);
-RAPI_EXTERN SEXP     (*Rf_ScalarString)(SEXP);
-RAPI_EXTERN R_xlen_t  (*Rf_xlength)(SEXP);
-RAPI_EXTERN R_xlen_t  (*XTRUELENGTH)(SEXP x);
+RAPI_EXTERN SEXP (*Rf_lang1)(SEXP);
+RAPI_EXTERN SEXP (*Rf_lang2)(SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_lang3)(SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_lang4)(SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_lang5)(SEXP, SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_lang6)(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_lastElt)(SEXP);
+RAPI_EXTERN R_len_t (*Rf_length)(SEXP);
+RAPI_EXTERN SEXP (*Rf_list1)(SEXP);
+RAPI_EXTERN SEXP (*Rf_list2)(SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_list3)(SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_list4)(SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_list5)(SEXP, SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_list6)(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_listAppend)(SEXP, SEXP);
+RAPI_EXTERN SEXP (*Rf_mkNamed)(SEXPTYPE, const char **);
+RAPI_EXTERN SEXP (*Rf_mkString)(const char *);
+RAPI_EXTERN int (*Rf_nlevels)(SEXP);
+RAPI_EXTERN int (*Rf_stringPositionTr)(SEXP, const char *);
+RAPI_EXTERN SEXP (*Rf_ScalarComplex)(Rcomplex);
+RAPI_EXTERN SEXP (*Rf_ScalarInteger)(int);
+RAPI_EXTERN SEXP (*Rf_ScalarLogical)(int);
+RAPI_EXTERN SEXP (*Rf_ScalarRaw)(Rbyte);
+RAPI_EXTERN SEXP (*Rf_ScalarReal)(double);
+RAPI_EXTERN SEXP (*Rf_ScalarString)(SEXP);
+RAPI_EXTERN R_xlen_t (*Rf_xlength)(SEXP);
+RAPI_EXTERN R_xlen_t (*XTRUELENGTH)(SEXP x);
 // RAPI_EXTERN int (*LENGTH_EX)(SEXP x, const char *file, int line);
 // RAPI_EXTERN R_xlen_t (*XLENGTH_EX)(SEXP x);
-
 
 // Arith.h
 // RAPI_EXTERN double R_NaN;
@@ -504,26 +496,19 @@ RAPI_EXTERN int (*R_IsNA)(double);
 RAPI_EXTERN int (*R_IsNaN)(double);
 RAPI_EXTERN int (*R_finite)(double);
 
-
 // Parse.h
-typedef enum {
-    PARSE_NULL,
-    PARSE_OK,
-    PARSE_INCOMPLETE,
-    PARSE_ERROR,
-    PARSE_EOF
-} ParseStatus;
+typedef enum { PARSE_NULL, PARSE_OK, PARSE_INCOMPLETE, PARSE_ERROR, PARSE_EOF } ParseStatus;
 
 RAPI_EXTERN SEXP (*_R_ParseVector)(SEXP, int, ParseStatus *, SEXP);
 
 // Memory.h
-RAPI_EXTERN void*   (*vmaxget)(void);
-RAPI_EXTERN void    (*vmaxset)(const void *);
+RAPI_EXTERN void *(*vmaxget)(void);
+RAPI_EXTERN void (*vmaxset)(const void *);
 
-RAPI_EXTERN void    (*R_gc)(void);
+RAPI_EXTERN void (*R_gc)(void);
 RAPI_EXTERN int (*R_gc_running)();
 
-RAPI_EXTERN char*   (*R_alloc)(size_t, int);
+RAPI_EXTERN char *(*R_alloc)(size_t, int);
 RAPI_EXTERN long double *(*R_allocLD)(size_t nelem);
 
 // RAPI_EXTERN void *  (*R_malloc_gc)(size_t);
@@ -531,9 +516,9 @@ RAPI_EXTERN long double *(*R_allocLD)(size_t nelem);
 // RAPI_EXTERN void *  (*R_realloc_gc)(void *, size_t);
 
 // Error.h
-RAPI_EXTERN void    (*Rf_error)(const char *, ...);
-RAPI_EXTERN void    (*Rf_warning)(const char *, ...);
-RAPI_EXTERN void    (*R_ShowMessage)(const char *s);
+RAPI_EXTERN void (*Rf_error)(const char *, ...);
+RAPI_EXTERN void (*Rf_warning)(const char *, ...);
+RAPI_EXTERN void (*R_ShowMessage)(const char *s);
 
 // Defn.h
 // RAPI_EXTERN void (*Rf_CoercionWarning)(int);/* warning code */
@@ -556,15 +541,14 @@ RAPI_EXTERN SEXP (*Rf_NewEnvironment)(SEXP, SEXP, SEXP);
 // RAPI_EXTERN void (*Rf_PrintVersion)(char *, size_t len);
 // RAPI_EXTERN void (*Rf_PrintVersion_part_1)(char *, size_t len);
 // RAPI_EXTERN void (*Rf_PrintVersionString)(char *, size_t len);
-RAPI_EXTERN SEXP (*R_data_class)(SEXP , Rboolean);
+RAPI_EXTERN SEXP (*R_data_class)(SEXP, Rboolean);
 
 // Utils.h
 RAPI_EXTERN void (*R_CheckUserInterrupt)(void);
 
 // RStartup.h
 
-typedef struct
-{
+typedef struct {
     Rboolean R_Quiet;
     Rboolean R_Slave;
     Rboolean R_Interactive;
@@ -583,12 +567,12 @@ typedef struct
     char *rhome;
     char *home;
     // we use _ReadConsole and _WriteConsole to avoid name collision
-    int  (*_ReadConsole)(const char *, unsigned char *, int, int);
+    int (*_ReadConsole)(const char *, unsigned char *, int, int);
     void (*_WriteConsole)(const char *, int);
     void (*CallBack)(void);
-    void (*ShowMessage) (const char *);
-    int (*YesNoCancel) (const char *);
-    void (*Busy) (int);
+    void (*ShowMessage)(const char *);
+    int (*YesNoCancel)(const char *);
+    void (*Busy)(int);
     int CharacterMode;
     void (*WriteConsoleEx)(const char *, int, int);
 } structRstart;
@@ -603,7 +587,6 @@ RAPI_EXTERN void (*R_set_command_line_arguments)(int argc, char **argv);
 RAPI_EXTERN int (*Rstd_CleanUp)(int saveact, int status, int RunLast);
 RAPI_EXTERN int *R_SignalHandlers_t;
 
-
 // Rembedded.h
 RAPI_EXTERN int (*Rf_initialize_R)(int ac, char **av);
 RAPI_EXTERN void (*setup_Rmainloop)(void);
@@ -613,36 +596,34 @@ RAPI_EXTERN void (*_run_Rmainloop)(void);
 
 typedef struct {
     const char *name;
-    DL_FUNC     fun;
-    int         numArgs;
+    DL_FUNC fun;
+    int numArgs;
 } R_CallMethodDef;
 typedef struct _DllInfo DllInfo;
 
 typedef R_CallMethodDef R_ExternalMethodDef;
-RAPI_EXTERN DllInfo* (*R_getEmbeddingDllInfo)(void);
-RAPI_EXTERN int (*R_registerRoutines)(DllInfo*, void*, void*, void*, void*);
-
+RAPI_EXTERN DllInfo *(*R_getEmbeddingDllInfo)(void);
+RAPI_EXTERN int (*R_registerRoutines)(DllInfo *, void *, void *, void *, void *);
 
 // end cdef
-
 
 #ifdef _WIN32
 RAPI_EXTERN char *(*get_R_HOME)(void);
 RAPI_EXTERN char *(*getRUser)(void);
-RAPI_EXTERN int* UserBreak_t;
-RAPI_EXTERN int* CharacterMode_t;
-RAPI_EXTERN int* EmitEmbeddedUTF8_t;
+RAPI_EXTERN int *UserBreak_t;
+RAPI_EXTERN int *CharacterMode_t;
+RAPI_EXTERN int *EmitEmbeddedUTF8_t;
 RAPI_EXTERN int (*GA_peekevent)(void);
 RAPI_EXTERN int (*GA_initapp)(int, char **);
 #else
 // eventloop.h
-RAPI_EXTERN void* R_InputHandlers;
+RAPI_EXTERN void *R_InputHandlers;
 RAPI_EXTERN void (**R_PolledEvents_t)(void);
 
-RAPI_EXTERN void* (*R_checkActivity)(int usec, int ignore_stdin);
-RAPI_EXTERN void (*R_runHandlers)(void* handlers, void* mask);
+RAPI_EXTERN void *(*R_checkActivity)(int usec, int ignore_stdin);
+RAPI_EXTERN void (*R_runHandlers)(void *handlers, void *mask);
 
-RAPI_EXTERN int* R_interrupts_pending_t;
+RAPI_EXTERN int *R_interrupts_pending_t;
 #endif
 
 #endif /* end of include guard: R_H__ */

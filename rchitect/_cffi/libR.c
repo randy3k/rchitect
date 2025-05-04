@@ -13,7 +13,9 @@ static void* libR_t;
 
 static char last_loaded_symbol[100] = "";
 
-char* _libR_last_loaded_symbol() { return last_loaded_symbol; }
+char* _libR_last_loaded_symbol() {
+    return last_loaded_symbol;
+}
 
 static char dl_error_message[1024] = "";
 
@@ -22,11 +24,9 @@ char* _libR_dl_error_message() {
     LPVOID lpMsgBuf;
     DWORD dw = GetLastError();
 
-    DWORD length = FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-            FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf,
-        0, NULL);
+    DWORD length =
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+                      dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
 
     if (length != 0) {
         strcpy(dl_error_message, lpMsgBuf);
@@ -44,8 +44,7 @@ char* _libR_dl_error_message() {
     return dl_error_message;
 }
 
-static int load_symbol(void* lib_t, const char* name, void** symbol_t,
-                       int unwrap) {
+static int load_symbol(void* lib_t, const char* name, void** symbol_t, int unwrap) {
     void** temp;
     strcpy(last_loaded_symbol, name);
 #ifdef _WIN32
@@ -88,11 +87,11 @@ static void* libRga_t;
         return 0;                                          \
     }
 
-#define LOAD_WIN_DLL(name)                                 \
-    sprintf(libpath, "%s\\%s\\%s", rhome, WIN_BIN, #name); \
-    if ((void*)load_dll(libpath) == NULL) {                \
-        free(libpath);                                     \
-        return 0;                                          \
+#define LOAD_WIN_DLL(name)                       \
+    sprintf(libpath, "%s\\%s", libr_dir, #name); \
+    if ((void*)load_dll(libpath) == NULL) {      \
+        free(libpath);                           \
+        return 0;                                \
     }
 
 void* load_dll(char* libpath) {
@@ -514,8 +513,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(getRUser)
     LOAD_SYMBOL_AS(UserBreak, UserBreak_t)
     LOAD_SYMBOL_AS(CharacterMode, CharacterMode_t)
-    if (!load_symbol(libR_t, "EmitEmbeddedUTF8", (void**)&EmitEmbeddedUTF8_t,
-                     0)) {
+    if (!load_symbol(libR_t, "EmitEmbeddedUTF8", (void**)&EmitEmbeddedUTF8_t, 0)) {
         EmitEmbeddedUTF8_t = NULL;
     }
 #else
@@ -627,8 +625,8 @@ SEXP _libR_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis, SEXP convert) {
     return result;
 }
 
-static const R_CallMethodDef CallEntries[] = {
-    {"_libR_xptr_callback", (DL_FUNC)&_libR_xptr_callback, 4}, {NULL, NULL, 0}};
+static const R_CallMethodDef CallEntries[] = {{"_libR_xptr_callback", (DL_FUNC)&_libR_xptr_callback, 4},
+                                              {NULL, NULL, 0}};
 
 void _libR_setup_xptr_callback() {
     DllInfo* dll = R_getEmbeddingDllInfo();
@@ -642,8 +640,7 @@ int main_id = -1;
 int cb_interrupted;
 
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
-int cb_read_console_interruptible(const char* p, unsigned char* buf, int buflen,
-                                  int add_history) {
+int cb_read_console_interruptible(const char* p, unsigned char* buf, int buflen, int add_history) {
     // flush buffered stdio
     fflush(NULL);
 #ifndef _WIN32
@@ -690,7 +687,9 @@ void cb_write_console_safe(const char* s, int bufline, int otype) {
 }
 
 // actually we don't use it
-void cb_busy_safe(int which) { cb_busy(which); }
+void cb_busy_safe(int which) {
+    cb_busy(which);
+}
 
 #else
 

@@ -1,7 +1,7 @@
 #ifndef GIL_H__
 #define GIL_H__
 
-# include "R.h"
+#include "R.h"
 
 // begin cdef
 
