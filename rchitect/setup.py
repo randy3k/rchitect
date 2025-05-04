@@ -2,7 +2,7 @@ import sys
 import os
 
 from rchitect._cffi import ffi, lib
-from .utils import get_rhome, ensure_path, system2utf8
+from .utils import get_rhome, get_libr_path, system2utf8
 from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
@@ -40,15 +40,14 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
         )
 
     rhome = get_rhome()
-    # microsoft python doesn't load DLL's from PATH
-    # we will need to open the DLL's directly in _libR_load
-    ensure_path(rhome)
+    libr_path = get_libr_path(rhome, ensure_path=True)
+    libr_dir = os.path.dirname(libr_path)
 
     libR_loaded = lib.Rf_initialize_R != ffi.NULL
 
     if not libR_loaded:
         # `system2utf8` may not work before `Rf_initialize_R` because locale may not be set
-        if not lib._libR_load(rhome.encode("utf-8")):
+        if not lib._libR_load(libr_dir.encode("utf-8")):
             raise Exception(load_lib_error())
         if not lib._libR_load_symbols():
             raise Exception(load_symbol_error())

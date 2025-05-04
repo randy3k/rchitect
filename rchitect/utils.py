@@ -10,7 +10,7 @@ from shutil import which
 from packaging.version import parse as parse_version
 
 if sys.platform.startswith("win"):
-    from winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, KEY_READ
+    from winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER
 
 
 def is_arm():
@@ -21,107 +21,126 @@ def is_64bit():
     return sys.maxsize > 2**32
 
 
+def read_registry_from_local_machine(key, valueex):
+    return QueryValueEx(OpenKey(HKEY_LOCAL_MACHINE, key), valueex)
+
+
+def read_registry_from_current_user(key, valueex):
+    return QueryValueEx(OpenKey(HKEY_CURRENT_USER, key), valueex)
+
+
 def read_registry(key, valueex):
-    reg_key = OpenKey(HKEY_LOCAL_MACHINE, key, 0, KEY_READ)
-    return QueryValueEx(reg_key, valueex)
+    try:
+        return read_registry_from_current_user(key, valueex)
+    except Exception:
+        return read_registry_from_local_machine(key, valueex)
 
 
-def _get_rhome(path, throw=False):
-    rhome = ""
+def read_r_install_path_from_registry():
+    try:
+        return read_registry("Software\\WOW6432Node\\R-Core\\R", "InstallPath")[0]
+    except Exception:
+        pass
+    try:
+        return read_registry("Software\\R-Core\\R", "InstallPath")[0]
+    except Exception:
+        pass
+    return None
 
-    if sys.platform.startswith("win") and path and not path.endswith(".exe"):
-        path = path + ".exe"
 
-    if not which(path):
+DECODE_ERROR_HANDLER = "backslashreplace"
+
+
+
+def get_rhome_from_binary(rbinary):
+    if sys.platform.startswith("win"):
+        if rbinary and not rbinary.endswith(".exe"):
+            rbinary = rbinary + ".exe"
+
+    if not which(rbinary):
         return None
     try:
-        rhome = subprocess.check_output([path, "RHOME"]).decode("utf-8").strip()
+        return subprocess.check_output([rbinary, "RHOME"]).decode("utf-8").strip()
     except Exception:
-        rhome = None
-
-    return rhome
-
-
-def path_for_libR(rhome):
-    # TODO: better support R_ARCH
-    if sys.platform.startswith("win"):
-        if is_arm():
-            return os.path.join(rhome, "bin", "R.dll")
-        elif is_64bit():
-            return os.path.join(rhome, "bin", "x64", "R.dll")
-        else:
-            return os.path.join(rhome, "bin", "i386", "R.dll")
-    elif sys.platform == "darwin":
-        return os.path.join(rhome, "lib", "libR.dylib")
-    else:
-        return os.path.join(rhome, "lib", "libR.so")
-
+        pass
+    return None
 
 # Do not use this, use get_rhome() instead!
 def Rhome():
     return get_rhome()
 
 
-# use this instead!
 def get_rhome():
     rhome = None
 
     if "R_BINARY" in os.environ:
-        rhome = _get_rhome(os.environ["R_BINARY"], throw=True)
+        rbinary = os.environ["R_BINARY"]
+        rhome = get_rhome_from_binary(rbinary)
         if not rhome:
             raise RuntimeError(
-                "R binary ({}) does not exist.".format(os.environ["R_BINARY"])
+                "R binary ({}) does not exist.".format(rbinary)
             )
+        return rhome
 
-    if not rhome and "R_HOME" in os.environ:
+    if "R_HOME" in os.environ:
         rhome = os.environ["R_HOME"]
         if not os.path.isdir(rhome):
             raise RuntimeError("R_HOME ({}) does not exist.".format(rhome))
         return rhome
 
+    rhome = get_rhome_from_binary("R")
+
     if not rhome:
-        rhome = _get_rhome("R")
-
-    try:
-        if sys.platform.startswith("win") and not rhome:
-            rhome = read_registry("Software\\R-Core\\R", "InstallPath")[0]
-    except Exception:
-        rhome = ""
-
-    try:
-        if sys.platform.startswith("win") and not rhome:
-            rhome = read_registry("Software\\WOW6432Node\\R-Core\\R", "InstallPath")[0]
-    except Exception:
-        rhome = ""
+        if sys.platform.startswith("win"):
+            rhome = read_r_install_path_from_registry()        
 
     if rhome:
         os.environ["R_HOME"] = rhome
     else:
         raise RuntimeError("Cannot determine R HOME.")
 
-    libR_path = path_for_libR(rhome)
-    if not os.path.exists(libR_path):
-        raise RuntimeError("R share library ({}) does not exist.".format(libR_path))
-
     return rhome
 
 
-def ensure_path(rhome=None):
-    if not rhome:
-        rhome = get_rhome()
+def get_libr_path(rhome, ensure_path=False):
+    # TODO: better support R_ARCH
     if sys.platform.startswith("win"):
-        libRdir = os.path.dirname(path_for_libR(rhome))
-        try:
-            # make sure Rblas.dll can be reachable
-            msvcrt = ctypes.cdll.msvcrt
-            msvcrt._wgetenv.restype = ctypes.c_wchar_p
-            path = msvcrt._wgetenv(ctypes.c_wchar_p("PATH"))
-            if libRdir not in path:
-                path = libRdir + ";" + path
-                msvcrt._wputenv(ctypes.c_wchar_p("PATH={}".format(path)))
-        except Exception as e:
-            print(e)
-            pass
+        if is_arm():
+            libr_path = os.path.join(rhome, "bin", "R.dll")
+        elif is_64bit():
+            libr_path = os.path.join(rhome, "bin", "x64", "R.dll")
+        else:
+            libr_path = os.path.join(rhome, "bin", "i386", "R.dll")
+    elif sys.platform == "darwin":
+        libr_path = os.path.join(rhome, "lib", "libR.dylib")
+    else:
+        libr_path = os.path.join(rhome, "lib", "libR.so")
+    
+    if not os.path.exists(libr_path):
+        raise RuntimeError("R share library ({}) does not exist.".format(libr_path))
+    
+    # microsoft python doesn't load DLL's from PATH
+    # we will need to open the DLL's directly in _libR_load    
+    if sys.platform.startswith("win"):
+        if ensure_path:
+            ensure_path_for_dll(libr_path)
+
+    return libr_path
+
+
+def ensure_path_for_dll(libr_path):
+    libr_dir = os.path.dirname(libr_path)
+    try:
+        # make sure Rblas.dll can be reachable
+        msvcrt = ctypes.cdll.msvcrt
+        msvcrt._wgetenv.restype = ctypes.c_wchar_p
+        path = msvcrt._wgetenv(ctypes.c_wchar_p("PATH"))
+        if libr_dir not in path:
+            path = libr_dir + ";" + path
+            msvcrt._wputenv(ctypes.c_wchar_p("PATH={}".format(path)))
+    except Exception as e:
+        print(e)
+        pass
 
 
 def rversion(rhome=None):
