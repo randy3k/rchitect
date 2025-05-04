@@ -7,3 +7,4 @@ rchitect.egg-info/
 .coverage
 build/
 .venv/
+.vscode/
