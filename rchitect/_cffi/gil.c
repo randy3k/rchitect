@@ -1,5 +1,6 @@
-#include <Python.h>
 #include "gil.h"
+
+#include <Python.h>
 
 // cffi releases GIL, so we need to ensure it. Mainly needed for loading reticulate.
 

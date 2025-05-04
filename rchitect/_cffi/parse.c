@@ -1,9 +1,9 @@
-# include "parse.h"
+#include "parse.h"
 
 typedef struct {
     SEXP text;
     int num;
-    ParseStatus* status;
+    ParseStatus *status;
     SEXP source;
     SEXP val;
 } ProtectedParseData;
@@ -13,7 +13,7 @@ static void protectedParse(void *d) {
     data->val = _R_ParseVector(data->text, data->num, data->status, data->source);
 }
 
-SEXP R_ParseVector(SEXP text, int num, ParseStatus* status, SEXP source) {
+SEXP R_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) {
     Rboolean ok;
     ProtectedParseData d;
     d.text = Rf_protect(text);

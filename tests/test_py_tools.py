@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from rchitect import rcall, reval, rcopy
 from rchitect.interface import rclass, new_env
 import os

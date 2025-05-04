@@ -5,17 +5,15 @@ static void _process_events(void* n) {
 
 #if defined(__APPLE__)
     void* what = R_checkActivity(0, 1);
-    if (what != NULL)
-       R_runHandlers(R_InputHandlers, what);
+    if (what != NULL) R_runHandlers(R_InputHandlers, what);
 #elif defined(unix) || defined(__unix__) || defined(__unix)
     void* what = R_checkActivity(0, 1);
     R_runHandlers(R_InputHandlers, what);
 #endif
-
 }
 
 void process_events() {
-    R_ToplevelExec((void (*)(void *)) _process_events, NULL);
+    R_ToplevelExec((void (*)(void*))_process_events, NULL);
 }
 
 #if defined(_WIN32)
@@ -31,7 +29,7 @@ int peek_event(void) {
 #else
 
 void polled_events() {
-    R_ToplevelExec((void (*)(void *)) cb_polled_events_interruptible, NULL);
+    R_ToplevelExec((void (*)(void*))cb_polled_events_interruptible, NULL);
 }
 
 static void Call_R_checkActivity(void** what) {
@@ -41,7 +39,7 @@ static void Call_R_checkActivity(void** what) {
 int peek_event(void) {
     Rboolean ok;
     void* what;
-    ok = R_ToplevelExec((void (*)(void *)) &Call_R_checkActivity, &what);
+    ok = R_ToplevelExec((void (*)(void*))&Call_R_checkActivity, &what);
     if (ok == FALSE) {
         return 0;
     }

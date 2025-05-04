@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import os
 from rchitect.interface import rcall, rcopy, set_hook, package_event, new_env
 

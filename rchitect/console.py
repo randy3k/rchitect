@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
-
-from six import StringIO
+from io import StringIO
 from contextlib import contextmanager
 
 
