@@ -67,7 +67,7 @@ def setup_rstart(rhome, args):
     # SA_SUICIDE = 6
     lib.R_DefParams(rstart)
     rstart.R_Quiet = "--quiet" in args
-    rstart.R_Slave = "--slave" in args
+    rstart.R_Slave = "--no-echo" in args or "--slave" in args
     rstart.R_Interactive = 1
     rstart.R_Verbose = "--verbose" in args
     rstart.LoadSiteFile = "--no-site-file" not in args
