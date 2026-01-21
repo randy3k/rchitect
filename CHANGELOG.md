@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.4.9 - 2026-01-21
 
 ### Other
 
 * Do not export R_nchar
+
+**Full Changelog**: https://github.com/randy3k/rchitect/compare/v0.4.8...v0.4.9
 
 ## 0.4.8 - 2025-05-04
 
