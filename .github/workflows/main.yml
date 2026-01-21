@@ -69,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-11-arm, windows-latest, macos-latest, macos-14]
     runs-on: ${{ matrix.os }}
     env:
       # doesn't build, not sure why
