@@ -296,7 +296,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_nrows);
     LOAD_SYMBOL(Rf_nthcdr);
 
-    LOAD_SYMBOL(R_nchar);
+    // LOAD_SYMBOL(R_nchar);
     LOAD_SYMBOL(Rf_pmatch);
     LOAD_SYMBOL(Rf_psmatch);
     LOAD_SYMBOL(R_ParseEvalString);

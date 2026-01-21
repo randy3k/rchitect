@@ -326,7 +326,7 @@ RAPI_EXTERN int (*Rf_ncols)(SEXP);
 RAPI_EXTERN int (*Rf_nrows)(SEXP);
 RAPI_EXTERN SEXP (*Rf_nthcdr)(SEXP, int);
 
-RAPI_EXTERN int (*R_nchar)(SEXP string, nchar_type type_, Rboolean allowNA, Rboolean keepNA, const char *msg_name);
+// RAPI_EXTERN int (*R_nchar)(SEXP string, nchar_type type_, Rboolean allowNA, Rboolean keepNA, const char *msg_name);
 RAPI_EXTERN Rboolean (*Rf_pmatch)(SEXP, SEXP, Rboolean);
 RAPI_EXTERN Rboolean (*Rf_psmatch)(const char *, const char *, Rboolean);
 RAPI_EXTERN SEXP (*R_ParseEvalString)(const char *, SEXP);
