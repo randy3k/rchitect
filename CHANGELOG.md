@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Other
+
+* Do not export R_nchar
+
 ## 0.4.8 - 2025-05-04
 
 ### Other
