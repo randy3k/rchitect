@@ -164,16 +164,16 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_isObject);
 
     LOAD_SYMBOL(TYPEOF);
-    LOAD_SYMBOL(IS_S4_OBJECT);
+    // LOAD_SYMBOL(IS_S4_OBJECT);
 
     LOAD_SYMBOL(LENGTH);
     LOAD_SYMBOL(XLENGTH);
-    LOAD_SYMBOL(TRUELENGTH);
-    LOAD_SYMBOL(SETLENGTH);
-    LOAD_SYMBOL(SET_TRUELENGTH);
+    // LOAD_SYMBOL(TRUELENGTH);
+    // LOAD_SYMBOL(SETLENGTH);
+    // LOAD_SYMBOL(SET_TRUELENGTH);
     LOAD_SYMBOL(IS_LONG_VEC);
-    LOAD_SYMBOL(LEVELS);
-    LOAD_SYMBOL(SETLEVELS);
+    // LOAD_SYMBOL(LEVELS);
+    // LOAD_SYMBOL(SETLEVELS);
 
     LOAD_SYMBOL(LOGICAL);
     LOAD_SYMBOL(INTEGER);
@@ -258,7 +258,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_shallow_duplicate);
     // LOAD_SYMBOL(R_duplicate_attr);
     // LOAD_SYMBOL(R_shallow_duplicate_attr);
-    LOAD_SYMBOL(Rf_lazy_duplicate);
+    // LOAD_SYMBOL(Rf_lazy_duplicate);
 
     LOAD_SYMBOL(Rf_duplicated);
     // LOAD_SYMBOL(R_envHasNoSpecialSymbols);
@@ -291,7 +291,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_namesgets);
     LOAD_SYMBOL(Rf_mkChar);
     LOAD_SYMBOL(Rf_mkCharLen);
-    LOAD_SYMBOL(Rf_NonNullStringMatch);
+    // LOAD_SYMBOL(Rf_NonNullStringMatch);
     LOAD_SYMBOL(Rf_ncols);
     LOAD_SYMBOL(Rf_nrows);
     LOAD_SYMBOL(Rf_nthcdr);
@@ -415,8 +415,8 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_isPrimitive);
     LOAD_SYMBOL(Rf_isTs);
     // LOAD_SYMBOL(Rf_isUserBinop);
-    LOAD_SYMBOL(Rf_isValidString);
-    LOAD_SYMBOL(Rf_isValidStringF);
+    // LOAD_SYMBOL(Rf_isValidString);
+    // LOAD_SYMBOL(Rf_isValidStringF);
     LOAD_SYMBOL(Rf_isVector);
     LOAD_SYMBOL(Rf_isVectorAtomic);
     LOAD_SYMBOL(Rf_isVectorList);
@@ -447,7 +447,7 @@ int _libR_load_symbols() {
     LOAD_SYMBOL(Rf_ScalarReal);
     LOAD_SYMBOL(Rf_ScalarString);
     LOAD_SYMBOL(Rf_xlength);
-    LOAD_SYMBOL(XTRUELENGTH);
+    // LOAD_SYMBOL(XTRUELENGTH);
     // LOAD_SYMBOL(LENGTH_EX);
     // LOAD_SYMBOL(XLENGTH_EX);
 
