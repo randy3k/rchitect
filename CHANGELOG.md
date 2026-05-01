@@ -1,10 +1,19 @@
 # Changelog
 
+## 0.4.10 - 2026-05-01
+
+### Other
+
+* Avoid loading hidden R 4.6 C API symbols ([#42](https://github.com/randy3k/rchitect/issues/42))
+
+**Full Changelog**: https://github.com/randy3k/rchitect/compare/v0.4.9...v0.4.10
+
 ## 0.4.9 - 2026-01-21
 
 ### Other
 
 * Do not export R_nchar
+* Update changelog
 
 **Full Changelog**: https://github.com/randy3k/rchitect/compare/v0.4.8...v0.4.9
 
