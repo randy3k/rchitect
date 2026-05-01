@@ -141,16 +141,16 @@ RAPI_EXTERN Rboolean (*Rf_isString)(SEXP s);
 RAPI_EXTERN Rboolean (*Rf_isObject)(SEXP s);
 
 RAPI_EXTERN int (*TYPEOF)(SEXP x);
-RAPI_EXTERN int (*IS_S4_OBJECT)(SEXP x);
+// RAPI_EXTERN int (*IS_S4_OBJECT)(SEXP x);
 
 RAPI_EXTERN int (*LENGTH)(SEXP x);
 RAPI_EXTERN R_xlen_t (*XLENGTH)(SEXP x);
-RAPI_EXTERN R_xlen_t (*TRUELENGTH)(SEXP x);
-RAPI_EXTERN void (*SETLENGTH)(SEXP x, R_xlen_t v);
-RAPI_EXTERN void (*SET_TRUELENGTH)(SEXP x, R_xlen_t v);
+// RAPI_EXTERN R_xlen_t (*TRUELENGTH)(SEXP x);
+// RAPI_EXTERN void (*SETLENGTH)(SEXP x, R_xlen_t v);
+// RAPI_EXTERN void (*SET_TRUELENGTH)(SEXP x, R_xlen_t v);
 RAPI_EXTERN int (*IS_LONG_VEC)(SEXP x);
-RAPI_EXTERN int (*LEVELS)(SEXP x);
-RAPI_EXTERN int (*SETLEVELS)(SEXP x, int v);
+// RAPI_EXTERN int (*LEVELS)(SEXP x);
+// RAPI_EXTERN int (*SETLEVELS)(SEXP x, int v);
 
 // Vector Access Functions
 RAPI_EXTERN int *(*LOGICAL)(SEXP x);
@@ -288,7 +288,7 @@ RAPI_EXTERN SEXP (*Rf_duplicate)(SEXP);
 RAPI_EXTERN SEXP (*Rf_shallow_duplicate)(SEXP);
 // RAPI_EXTERN SEXP (*R_duplicate_attr)(SEXP);
 // RAPI_EXTERN SEXP (*R_shallow_duplicate_attr)(SEXP);
-RAPI_EXTERN SEXP (*Rf_lazy_duplicate)(SEXP);
+// RAPI_EXTERN SEXP (*Rf_lazy_duplicate)(SEXP);
 
 RAPI_EXTERN SEXP (*Rf_duplicated)(SEXP, Rboolean);
 RAPI_EXTERN Rboolean (*R_envHasNoSpecialSymbols)(SEXP);
@@ -321,7 +321,7 @@ RAPI_EXTERN SEXP (*Rf_matchE)(SEXP, SEXP, int, SEXP);
 RAPI_EXTERN SEXP (*Rf_namesgets)(SEXP, SEXP);
 RAPI_EXTERN SEXP (*Rf_mkChar)(const char *);
 RAPI_EXTERN SEXP (*Rf_mkCharLen)(const char *, int);
-RAPI_EXTERN Rboolean (*Rf_NonNullStringMatch)(SEXP, SEXP);
+// RAPI_EXTERN Rboolean (*Rf_NonNullStringMatch)(SEXP, SEXP);
 RAPI_EXTERN int (*Rf_ncols)(SEXP);
 RAPI_EXTERN int (*Rf_nrows)(SEXP);
 RAPI_EXTERN SEXP (*Rf_nthcdr)(SEXP, int);
@@ -450,8 +450,8 @@ RAPI_EXTERN Rboolean (*Rf_isPairList)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isPrimitive)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isTs)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isUserBinop)(SEXP);
-RAPI_EXTERN Rboolean (*Rf_isValidString)(SEXP);
-RAPI_EXTERN Rboolean (*Rf_isValidStringF)(SEXP);
+// RAPI_EXTERN Rboolean (*Rf_isValidString)(SEXP);
+// RAPI_EXTERN Rboolean (*Rf_isValidStringF)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isVector)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isVectorAtomic)(SEXP);
 RAPI_EXTERN Rboolean (*Rf_isVectorList)(SEXP);
@@ -482,7 +482,7 @@ RAPI_EXTERN SEXP (*Rf_ScalarRaw)(Rbyte);
 RAPI_EXTERN SEXP (*Rf_ScalarReal)(double);
 RAPI_EXTERN SEXP (*Rf_ScalarString)(SEXP);
 RAPI_EXTERN R_xlen_t (*Rf_xlength)(SEXP);
-RAPI_EXTERN R_xlen_t (*XTRUELENGTH)(SEXP x);
+// RAPI_EXTERN R_xlen_t (*XTRUELENGTH)(SEXP x);
 // RAPI_EXTERN int (*LENGTH_EX)(SEXP x, const char *file, int line);
 // RAPI_EXTERN R_xlen_t (*XLENGTH_EX)(SEXP x);
 
