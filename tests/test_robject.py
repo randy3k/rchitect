@@ -22,6 +22,10 @@ def test_numbers(gctorture):
         "identical",
         robject([complex(1, 2), complex(2, 1)]), reval("c(1 + 2i, 2 + 1i)"), _convert=True)
 
+    import pytest
+    with pytest.raises(TypeError):
+        robject("complex", ["invalid"])
+
 
 def test_strings(gctorture):
     assert rcall("identical", robject("abc"), rstring("abc"), _convert=True)
