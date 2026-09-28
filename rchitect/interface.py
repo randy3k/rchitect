@@ -1,4 +1,5 @@
 import struct
+import sys
 from collections import OrderedDict
 from types import FunctionType
 
@@ -26,9 +27,10 @@ class RObject(object):
             self._s = ffi.cast("SEXP", self._ptr)
         return self._s
 
-    def __del__(self):
+    def __del__(self, _is_finalizing=sys.is_finalizing):
         try:
-            _cffi._c_release_sexp(self._ptr)
+            if not _is_finalizing():
+                _cffi._c_release_sexp(self._ptr)
         except Exception:
             pass
 
@@ -68,7 +70,7 @@ def unbox(x):
 
 def _wrap_r_function(r, asis=False, convert=True):
     def f(*args, **kwargs):
-        return rcall(r, *args, _asis=f.asis, _convert=f.convert, **kwargs)
+        return rcall(r, *args, _asis=asis, _convert=convert, **kwargs)
 
     f.__robject__ = r
     f.asis = asis

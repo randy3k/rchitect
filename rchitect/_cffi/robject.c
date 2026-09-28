@@ -841,7 +841,6 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
     for (R_xlen_t i = 0; i < n; i++) {
         SEXP elt = VECTOR_ELT(arglist, i);
         const char *k = has_names ? Rf_translateCharUTF8(STRING_ELT(names, i)) : "";
-        vmaxset(vmax);
         PyObject *py_val;
         if (asis) {
             py_val = c_box_sexp(elt);
@@ -849,6 +848,7 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
             py_val = c_rcopy_impl(elt, Py_None, 0, 1);
         }
         if (py_val == NULL) {
+            vmaxset(vmax);
             Rf_unprotect(1);
             Py_DECREF(pos_list);
             Py_DECREF(kwargs);
@@ -861,6 +861,7 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
             PyList_Append(pos_list, py_val);
             Py_DECREF(py_val);
         }
+        vmaxset(vmax);
     }
     Rf_unprotect(1);
 
