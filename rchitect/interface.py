@@ -422,8 +422,10 @@ def greeting():
 def rcopy_context(**kwargs):
     old_context = rcopy_context.context.copy()
     rcopy_context.context.update(kwargs)
-    yield rcopy_context.context
-    rcopy_context.context = old_context
+    try:
+        yield rcopy_context.context
+    finally:
+        rcopy_context.context = old_context
 
 
 rcopy_context.context = {}
@@ -489,7 +491,7 @@ def _string(s):
 
 @dispatch(datatype(bytes), RAWSXP)
 def rcopy(_, s):  # noqa
-    return ffi.string(lib.RAW(s), lib.Rf_length(s))
+    return bytes(ffi.buffer(lib.RAW(s), lib.Rf_xlength(s)))
 
 
 @dispatch(datatype(str), STRSXP)
@@ -556,7 +558,10 @@ def rcopy(_, s):  # noqa
 @dispatch(datatype(object), ENVSXP)
 def rcopy(_, s):  # noqa
     x = rcall(("base", "get"), "pyobj", s)
-    p = ffi.cast("uintptr_t", lib.R_ExternalPtrAddr(unbox(x)))
+    ptr = lib.R_ExternalPtrAddr(unbox(x))
+    if ptr == ffi.NULL:
+        return None
+    p = ffi.cast("uintptr_t", ptr)
     d = int(p)
     obj = ctypes.cast(d, ctypes.py_object)
     return obj.value
@@ -611,8 +616,8 @@ def rcopytype(_, s):  # noqa
     return object
 
 
-# reticulate class
-@dispatch(datatype(RClass("python.builtin.object")), ENVSXP)
+# reticulate object / callable
+@dispatch(datatype(RClass("python.builtin.object")), (ENVSXP, CLOSXP))
 def rcopytype(_, s):  # noqa
     return object
 
@@ -690,8 +695,10 @@ def rcopytype(_, s):  # noqa
 def sexp_context(**kwargs):
     old_context = sexp_context.context.copy()
     sexp_context.context.update(kwargs)
-    yield sexp_context.context
-    sexp_context.context = old_context
+    try:
+        yield sexp_context.context
+    finally:
+        sexp_context.context = old_context
 
 
 sexp_context.context = {}
@@ -741,29 +748,13 @@ def sexp(_, s):  # noqa
     return rstring_p(s)
 
 
-if sys.version_info[0] >= 3:
-
-    @dispatch(datatype(RClass("raw")), bytes)
-    def sexp(_, s):  # noqa
-        n = len(s)
-        x = lib.Rf_allocVector(lib.RAWSXP, n)
-        with protected(x):
-            p = lib.RAW(x)
-            for i in range(n):
-                p[i] = s[i]
-        return x
-
-else:
-
-    @dispatch(datatype(RClass("raw")), bytes)
-    def sexp(_, s):  # noqa
-        n = len(s)
-        x = lib.Rf_allocVector(lib.RAWSXP, n)
-        with protected(x):
-            p = lib.RAW(x)
-            for i in range(n):
-                p[i] = ord(s[i])
-        return x
+@dispatch(datatype(RClass("raw")), bytes)
+def sexp(_, s):  # noqa
+    n = len(s)
+    x = lib.Rf_allocVector(lib.RAWSXP, n)
+    with protected(x):
+        ffi.memmove(lib.RAW(x), s, n)
+    return x
 
 
 @dispatch(datatype(RClass("logical")), list)
@@ -863,7 +854,7 @@ def sexp_as_py_object(obj):
 
 def on_xptr_callback_error(exception, exc_value, traceback):
     lib.xptr_callback_error_occured = 1
-    lib.xptr_callback_error_message = utf8tosystem(str(exc_value)[0:100])
+    lib.xptr_callback_error_message = str(exc_value).encode("utf-8", "backslashreplace")[:4095]
 
 
 @ffi.def_extern(error=ffi.NULL, onerror=on_xptr_callback_error)

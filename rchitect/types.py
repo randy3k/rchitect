@@ -103,9 +103,9 @@ class RObject(object):
 
     def __del__(self):
         try:
-            # it might cause AttributeError when the program exits
+            # it might cause AttributeError or TypeError when the program exits
             lib.R_ReleaseObject(self.s)
-        except AttributeError:
+        except Exception:
             pass
 
     def __repr__(self):

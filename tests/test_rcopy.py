@@ -45,6 +45,7 @@ def test_none(gctorture):
 
 def test_raw(gctorture):
     assert rcopy(reval("as.raw(charToRaw('hello'))")) == b"hello"
+    assert rcopy(reval("as.raw(c(1, 0, 2))")) == b"\x01\x00\x02"
 
 
 def test_functions(gctorture):
