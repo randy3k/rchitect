@@ -43,7 +43,7 @@ jobs:
       - name: Install radian and run tests
         shell: bash
         run: |
-          git clone https://github.com/randy3k/radian
+          git clone -b "${{ github.head_ref || github.ref_name }}" https://github.com/randy3k/radian || git clone https://github.com/randy3k/radian
           cd radian
           python -m pip install -e .[dev]
           python -m pip install -e ..

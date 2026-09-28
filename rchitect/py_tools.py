@@ -1,30 +1,25 @@
-from rchitect._cffi import lib
-
-import operator
-import sys
 import importlib
+import operator
 from types import ModuleType
 
-from .interface import rcopy, robject, rcall_p, rcall, sexp, sexp_as_py_object, \
-        sexp_context, getattrib_p, new_env
+import rchitect._cffi as _cffi
+from .interface import rcopy, robject, rcall, getattrib, new_env
 
 
-def get_p(name, envir):
-    return rcall_p(("base", "get"), name, envir=envir)
+def get_var(name, envir):
+    return rcall(("base", "get"), name, envir=envir)
 
 
 def inject_py_tools():
 
     def py_import(module, convert=True):
-        with sexp_context(convert=convert):
-            return sexp(importlib.import_module(module))
+        return robject("PyObject", importlib.import_module(module), convert=convert)
 
     def py_import_builtins(convert=True):
-        with sexp_context(convert=convert):
-            return sexp(importlib.import_module("builtins"))
+        return robject("PyObject", importlib.import_module("builtins"), convert=convert)
 
     def py_call(fun, *args, **kwargs):
-        # todo: suuport .asis and .convert
+        # todo: support .asis and .convert
         if isinstance(fun, str):
             fun = eval(fun)
         return fun(*args, **kwargs)
@@ -44,41 +39,27 @@ def inject_py_tools():
         return getattr(obj, key)
 
     def py_get_attr2(robj, rkey):
-        lib.Rf_protect(robj)
-        lib.Rf_protect(rkey)
-        nprotect = 2
-        try:
-            obj = rcopy(robj)
-            key = rcopy(rkey)
-            convert_p = getattrib_p(robj, "convert")
-            lib.Rf_protect(convert_p)
-            nprotect += 1
-            convert = rcopy(convert_p)
-            with sexp_context(convert=convert):
-                val = py_get_attr(obj, key)
-                return sexp(val) if convert else sexp_as_py_object(val)
-        finally:
-            lib.Rf_unprotect(nprotect)
+        obj = rcopy(robj)
+        key = rcopy(rkey)
+        convert = bool(rcopy(getattrib(robj, "convert")))
+        val = py_get_attr(obj, key)
+        if convert:
+            return robject(val, convert=True)
+        else:
+            return _cffi._c_sexp_as_py_object(val, False, True, False, 0)
 
     def py_get_item(obj, key):
         return obj[key]
 
     def py_get_item2(robj, rkey):
-        lib.Rf_protect(robj)
-        lib.Rf_protect(rkey)
-        nprotect = 2
-        try:
-            obj = rcopy(robj)
-            key = rcopy(rkey)
-            convert_p = getattrib_p(robj, "convert")
-            lib.Rf_protect(convert_p)
-            nprotect += 1
-            convert = rcopy(convert_p)
-            with sexp_context(convert=convert):
-                val = py_get_item(obj, key)
-                return sexp(val) if convert else sexp_as_py_object(val)
-        finally:
-            lib.Rf_unprotect(nprotect)
+        obj = rcopy(robj)
+        key = rcopy(rkey)
+        convert = bool(rcopy(getattrib(robj, "convert")))
+        val = py_get_item(obj, key)
+        if convert:
+            return robject(val, convert=True)
+        else:
+            return _cffi._c_sexp_as_py_object(val, False, True, False, 0)
 
     def py_names(obj):
         try:
@@ -87,63 +68,30 @@ def inject_py_tools():
             return None
 
     def py_object(*args, **kwargs):
+        kw = {k: rcopy(v) for k, v in kwargs.items()}
         if len(args) == 1:
-            lib.Rf_protect(args[0])
-            try:
-                with sexp_context(**kwargs):
-                    return robject("PyObject", rcopy(args[0]))
-            finally:
-                lib.Rf_unprotect(1)
+            return robject("PyObject", rcopy(args[0]), **kw)
         elif len(args) == 2:
-            lib.Rf_protect(args[1])
-            try:
-                with sexp_context(**kwargs):
-                    return robject("PyObject", rcopy(rcopy(object, args[0]), args[1]))
-            finally:
-                lib.Rf_unprotect(1)
+            return robject("PyObject", rcopy(rcopy(object, args[0]), args[1]), **kw)
 
     def py_print(r, **kwargs):
-        rcall_p("cat", repr(r) + "\n")
+        rcall("cat", repr(r) + "\n")
 
     def py_set_attr(obj, key, value):
-        lib.Rf_protect(obj)
-        lib.Rf_protect(key)
-        lib.Rf_protect(value)
-        try:
-            pyo = rcopy(object, obj)
-            setattr(pyo, rcopy(key), rcopy(value))
-        finally:
-            lib.Rf_unprotect(3)
+        pyo = rcopy(object, obj)
+        setattr(pyo, rcopy(key), rcopy(value))
         return obj
 
     def py_set_item(obj, key, value):
-        lib.Rf_protect(obj)
-        lib.Rf_protect(key)
-        lib.Rf_protect(value)
-        try:
-            pyo = rcopy(object, obj)
-            pyo[rcopy(key)] = rcopy(value)
-        finally:
-            lib.Rf_unprotect(3)
+        pyo = rcopy(object, obj)
+        pyo[rcopy(key)] = rcopy(value)
         return obj
 
     def py_dict(**kwargs):
-        narg = len(kwargs)
-        for key in kwargs:
-            lib.Rf_protect(kwargs[key])
-        try:
-            return {key: rcopy(kwargs[key]) for key in kwargs}
-        finally:
-            lib.Rf_unprotect(narg)
+        return {key: rcopy(kwargs[key]) for key in kwargs}
 
     def py_tuple(*args):
-        narg = len(args)
-        for a in args:
-            lib.Rf_protect(a)
-        try:
-            return tuple([rcopy(a) for a in args])
-        finally:
-            lib.Rf_unprotect(narg)
+        return tuple([rcopy(a) for a in args])
 
     def py_unicode(obj):
         return str(obj)
@@ -155,7 +103,7 @@ def inject_py_tools():
     def _rfunction(x, **kwargs):
         return robject("function", x, **kwargs)
 
-    e = new_env(parent=lib.R_GlobalEnv)
+    e = new_env()
     kwarg = {"rchitect.py_tools": e}
     rcall(("base", "options"), **kwarg)
 
@@ -209,9 +157,9 @@ def inject_py_tools():
             "[<-.PyObject",
             "&.PyObject",
             "|.PyObject",
-            "!.PyObject"
+            "!.PyObject",
         ]
         for thing in things:
-            assign(thing, get_p(thing, e), parent_frame)
+            assign(thing, get_var(thing, e), parent_frame)
 
     assign("attach", robject(attach, invisible=True), e)
