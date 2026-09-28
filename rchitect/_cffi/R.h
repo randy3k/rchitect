@@ -24,33 +24,35 @@ typedef ptrdiff_t R_xlen_t;
 
 typedef unsigned int SEXPTYPE;
 
-static const unsigned int NILSXP = 0;
-static const unsigned int SYMSXP = 1;
-static const unsigned int LISTSXP = 2;
-static const unsigned int CLOSXP = 3;
-static const unsigned int ENVSXP = 4;
-static const unsigned int PROMSXP = 5;
-static const unsigned int LANGSXP = 6;
-static const unsigned int SPECIALSXP = 7;
-static const unsigned int BUILTINSXP = 8;
-static const unsigned int CHARSXP = 9;
-static const unsigned int LGLSXP = 10;
-static const unsigned int INTSXP = 13;
-static const unsigned int REALSXP = 14;
-static const unsigned int CPLXSXP = 15;
-static const unsigned int STRSXP = 16;
-static const unsigned int DOTSXP = 17;
-static const unsigned int ANYSXP = 18;
-static const unsigned int VECSXP = 19;
-static const unsigned int EXPRSXP = 20;
-static const unsigned int BCODESXP = 21;
-static const unsigned int EXTPTRSXP = 22;
-static const unsigned int WEAKREFSXP = 23;
-static const unsigned int RAWSXP = 24;
-static const unsigned int S4SXP = 25;
-static const unsigned int NEWSXP = 30;
-static const unsigned int FREESXP = 31;
-static const unsigned int FUNSXP = 99;
+enum {
+    NILSXP = 0,
+    SYMSXP = 1,
+    LISTSXP = 2,
+    CLOSXP = 3,
+    ENVSXP = 4,
+    PROMSXP = 5,
+    LANGSXP = 6,
+    SPECIALSXP = 7,
+    BUILTINSXP = 8,
+    CHARSXP = 9,
+    LGLSXP = 10,
+    INTSXP = 13,
+    REALSXP = 14,
+    CPLXSXP = 15,
+    STRSXP = 16,
+    DOTSXP = 17,
+    ANYSXP = 18,
+    VECSXP = 19,
+    EXPRSXP = 20,
+    BCODESXP = 21,
+    EXTPTRSXP = 22,
+    WEAKREFSXP = 23,
+    RAWSXP = 24,
+    S4SXP = 25,
+    NEWSXP = 30,
+    FREESXP = 31,
+    FUNSXP = 99
+};
 
 typedef struct {
     double r;

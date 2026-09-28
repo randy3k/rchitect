@@ -1,0 +1,327 @@
+#include <Python.h>
+#include <string.h>
+
+#include "conv.h"
+#include "interface.h"
+
+int _libR_is_initialized(void) {
+    return R_GlobalEnv != NULL;
+}
+
+typedef struct {
+    SEXP text;
+    int num;
+    ParseStatus *status;
+    SEXP source;
+    SEXP val;
+} ProtectedParseData;
+
+static void protectedParse(void *d) {
+    ProtectedParseData *data = (ProtectedParseData *)d;
+    data->val = R_ParseVector(data->text, data->num, data->status, data->source);
+}
+
+SEXP rchitect_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) {
+    Rboolean ok;
+    ProtectedParseData d;
+    d.text = Rf_protect(text);
+    d.num = num;
+    d.status = status;
+    d.source = Rf_protect(source);
+    d.val = R_NilValue;
+    ok = R_ToplevelExec(protectedParse, &d);
+    if (ok == FALSE) {
+        *status = PARSE_ERROR;
+        d.val = R_NilValue;
+    }
+    Rf_unprotect(2);
+    return d.val;
+}
+
+// cffi releases GIL, so we need to ensure it. Mainly needed for loading reticulate.
+SEXP rchitect_tryEval(SEXP x, SEXP e, int *s) {
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    SEXP result = R_tryEval(x, e, s);
+    PyGILState_Release(gstate);
+    return result;
+}
+
+static const char *sexptype_to_str(unsigned int t) {
+    switch (t) {
+        case NILSXP: return "NILSXP";
+        case SYMSXP: return "SYMSXP";
+        case LISTSXP: return "LISTSXP";
+        case CLOSXP: return "CLOSXP";
+        case ENVSXP: return "ENVSXP";
+        case PROMSXP: return "PROMSXP";
+        case LANGSXP: return "LANGSXP";
+        case SPECIALSXP: return "SPECIALSXP";
+        case BUILTINSXP: return "BUILTINSXP";
+        case CHARSXP: return "CHARSXP";
+        case LGLSXP: return "LGLSXP";
+        case INTSXP: return "INTSXP";
+        case REALSXP: return "REALSXP";
+        case CPLXSXP: return "CPLXSXP";
+        case STRSXP: return "STRSXP";
+        case DOTSXP: return "DOTSXP";
+        case ANYSXP: return "ANYSXP";
+        case VECSXP: return "VECSXP";
+        case EXPRSXP: return "EXPRSXP";
+        case BCODESXP: return "BCODESXP";
+        case EXTPTRSXP: return "EXTPTRSXP";
+        case WEAKREFSXP: return "WEAKREFSXP";
+        case RAWSXP: return "RAWSXP";
+        case S4SXP: return "S4SXP";
+        case NEWSXP: return "NEWSXP";
+        case FREESXP: return "FREESXP";
+        case FUNSXP: return "FUNSXP";
+        default: return "SEXP";
+    }
+}
+
+static SEXP c_as_call(PyObject *f) {
+    if (is_robject(f)) {
+        return extract_sexp(f);
+    }
+    if (PyUnicode_Check(f)) {
+        return c_install_py_str(f);
+    }
+    if (PyTuple_Check(f) && PyTuple_Size(f) == 2) {
+        PyObject *pkg = PyTuple_GetItem(f, 0);
+        PyObject *name = PyTuple_GetItem(f, 1);
+        if (PyUnicode_Check(pkg) && PyUnicode_Check(name)) {
+            SEXP pkg_sym = c_install_py_str(pkg);
+            if (pkg_sym == NULL) return NULL;
+            SEXP name_sym = c_install_py_str(name);
+            if (name_sym == NULL) return NULL;
+            return Rf_lang3(Rf_install("::"), pkg_sym, name_sym);
+        }
+    }
+    PyErr_SetString(PyExc_TypeError, "unexpected function");
+    return NULL;
+}
+
+static PyObject *py_c_preserve_sexp(PyObject *self, PyObject *args) {
+    PyObject *ptr_obj;
+    if (!PyArg_ParseTuple(args, "O", &ptr_obj)) return NULL;
+    SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
+    if (s != NULL) {
+        R_PreserveObject(s);
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject *py_c_release_sexp(PyObject *self, PyObject *args) {
+    PyObject *ptr_obj;
+    if (!PyArg_ParseTuple(args, "O", &ptr_obj)) return NULL;
+    SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
+    if (s != NULL && R_GlobalEnv != NULL) {
+        R_ReleaseObject(s);
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject *py_c_sexptype_name(PyObject *self, PyObject *args) {
+    PyObject *ptr_obj;
+    if (!PyArg_ParseTuple(args, "O", &ptr_obj)) return NULL;
+    SEXP s = extract_sexp(ptr_obj);
+    if (s == NULL) return NULL;
+    return PyUnicode_FromString(sexptype_to_str(TYPEOF(s)));
+}
+
+static PyObject *py_c_rlang(PyObject *self, PyObject *args) {
+    PyObject *f;
+    PyObject *pos_args;
+    PyObject *kw_args;
+    int asis = 0;
+    if (!PyArg_ParseTuple(args, "OOO|p", &f, &pos_args, &kw_args, &asis)) return NULL;
+
+    Py_ssize_t n_pos = PyTuple_Size(pos_args);
+    PyObject *kw_items = PyMapping_Items(kw_args);
+    if (kw_items == NULL) return NULL;
+    Py_ssize_t n_kw = PyList_Size(kw_items);
+
+    SEXP head_call = Rf_protect(c_as_call(f));
+    if (head_call == NULL) {
+        Py_DECREF(kw_items);
+        Rf_unprotect(1);
+        return NULL;
+    }
+
+    SEXP t = Rf_protect(Rf_allocVector(LANGSXP, n_pos + n_kw + 1));
+    SEXP s = t;
+    SETCAR(s, head_call);
+
+    for (Py_ssize_t i = 0; i < n_pos; i++) {
+        PyObject *a = PyTuple_GetItem(pos_args, i);
+        SEXP a_sexp = asis ? c_sexp_as_py_object_impl(a, 0, 0, 1, 0) : c_sexp_impl(NULL, a, 0, 0, 1, 0);
+        if (a_sexp == NULL) {
+            Py_DECREF(kw_items);
+            Rf_unprotect(2);
+            return NULL;
+        }
+        s = CDR(s);
+        SETCAR(s, a_sexp);
+    }
+
+    for (Py_ssize_t i = 0; i < n_kw; i++) {
+        PyObject *pair = PyList_GetItem(kw_items, i);
+        PyObject *k_obj = PyTuple_GetItem(pair, 0);
+        PyObject *v_obj = PyTuple_GetItem(pair, 1);
+        SEXP v_sexp = asis ? c_sexp_as_py_object_impl(v_obj, 0, 0, 1, 0) : c_sexp_impl(NULL, v_obj, 0, 0, 1, 0);
+        if (v_sexp == NULL) {
+            Py_DECREF(kw_items);
+            Rf_unprotect(2);
+            return NULL;
+        }
+        s = CDR(s);
+        SETCAR(s, v_sexp);
+        SEXP tag_sym = c_install_py_str(k_obj);
+        if (tag_sym == NULL) {
+            Py_DECREF(kw_items);
+            Rf_unprotect(2);
+            return NULL;
+        }
+        SET_TAG(s, tag_sym);
+    }
+
+    Py_DECREF(kw_items);
+    PyObject *res = c_box_sexp(t);
+    Rf_unprotect(2);
+    return res;
+}
+
+static PyObject *py_c_rclass(PyObject *self, PyObject *args) {
+    PyObject *obj;
+    int single_string = 0;
+    if (!PyArg_ParseTuple(args, "O|p", &obj, &single_string)) return NULL;
+    SEXP s = extract_sexp(obj);
+    if (s == NULL) return NULL;
+    SEXP cls = Rf_protect(R_data_class(s, single_string ? TRUE : FALSE));
+    PyObject *res = c_rcopy_impl(
+        cls,
+        single_string ? (PyObject *)&PyUnicode_Type : (PyObject *)&PyList_Type,
+        0,
+        1
+    );
+    Rf_unprotect(1);
+    return res;
+}
+
+static PyObject *py_c_setclass(PyObject *self, PyObject *args) {
+    PyObject *obj;
+    PyObject *classes;
+    if (!PyArg_ParseTuple(args, "OO", &obj, &classes)) return NULL;
+    SEXP s = extract_sexp(obj);
+    if (s == NULL) return NULL;
+    SEXP cls_sexp = Rf_protect(c_sexp_impl("character", classes, 0, 0, 1, 0));
+    if (cls_sexp == NULL) {
+        Rf_unprotect(1);
+        return NULL;
+    }
+    Rf_setAttrib(s, R_ClassSymbol, cls_sexp);
+    Rf_unprotect(1);
+    Py_RETURN_NONE;
+}
+
+static PyObject *py_c_getattrib(PyObject *self, PyObject *args) {
+    PyObject *obj;
+    PyObject *key;
+    if (!PyArg_ParseTuple(args, "OO", &obj, &key)) return NULL;
+    SEXP s = extract_sexp(obj);
+    if (s == NULL) return NULL;
+    SEXP k_sexp = PyUnicode_Check(key) ? c_install_py_str(key) : extract_sexp(key);
+    if (k_sexp == NULL) return NULL;
+    SEXP attr = Rf_protect(Rf_getAttrib(s, k_sexp));
+    PyObject *res = c_box_sexp(attr);
+    Rf_unprotect(1);
+    return res;
+}
+
+static PyObject *py_c_setattrib(PyObject *self, PyObject *args) {
+    PyObject *obj;
+    PyObject *key;
+    PyObject *val;
+    if (!PyArg_ParseTuple(args, "OOO", &obj, &key, &val)) return NULL;
+    SEXP s = extract_sexp(obj);
+    if (s == NULL) return NULL;
+    SEXP k_sexp = PyUnicode_Check(key) ? c_install_py_str(key) : extract_sexp(key);
+    if (k_sexp == NULL) return NULL;
+    SEXP v_sexp = Rf_protect(c_sexp_impl(NULL, val, 0, 0, 1, 0));
+    if (v_sexp == NULL) {
+        Rf_unprotect(1);
+        return NULL;
+    }
+    Rf_setAttrib(s, k_sexp, v_sexp);
+    Rf_unprotect(1);
+    Py_RETURN_NONE;
+}
+
+static PyObject *py_c_rnames(PyObject *self, PyObject *args) {
+    PyObject *obj;
+    if (!PyArg_ParseTuple(args, "O", &obj)) return NULL;
+    SEXP s = extract_sexp(obj);
+    if (s == NULL) return NULL;
+    SEXP names = Rf_protect(Rf_getAttrib(s, R_NamesSymbol));
+    if (Rf_isNull(names)) {
+        Rf_unprotect(1);
+        return PyList_New(0);
+    }
+    PyObject *res = c_rcopy_str_list(names);
+    Rf_unprotect(1);
+    return res;
+}
+
+static PyObject *py_c_new_env(PyObject *self, PyObject *args) {
+    PyObject *parent_obj = Py_None;
+    if (!PyArg_ParseTuple(args, "|O", &parent_obj)) return NULL;
+    SEXP parent = R_GlobalEnv;
+    if (parent_obj != Py_None && PyObject_IsTrue(parent_obj)) {
+        parent = extract_sexp(parent_obj);
+        if (parent == NULL) return NULL;
+    }
+    SEXP env = Rf_protect(Rf_NewEnvironment(R_NilValue, R_NilValue, parent));
+    PyObject *res = c_box_sexp(env);
+    Rf_unprotect(1);
+    return res;
+}
+
+static PyObject *py_c_rsym(PyObject *self, PyObject *args) {
+    PyObject *s_obj;
+    PyObject *t_obj = Py_None;
+    if (!PyArg_ParseTuple(args, "O|O", &s_obj, &t_obj)) return NULL;
+    SEXP res_sexp;
+    if (t_obj != Py_None && PyObject_IsTrue(t_obj)) {
+        SEXP pkg = c_install_py_str(s_obj);
+        if (pkg == NULL) return NULL;
+        SEXP sym = c_install_py_str(t_obj);
+        if (sym == NULL) return NULL;
+        res_sexp = Rf_protect(Rf_lang3(Rf_install("::"), pkg, sym));
+    } else {
+        res_sexp = c_install_py_str(s_obj);
+        if (res_sexp == NULL) return NULL;
+        Rf_protect(res_sexp);
+    }
+    PyObject *res = c_box_sexp(res_sexp);
+    Rf_unprotect(1);
+    return res;
+}
+
+static PyMethodDef rchitect_interface_methods[] = {
+    {"_c_preserve_sexp", py_c_preserve_sexp, METH_VARARGS, NULL},
+    {"_c_release_sexp", py_c_release_sexp, METH_VARARGS, NULL},
+    {"_c_sexptype_name", py_c_sexptype_name, METH_VARARGS, NULL},
+    {"_c_rlang", py_c_rlang, METH_VARARGS, NULL},
+    {"_c_rclass", py_c_rclass, METH_VARARGS, NULL},
+    {"_c_setclass", py_c_setclass, METH_VARARGS, NULL},
+    {"_c_getattrib", py_c_getattrib, METH_VARARGS, NULL},
+    {"_c_setattrib", py_c_setattrib, METH_VARARGS, NULL},
+    {"_c_rnames", py_c_rnames, METH_VARARGS, NULL},
+    {"_c_new_env", py_c_new_env, METH_VARARGS, NULL},
+    {"_c_rsym", py_c_rsym, METH_VARARGS, NULL},
+    {NULL, NULL, 0, NULL}
+};
+
+int _rchitect_register_interface_methods(void *mod_ptr) {
+    return PyModule_AddFunctions((PyObject *)mod_ptr, rchitect_interface_methods);
+}

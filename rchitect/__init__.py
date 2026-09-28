@@ -37,13 +37,10 @@ _SUBMODULES = {
     "interface",
     "completion",
     "console",
-    "dispatch",
     "py_tools",
     "repl",
     "reticulate",
-    "types",
     "utils",
-    "xptr",
 }
 
 

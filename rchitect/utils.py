@@ -65,10 +65,6 @@ def get_rhome_from_binary(rbinary):
         pass
     return None
 
-# Do not use this, use get_rhome() instead!
-def Rhome():
-    return get_rhome()
-
 
 def get_rhome():
     rhome = None
@@ -304,10 +300,6 @@ else:
 
     def utf8tosystem(text):
         return text.encode("utf-8", "backslashreplace")
-
-
-def id_str(x):
-    return str(id(x))
 
 
 def get_utf8_host():

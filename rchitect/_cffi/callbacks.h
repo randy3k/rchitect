@@ -1,5 +1,5 @@
-#ifndef LIBR_H__
-#define LIBR_H__
+#ifndef CALLBACKS_H__
+#define CALLBACKS_H__
 
 #include <stdlib.h>
 #include <string.h>
@@ -10,19 +10,15 @@
 
 extern int cb_interrupted;
 
-int _libR_is_initialized(void);
-
 int cb_read_console_interruptible(const char *, unsigned char *, int, int);
-
 void cb_polled_events_interruptible(void);
-
 void cb_write_console_safe(const char *, int, int);
 void cb_busy_safe(int);
 
-void _libR_setup_xptr_callback(void);
-SEXP _libR_xptr_callback(SEXP, SEXP, SEXP, SEXP);
-extern int xptr_callback_error_occured;
-extern char xptr_callback_error_message[4096];
+void rchitect_run_Rmainloop(void);
+void process_events(void);
+void polled_events(void);
+int peek_event(void);
 
 // end cdef
 
@@ -54,9 +50,6 @@ void cb_process_events(void);
 void cb_polled_events(void);
 int cb_yes_no_cancel(const char *s);
 
-SEXP xptr_callback(SEXP, SEXP, SEXP, SEXP);
-void xptr_finalizer(SEXP);
-
 // end cb cdef
 
-#endif /* end of include guard: LIBR_H__ */
+#endif /* end of include guard: CALLBACKS_H__ */
