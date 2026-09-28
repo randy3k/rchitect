@@ -45,3 +45,20 @@ def test_rcall_tuple(gctorture):
     assert rcall(("base", "::", "sum"), [1, 2, 3], _convert=True) == 6
     assert isinstance(rcall(("utils", ":::", ".retrieveCompletions"), _convert=True), list)
 
+
+def test_get_rhome_r_binary(monkeypatch):
+    import os
+    from rchitect.utils import get_rhome
+
+    expected_rhome = get_rhome()
+    rbinary = os.path.join(expected_rhome, "bin", "R")
+    monkeypatch.setenv("R_BINARY", rbinary)
+    monkeypatch.delenv("R_HOME", raising=False)
+    assert get_rhome() == expected_rhome
+    assert os.environ.get("R_HOME") == expected_rhome
+
+    monkeypatch.setenv("R_HOME", "/nonexistent/rhome")
+    assert get_rhome() == expected_rhome
+    assert os.environ.get("R_HOME") == expected_rhome
+
+
