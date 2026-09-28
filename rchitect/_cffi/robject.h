@@ -1,5 +1,5 @@
-#ifndef CONV_H__
-#define CONV_H__
+#ifndef ROBJECT_H__
+#define ROBJECT_H__
 
 #include "R.h"
 
@@ -36,4 +36,4 @@ SEXP c_sexp_impl(
 SEXP c_sexp_as_py_object_impl(PyObject *obj, int asis, int has_convert, int convert, int invisible);
 #endif
 
-#endif /* end of include guard: CONV_H__ */
+#endif /* end of include guard: ROBJECT_H__ */

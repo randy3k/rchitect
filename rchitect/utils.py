@@ -60,7 +60,8 @@ def get_rhome_from_binary(rbinary):
     if not which(rbinary):
         return None
     try:
-        return subprocess.check_output([rbinary, "RHOME"]).decode("utf-8").strip()
+        env = {k: v for k, v in os.environ.items() if k != "R_HOME"}
+        return subprocess.check_output([rbinary, "RHOME"], env=env).decode("utf-8").strip()
     except Exception:
         pass
     return None
@@ -76,6 +77,7 @@ def get_rhome():
             raise RuntimeError(
                 "R binary ({}) does not exist.".format(rbinary)
             )
+        os.environ["R_HOME"] = rhome
         return rhome
 
     if "R_HOME" in os.environ:
@@ -276,7 +278,7 @@ if sys.platform == "win32":
 
     def utf8tosystem(text):
         loc = locale.getlocale()
-        if loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
+        if text.isascii() or loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
             return text.encode("utf-8", "backslashreplace")
 
         s = ctypes.create_string_buffer(10)

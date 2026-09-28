@@ -1,3 +1,4 @@
+import atexit
 import os
 import sys
 from rchitect.interface import (
@@ -35,6 +36,16 @@ def _r_to_py_pyobject(x, convert=None, *args, **kwargs):
     return res
 
 
+def _finalize_reticulate():
+    try:
+        ns = rcall(("base", "getNamespace"), "reticulate")
+        if rcopy(bool, rcall(("base", "exists"), "py_finalize", envir=ns, inherits=False)):
+            if not rcopy(bool, rcall(("reticulate", ":::", "was_python_initialized_by_reticulate"))):
+                rcall(("reticulate", ":::", "py_finalize"))
+    except Exception:
+        pass
+
+
 def configure():
     os.environ["RETICULATE_PYTHON"] = sys.executable
     os.environ["RETICULATE_REMAP_OUTPUT_STREAMS"] = "0"
@@ -58,6 +69,7 @@ def configure():
             robject("function", _r_to_py_pyobject, asis=True, convert=False),
             ns,
         )
+        atexit.register(_finalize_reticulate)
 
     if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
         _configure()

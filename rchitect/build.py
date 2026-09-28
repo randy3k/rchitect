@@ -21,7 +21,7 @@ def _clean_cdef(text):
     )
 
 
-for header_file in ["R.h", "callbacks.h", "interface.h", "conv.h"]:
+for header_file in ["R.h", "callbacks.h", "interface.h", "robject.h"]:
     with open(os.path.join(BASEDIR, "_cffi", header_file), "r") as f:
         content = f.read()
         m = cdef_pattern.search(content)
@@ -64,12 +64,12 @@ ffibuilder.set_source(
     """
     # include "callbacks.h"
     # include "interface.h"
-    # include "conv.h"
+    # include "robject.h"
     """,
     include_dirs=[os.path.join(BASEDIR, "_cffi")],
     sources=[
         os.path.join("rchitect", "_cffi", f)
-        for f in ["callbacks.c", "interface.c", "conv.c"]
+        for f in ["callbacks.c", "interface.c", "robject.c"]
     ],
     libraries=libraries,
     extra_compile_args=extra_compile_args,

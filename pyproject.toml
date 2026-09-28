@@ -19,7 +19,7 @@ dev = ["pytest", "pytest-mock", "pytest-cov"]
 Homepage = "https://github.com/randy3k/rchitect"
 
 [tool.setuptools]
-packages = { find = { where = ["."], exclude = ["tests*"] } }
+packages = { find = { where = ["."], include = ["rchitect*"], namespaces = false } }
 
 [tool.setuptools.package-data]
 rchitect = ["_cffi/*", "utf8_host.exe"]

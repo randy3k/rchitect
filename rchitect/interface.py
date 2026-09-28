@@ -1,4 +1,5 @@
 import struct
+import sys
 from collections import OrderedDict
 from types import FunctionType
 
@@ -26,9 +27,10 @@ class RObject(object):
             self._s = ffi.cast("SEXP", self._ptr)
         return self._s
 
-    def __del__(self):
+    def __del__(self, _is_finalizing=sys.is_finalizing):
         try:
-            _cffi._c_release_sexp(self._ptr)
+            if not _is_finalizing():
+                _cffi._c_release_sexp(self._ptr)
         except Exception:
             pass
 
@@ -68,7 +70,7 @@ def unbox(x):
 
 def _wrap_r_function(r, asis=False, convert=True):
     def f(*args, **kwargs):
-        return rcall(r, *args, _asis=f.asis, _convert=f.convert, **kwargs)
+        return rcall(r, *args, _asis=asis, _convert=convert, **kwargs)
 
     f.__robject__ = r
     f.asis = asis
@@ -128,22 +130,19 @@ def rsym(s, t=None):
 
 def parse_text(s):
     ensure_initialized()
-    status = ffi.new("ParseStatus[1]")
-    s_robj = RObject(lib.Rf_mkString(utf8tosystem(s)))
     with capture_console():  # need to capture stderr
-        val = lib.rchitect_ParseVector(s_robj.s, -1, status, lib.R_NilValue)
-        if status[0] != lib.PARSE_OK:
+        ret, status = _cffi._c_parse_text(utf8tosystem(s))
+        if status != lib.PARSE_OK:
             err = read_stderr().strip() or "Error"
-            ret = None
         else:
             err = None
-            ret = RObject(val)
-        return ret, status[0], err
+        return ret, status, err
 
 
 def parse_text_incomplete(s):
-    _, status, _ = parse_text(s)
-    return status == lib.PARSE_INCOMPLETE
+    ensure_initialized()
+    with capture_console():  # need to capture stderr
+        return not _cffi._c_parse_text_complete(utf8tosystem(s))
 
 
 def parse_text_complete(s):
@@ -169,16 +168,11 @@ def reval(s, envir=None):
         # we use `base::eval` instead.
         return rcall(("base", "eval"), s, _envir=envir)
 
-    ret = RObject(lib.R_NilValue)
-    status = ffi.new("int[1]")
-    expr_s = s.s
     with capture_console():  # need to capture stderr
-        for i in range(0, lib.Rf_length(expr_s)):
-            val = lib.rchitect_tryEval(lib.VECTOR_ELT(expr_s, i), lib.R_GlobalEnv, status)
-            if status[0] != 0:
-                err = read_stderr().strip() or "Error"
-                raise RuntimeError("{}".format(err))
-            ret = RObject(val)
+        ret, status = _cffi._c_reval(s)
+        if status != 0:
+            err = read_stderr().strip() or "Error"
+            raise RuntimeError("{}".format(err))
     return ret
 
 
@@ -193,16 +187,12 @@ def rcall(f, *args, **kwargs):
     _envir = extract(kwargs, "_envir")
     _asis = extract(kwargs, "_asis", False)
     _convert = extract(kwargs, "_convert", False)
-    env_s = unbox(_envir) if _envir else lib.R_GlobalEnv
-    lang = _cffi._c_rlang(f, args, kwargs, bool(_asis))
-    status = ffi.new("int[1]")
     with capture_console():  # need to capture stderr
-        val = lib.rchitect_tryEval(lang.s, env_s, status)
-        if status[0] != 0:
+        ret, status = _cffi._c_rcall(f, args, kwargs, _envir, bool(_asis), bool(_convert))
+        if status != 0:
             err = read_stderr().strip() or "Error"
             raise RuntimeError("{}".format(err))
-        ret = RObject(val)
-    return rcopy(ret) if _convert else ret
+    return ret
 
 
 def rprint(s, envir=None):

@@ -1,7 +1,7 @@
 #include <Python.h>
 #include <string.h>
 
-#include "conv.h"
+#include "robject.h"
 #include "interface.h"
 
 static PyObject *g_RObject_Type = NULL;
@@ -339,12 +339,15 @@ static PyObject *c_rcopy_default_by_sexptype(SEXP s, int asis, int convert) {
             }
             return c_rcopy_str_list(s);
         case VECSXP: {
-            SEXP names = Rf_getAttrib(s, R_NamesSymbol);
+            SEXP names = Rf_protect(Rf_getAttrib(s, R_NamesSymbol));
+            PyObject *res;
             if (Rf_isNull(names)) {
-                return c_rcopy_vec_list(s, asis, convert);
+                res = c_rcopy_vec_list(s, asis, convert);
             } else {
-                return c_rcopy_vec_dict(s, names, 1, asis, convert);
+                res = c_rcopy_vec_dict(s, names, 1, asis, convert);
             }
+            Rf_unprotect(1);
+            return res;
         }
         case CLOSXP:
         case BUILTINSXP:
@@ -413,12 +416,16 @@ PyObject *c_rcopy_impl(SEXP s, PyObject *target_type, int asis, int convert) {
         return c_rcopy_vec_tuple(s, asis, convert);
     }
     if (target_type == (PyObject *)&PyDict_Type && st == VECSXP) {
-        SEXP names = Rf_getAttrib(s, R_NamesSymbol);
-        return c_rcopy_vec_dict(s, names, 0, asis, convert);
+        SEXP names = Rf_protect(Rf_getAttrib(s, R_NamesSymbol));
+        PyObject *res = c_rcopy_vec_dict(s, names, 0, asis, convert);
+        Rf_unprotect(1);
+        return res;
     }
     if (target_type == g_OrderedDict_Type && st == VECSXP) {
-        SEXP names = Rf_getAttrib(s, R_NamesSymbol);
-        return c_rcopy_vec_dict(s, names, 1, asis, convert);
+        SEXP names = Rf_protect(Rf_getAttrib(s, R_NamesSymbol));
+        PyObject *res = c_rcopy_vec_dict(s, names, 1, asis, convert);
+        Rf_unprotect(1);
+        return res;
     }
     if (target_type == (PyObject *)&PyLong_Type && st == INTSXP) {
         return PyLong_FromLong(INTEGER(s)[0]);
@@ -491,6 +498,11 @@ static SEXP c_sexp_function(PyObject *f, int asis, int convert, int invisible, i
     int status = 0;
     SEXP val = Rf_protect(R_tryEval(lang, env, &status));
     nprot++;
+    if (status != 0 || val == R_NilValue) {
+        Rf_unprotect(nprot);
+        PyErr_SetString(PyExc_RuntimeError, "Failed to create R function wrapper");
+        return NULL;
+    }
     Rf_setAttrib(val, Rf_install("py_object"), fp);
 
     if (is_pycallable) {
@@ -585,8 +597,18 @@ static SEXP c_sexp_list_with_rclass(
         Rcomplex *p = COMPLEX(x);
         for (Py_ssize_t i = 0; i < n; i++) {
             PyObject *item = PyList_GetItem(seq, i);
-            p[i].r = PyComplex_RealAsDouble(item);
-            p[i].i = PyComplex_ImagAsDouble(item);
+            double r = PyComplex_RealAsDouble(item);
+            if (r == -1.0 && PyErr_Occurred()) {
+                Rf_unprotect(1);
+                return NULL;
+            }
+            double im = PyComplex_ImagAsDouble(item);
+            if (im == -1.0 && PyErr_Occurred()) {
+                Rf_unprotect(1);
+                return NULL;
+            }
+            p[i].r = r;
+            p[i].i = im;
         }
         Rf_unprotect(1);
         return x;
@@ -750,7 +772,9 @@ SEXP c_sexp_impl(
         if (PyComplex_Check(obj)) {
             Rcomplex c;
             c.r = PyComplex_RealAsDouble(obj);
+            if (c.r == -1.0 && PyErr_Occurred()) return NULL;
             c.i = PyComplex_ImagAsDouble(obj);
+            if (c.i == -1.0 && PyErr_Occurred()) return NULL;
             return Rf_ScalarComplex(c);
         }
         if (PyList_Check(obj)) return c_sexp_list_with_rclass("complex", obj, asis, has_convert, convert, invisible);
@@ -808,7 +832,7 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
     }
 
     R_xlen_t n = Rf_xlength(arglist);
-    SEXP names = Rf_getAttrib(arglist, R_NamesSymbol);
+    SEXP names = Rf_protect(Rf_getAttrib(arglist, R_NamesSymbol));
     int has_names = !Rf_isNull(names);
 
     PyObject *pos_list = PyList_New(0);
@@ -817,7 +841,6 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
     for (R_xlen_t i = 0; i < n; i++) {
         SEXP elt = VECTOR_ELT(arglist, i);
         const char *k = has_names ? Rf_translateCharUTF8(STRING_ELT(names, i)) : "";
-        vmaxset(vmax);
         PyObject *py_val;
         if (asis) {
             py_val = c_box_sexp(elt);
@@ -825,6 +848,8 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
             py_val = c_rcopy_impl(elt, Py_None, 0, 1);
         }
         if (py_val == NULL) {
+            vmaxset(vmax);
+            Rf_unprotect(1);
             Py_DECREF(pos_list);
             Py_DECREF(kwargs);
             goto handle_error;
@@ -836,7 +861,9 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
             PyList_Append(pos_list, py_val);
             Py_DECREF(py_val);
         }
+        vmaxset(vmax);
     }
+    Rf_unprotect(1);
 
     PyObject *args = PyList_AsTuple(pos_list);
     Py_DECREF(pos_list);
@@ -918,7 +945,10 @@ static PyObject *py_c_rcopy(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "OO|pp", &target_type, &obj, &asis, &convert)) return NULL;
     SEXP s = extract_sexp(obj);
     if (s == NULL) return NULL;
-    return c_rcopy_impl(s, target_type, asis, convert);
+    Rf_protect(s);
+    PyObject *res = c_rcopy_impl(s, target_type, asis, convert);
+    Rf_unprotect(1);
+    return res;
 }
 
 static PyObject *py_c_sexp(PyObject *self, PyObject *args) {

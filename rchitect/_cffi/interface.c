@@ -1,7 +1,7 @@
 #include <Python.h>
 #include <string.h>
 
-#include "conv.h"
+#include "robject.h"
 #include "interface.h"
 
 int _libR_is_initialized(void) {
@@ -86,15 +86,38 @@ static SEXP c_as_call(PyObject *f) {
     if (PyUnicode_Check(f)) {
         return c_install_py_str(f);
     }
-    if (PyTuple_Check(f) && PyTuple_Size(f) == 2) {
-        PyObject *pkg = PyTuple_GetItem(f, 0);
-        PyObject *name = PyTuple_GetItem(f, 1);
-        if (PyUnicode_Check(pkg) && PyUnicode_Check(name)) {
-            SEXP pkg_sym = c_install_py_str(pkg);
-            if (pkg_sym == NULL) return NULL;
-            SEXP name_sym = c_install_py_str(name);
-            if (name_sym == NULL) return NULL;
-            return Rf_lang3(Rf_install("::"), pkg_sym, name_sym);
+    if (PyTuple_Check(f)) {
+        Py_ssize_t n = PyTuple_Size(f);
+        if (n == 2) {
+            PyObject *pkg = PyTuple_GetItem(f, 0);
+            PyObject *name = PyTuple_GetItem(f, 1);
+            if (PyUnicode_Check(pkg) && PyUnicode_Check(name)) {
+                SEXP pkg_sym = c_install_py_str(pkg);
+                if (pkg_sym == NULL) return NULL;
+                SEXP name_sym = c_install_py_str(name);
+                if (name_sym == NULL) return NULL;
+                return Rf_lang3(R_DoubleColonSymbol, pkg_sym, name_sym);
+            }
+        } else if (n == 3) {
+            PyObject *pkg = PyTuple_GetItem(f, 0);
+            PyObject *op = PyTuple_GetItem(f, 1);
+            PyObject *name = PyTuple_GetItem(f, 2);
+            if (PyUnicode_Check(pkg) && PyUnicode_Check(op) && PyUnicode_Check(name)) {
+                SEXP op_sym = NULL;
+                if (PyUnicode_CompareWithASCIIString(op, ":::") == 0) {
+                    op_sym = R_TripleColonSymbol;
+                } else if (PyUnicode_CompareWithASCIIString(op, "::") == 0) {
+                    op_sym = R_DoubleColonSymbol;
+                } else {
+                    op_sym = c_install_py_str(op);
+                }
+                if (op_sym == NULL) return NULL;
+                SEXP pkg_sym = c_install_py_str(pkg);
+                if (pkg_sym == NULL) return NULL;
+                SEXP name_sym = c_install_py_str(name);
+                if (name_sym == NULL) return NULL;
+                return Rf_lang3(op_sym, pkg_sym, name_sym);
+            }
         }
     }
     PyErr_SetString(PyExc_TypeError, "unexpected function");
@@ -129,13 +152,7 @@ static PyObject *py_c_sexptype_name(PyObject *self, PyObject *args) {
     return PyUnicode_FromString(sexptype_to_str(TYPEOF(s)));
 }
 
-static PyObject *py_c_rlang(PyObject *self, PyObject *args) {
-    PyObject *f;
-    PyObject *pos_args;
-    PyObject *kw_args;
-    int asis = 0;
-    if (!PyArg_ParseTuple(args, "OOO|p", &f, &pos_args, &kw_args, &asis)) return NULL;
-
+static SEXP c_build_rlang(PyObject *f, PyObject *pos_args, PyObject *kw_args, int asis) {
     Py_ssize_t n_pos = PyTuple_Size(pos_args);
     PyObject *kw_items = PyMapping_Items(kw_args);
     if (kw_items == NULL) return NULL;
@@ -186,9 +203,82 @@ static PyObject *py_c_rlang(PyObject *self, PyObject *args) {
     }
 
     Py_DECREF(kw_items);
-    PyObject *res = c_box_sexp(t);
     Rf_unprotect(2);
+    return t;
+}
+
+static PyObject *py_c_rlang(PyObject *self, PyObject *args) {
+    PyObject *f;
+    PyObject *pos_args;
+    PyObject *kw_args;
+    int asis = 0;
+    if (!PyArg_ParseTuple(args, "OOO|p", &f, &pos_args, &kw_args, &asis)) return NULL;
+
+    SEXP t = c_build_rlang(f, pos_args, kw_args, asis);
+    if (t == NULL) return NULL;
+    Rf_protect(t);
+    PyObject *res = c_box_sexp(t);
+    Rf_unprotect(1);
     return res;
+}
+
+static PyObject *py_c_rcall(PyObject *self, PyObject *args) {
+    PyObject *f;
+    PyObject *pos_args;
+    PyObject *kw_args;
+    PyObject *envir = Py_None;
+    int asis = 0;
+    int convert = 0;
+    if (!PyArg_ParseTuple(args, "OOO|Opp", &f, &pos_args, &kw_args, &envir, &asis, &convert)) return NULL;
+
+    SEXP env_s = R_GlobalEnv;
+    if (envir != Py_None) {
+        env_s = extract_sexp(envir);
+        if (env_s == NULL) return NULL;
+    }
+
+    SEXP t = c_build_rlang(f, pos_args, kw_args, asis);
+    if (t == NULL) return NULL;
+    Rf_protect(t);
+
+    int status = 0;
+    SEXP val = R_tryEval(t, env_s, &status);
+    if (status != 0) {
+        Rf_unprotect(1);
+        return Py_BuildValue("(Oi)", Py_None, status);
+    }
+
+    Rf_protect(val);
+    PyObject *ret = convert ? c_rcopy_impl(val, Py_None, 0, 1) : c_box_sexp(val);
+    Rf_unprotect(2);
+    if (ret == NULL) return NULL;
+    return Py_BuildValue("(Ni)", ret, 0);
+}
+
+static PyObject *py_c_reval(PyObject *self, PyObject *args) {
+    PyObject *s_obj;
+    if (!PyArg_ParseTuple(args, "O", &s_obj)) return NULL;
+
+    SEXP expr_s = extract_sexp(s_obj);
+    if (expr_s == NULL) return NULL;
+    Rf_protect(expr_s);
+
+    SEXP val = R_NilValue;
+    int status = 0;
+    R_xlen_t n = Rf_xlength(expr_s);
+    for (R_xlen_t i = 0; i < n; i++) {
+        val = R_tryEval(VECTOR_ELT(expr_s, i), R_GlobalEnv, &status);
+        if (status != 0) {
+            Rf_unprotect(1);
+            return Py_BuildValue("(Oi)", Py_None, status);
+        }
+    }
+
+    Rf_protect(val);
+    PyObject *ret = c_box_sexp(val);
+    Rf_unprotect(2);
+    if (ret == NULL) return NULL;
+    return Py_BuildValue("(Ni)", ret, 0);
 }
 
 static PyObject *py_c_rclass(PyObject *self, PyObject *args) {
@@ -296,7 +386,7 @@ static PyObject *py_c_rsym(PyObject *self, PyObject *args) {
         if (pkg == NULL) return NULL;
         SEXP sym = c_install_py_str(t_obj);
         if (sym == NULL) return NULL;
-        res_sexp = Rf_protect(Rf_lang3(Rf_install("::"), pkg, sym));
+        res_sexp = Rf_protect(Rf_lang3(R_DoubleColonSymbol, pkg, sym));
     } else {
         res_sexp = c_install_py_str(s_obj);
         if (res_sexp == NULL) return NULL;
@@ -307,11 +397,44 @@ static PyObject *py_c_rsym(PyObject *self, PyObject *args) {
     return res;
 }
 
+static PyObject *py_c_parse_text(PyObject *self, PyObject *args) {
+    const char *buf;
+    if (!PyArg_ParseTuple(args, "y", &buf)) return NULL;
+
+    ParseStatus status = PARSE_NULL;
+    SEXP str_s = Rf_protect(Rf_mkString(buf));
+    SEXP val = rchitect_ParseVector(str_s, -1, &status, R_NilValue);
+    if (status != PARSE_OK) {
+        Rf_unprotect(1);
+        return Py_BuildValue("(Oi)", Py_None, (int)status);
+    }
+    Rf_protect(val);
+    PyObject *ret = c_box_sexp(val);
+    Rf_unprotect(2);
+    if (ret == NULL) return NULL;
+    return Py_BuildValue("(Ni)", ret, (int)status);
+}
+
+static PyObject *py_c_parse_text_complete(PyObject *self, PyObject *args) {
+    const char *buf;
+    if (!PyArg_ParseTuple(args, "y", &buf)) return NULL;
+
+    ParseStatus status = PARSE_NULL;
+    SEXP str_s = Rf_protect(Rf_mkString(buf));
+    rchitect_ParseVector(str_s, -1, &status, R_NilValue);
+    Rf_unprotect(1);
+    return PyBool_FromLong(status != PARSE_INCOMPLETE);
+}
+
 static PyMethodDef rchitect_interface_methods[] = {
     {"_c_preserve_sexp", py_c_preserve_sexp, METH_VARARGS, NULL},
     {"_c_release_sexp", py_c_release_sexp, METH_VARARGS, NULL},
     {"_c_sexptype_name", py_c_sexptype_name, METH_VARARGS, NULL},
+    {"_c_parse_text", py_c_parse_text, METH_VARARGS, NULL},
+    {"_c_parse_text_complete", py_c_parse_text_complete, METH_VARARGS, NULL},
     {"_c_rlang", py_c_rlang, METH_VARARGS, NULL},
+    {"_c_rcall", py_c_rcall, METH_VARARGS, NULL},
+    {"_c_reval", py_c_reval, METH_VARARGS, NULL},
     {"_c_rclass", py_c_rclass, METH_VARARGS, NULL},
     {"_c_setclass", py_c_setclass, METH_VARARGS, NULL},
     {"_c_getattrib", py_c_getattrib, METH_VARARGS, NULL},

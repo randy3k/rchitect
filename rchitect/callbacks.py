@@ -162,22 +162,24 @@ def cb_read_console(p, buf, buflen, add_history):
         text = callback.read_console(rconsole2str(ffi.string(p)), add_history)
         if text is None:
             return 0
-        code = utf8tosystem(text)
+        code = utf8tosystem(text) + b"\n"
         _code[0] = code
 
     buf = ffi.cast("char*", buf)
 
     if len(code) < buflen:
         nb = len(code)
-        buf[0:nb] = code[0:nb]
-        buf[nb] = b'\n'
-        buf[nb + 1] = b'\x00'
-    elif len(code) >= buflen:
+    else:
         nb = buflen - 1
-        buf[0:nb] = code[0:nb]
-        buf[nb] = b'\x00'
+        while nb > 0 and (code[nb] & 0xC0) == 0x80:
+            nb -= 1
+        if nb == 0:
+            nb = buflen - 1
 
-    _code[0] = _code[0][nb:]
+    buf[0:nb] = code[0:nb]
+    buf[nb] = b'\x00'
+
+    _code[0] = code[nb:]
     return 1
 
 
