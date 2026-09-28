@@ -75,6 +75,7 @@ jobs:
       # doesn't build, not sure why
       CIBW_SKIP: pp39-win_amd64
       CIBW_ARCHS_WINDOWS: "auto ARM64"
+      CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair --exclude libR.so -w {dest_dir} {wheel}"
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels

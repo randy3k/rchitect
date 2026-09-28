@@ -5,7 +5,7 @@
 
 // begin cdef
 
-SEXP R_ParseVector(SEXP, int, ParseStatus *, SEXP);
+SEXP rchitect_ParseVector(SEXP, int, ParseStatus *, SEXP);
 
 // end cdef
 

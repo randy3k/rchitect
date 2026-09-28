@@ -6,33 +6,20 @@
 
 #include "R.h"
 
-#ifndef _WIN32
-#include <dlfcn.h>
-#else
-#define WIN32_LEAN_AND_MEAN 1
-#include <windows.h>
-#endif
-
 // begin cdef
 
 extern int cb_interrupted;
 
-char *_libR_last_loaded_symbol(void);
-char *_libR_dl_error_message(void);
-int _libR_load(const char *libr_dir);
 int _libR_is_initialized(void);
-int _libR_load_symbols(void);
-int _libR_load_constants(void);
-void _libR_set_callback(char *name, void *cb);
 
 int cb_read_console_interruptible(const char *, unsigned char *, int, int);
 
-void cb_polled_events_interruptible();
+void cb_polled_events_interruptible(void);
 
 void cb_write_console_safe(const char *, int, int);
 void cb_busy_safe(int);
 
-void _libR_setup_xptr_callback();
+void _libR_setup_xptr_callback(void);
 SEXP _libR_xptr_callback(SEXP, SEXP, SEXP, SEXP);
 extern int xptr_callback_error_occured;
 extern char xptr_callback_error_message[4096];
@@ -63,8 +50,8 @@ int cb_edit_files(int, const char **, const char **, const char *);
 SEXP cb_do_selectlist(SEXP, SEXP, SEXP, SEXP);
 SEXP cb_do_dataentry(SEXP, SEXP, SEXP, SEXP);
 SEXP cb_do_dataviewer(SEXP, SEXP, SEXP, SEXP);
-void cb_process_events();
-void cb_polled_events();
+void cb_process_events(void);
+void cb_polled_events(void);
 int cb_yes_no_cancel(const char *s);
 
 SEXP xptr_callback(SEXP, SEXP, SEXP, SEXP);

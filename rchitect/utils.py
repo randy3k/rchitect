@@ -143,6 +143,67 @@ def ensure_path_for_dll(libr_path):
         pass
 
 
+_libr_preloaded = False
+_dll_dir_cookies = []
+
+
+def preload_libr():
+    global _libr_preloaded
+    if _libr_preloaded:
+        return
+
+    rhome = get_rhome()
+    libr_path = get_libr_path(rhome, ensure_path=True)
+    libr_dir = os.path.dirname(libr_path)
+
+    if sys.platform.startswith("win"):
+        if hasattr(os, "add_dll_directory"):
+            try:
+                _dll_dir_cookies.append(os.add_dll_directory(libr_dir))
+            except Exception:
+                pass
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.LoadLibraryExW.argtypes = [
+            ctypes.c_wchar_p,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+        ]
+        kernel32.LoadLibraryExW.restype = ctypes.c_void_p
+        for dll_name in [
+            "R.dll",
+            "Rgraphapp.dll",
+            "Rblas.dll",
+            "Riconv.dll",
+            "Rlapack.dll",
+        ]:
+            dll_path = os.path.join(libr_dir, dll_name)
+            # LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
+            handle = kernel32.LoadLibraryExW(dll_path, None, 0x00001100)
+            if not handle:
+                handle = kernel32.LoadLibraryExW(dll_path, None, 0)
+            if not handle:
+                err = ctypes.get_last_error()
+                raise Exception(
+                    "Cannot load shared library {}: {}".format(
+                        dll_path, ctypes.FormatError(err).strip()
+                    )
+                )
+    else:
+        if sys.platform != "darwin":
+            rblas_path = os.path.join(libr_dir, "libRblas.so")
+            if os.path.exists(rblas_path):
+                try:
+                    ctypes.CDLL(rblas_path, mode=ctypes.RTLD_GLOBAL)
+                except OSError:
+                    pass
+        try:
+            ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)
+        except OSError as e:
+            raise Exception("Cannot load shared library: {}".format(e))
+
+    _libr_preloaded = True
+
+
 def rversion(rhome=None):
     if not rhome:
         rhome = get_rhome()

@@ -49,10 +49,10 @@ def extract(kwargs, key, default=None):
 
 
 def ensure_initialized():
-    if lib.Rf_initialize_R == ffi.NULL:
-        from .setup import init
+    from . import setup
 
-        init(register_callbacks=False, register_signal_handlers=False)
+    if not setup._initialized:
+        setup.init(register_callbacks=False, register_signal_handlers=False)
 
 
 @contextmanager
@@ -125,7 +125,7 @@ def parse_text(s):
     status = ffi.new("ParseStatus[1]")
     s = lib.Rf_mkString(utf8tosystem(s))
     with protected(s), capture_console():  # need to capture stderr
-        ret = lib.R_ParseVector(s, -1, status, lib.R_NilValue)
+        ret = lib.rchitect_ParseVector(s, -1, status, lib.R_NilValue)
         if status[0] != lib.PARSE_OK:
             err = read_stderr().strip() or "Error"
         else:
@@ -167,7 +167,7 @@ def reval_p(s, envir=None):
             status = ffi.new("int[1]")
             with capture_console():  # need to capture stderr
                 for i in range(0, lib.Rf_length(s)):
-                    ret = lib.R_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
+                    ret = lib.rchitect_tryEval(lib.VECTOR_ELT(s, i), lib.R_GlobalEnv, status)
                     if status[0] != 0:
                         err = read_stderr().strip() or "Error"
                         raise RuntimeError("{}".format(err))
@@ -277,7 +277,7 @@ def rcall_p(f, *args, **kwargs):
                 status = ffi.new("int[1]")
                 lang = rlang_p(f, *a, **k)
                 with protected(lang):
-                    val = lib.R_tryEval(lang, _envir, status)
+                    val = lib.rchitect_tryEval(lang, _envir, status)
                     if status[0] != 0:
                         err = read_stderr().strip() or "Error"
                         raise RuntimeError("{}".format(err))
@@ -924,7 +924,7 @@ def sexp(_, f):  # noqa
         nprotect += 1
 
         status = ffi.new("int[1]")
-        val = lib.R_tryEval(lang, env, status)
+        val = lib.rchitect_tryEval(lang, env, status)
         lib.Rf_protect(val)
         nprotect += 1
         setattrib(val, "py_object", fp)

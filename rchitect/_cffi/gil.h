@@ -5,9 +5,9 @@
 
 // begin cdef
 
-void run_Rmainloop(void);
+void rchitect_run_Rmainloop(void);
 
-SEXP R_tryEval(SEXP, SEXP, int *);
+SEXP rchitect_tryEval(SEXP, SEXP, int *);
 
 // end cdef
 
