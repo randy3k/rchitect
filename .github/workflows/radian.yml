@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         r: [latest]
-        python: [3.11]
+        python: ["3.14"]
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -46,5 +46,6 @@ jobs:
           git clone https://github.com/randy3k/radian
           cd radian
           python -m pip install -e .[dev]
+          python -m pip install -e ..
           python -m pip install jedi
           pytest -s
