@@ -46,6 +46,8 @@ def test_none(gctorture):
 def test_ordered_list(gctorture):
     d = OrderedDict([("a", 2), ("b", "hello")])
     assert rcall("identical", robject(d), reval("list(a = 2L, b = 'hello')"), _convert=True)
+    d2 = {"a": 2, "b": "hello"}
+    assert rcall("identical", robject(d2), reval("list(a = 2L, b = 'hello')"), _convert=True)
 
 
 def test_functions(gctorture):
