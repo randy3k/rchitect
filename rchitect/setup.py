@@ -2,31 +2,15 @@ import sys
 import os
 
 from rchitect._cffi import ffi, lib
-from .utils import get_rhome, get_libr_path, system2utf8
+from .utils import get_rhome
 from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
-def load_lib_error():
-    return "Cannot load shared library: {}".format(
-        system2utf8(ffi.string(lib._libR_dl_error_message()))
-    )
-
-
-def load_symbol_error():
-    return "Cannot load symbol {}: {}".format(
-        system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
-        system2utf8(ffi.string(lib._libR_dl_error_message())),
-    )
-
-
-def load_constant_error():
-    return "Cannot load constant {}: {}".format(
-        system2utf8(ffi.string(lib._libR_last_loaded_symbol())),
-        system2utf8(ffi.string(lib._libR_dl_error_message())),
-    )
+_initialized = False
 
 
 def init(args=None, register_callbacks=None, register_signal_handlers=None):
+    global _initialized
 
     if not args:
         args = ["rchitect", "--quiet", "--no-save"]
@@ -40,19 +24,7 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
         )
 
     rhome = get_rhome()
-    libr_path = get_libr_path(rhome, ensure_path=True)
-    libr_dir = os.path.dirname(libr_path)
 
-    libR_loaded = lib.Rf_initialize_R != ffi.NULL
-
-    if not libR_loaded:
-        # `system2utf8` may not work before `Rf_initialize_R` because locale may not be set
-        if not lib._libR_load(libr_dir.encode("utf-8")):
-            raise Exception(load_lib_error())
-        if not lib._libR_load_symbols():
-            raise Exception(load_symbol_error())
-
-    # _libR_is_initialized only works after _libR_load is run.
     if not lib._libR_is_initialized():
 
         _argv = [ffi.new("char[]", a.encode("utf-8")) for a in args]
@@ -65,16 +37,14 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
             else:
                 # Rf_initialize_R will set handler for SIGINT
                 # we need to workaround it
-                lib.R_SignalHandlers_t[0] = 0
+                lib.R_SignalHandlers = 0
                 setup_rstart(rhome, args)
                 lib.R_set_command_line_arguments(len(argv), argv)
                 lib.GA_initapp(0, ffi.NULL)
             lib.setup_Rmainloop()
-            # require R 4.0
-            if lib.EmitEmbeddedUTF8_t != ffi.NULL:
-                lib.EmitEmbeddedUTF8_t[0] = 1
+            lib.EmitEmbeddedUTF8 = 1
         else:
-            lib.R_SignalHandlers_t[0] = register_signal_handlers
+            lib.R_SignalHandlers = int(bool(register_signal_handlers))
             lib.Rf_initialize_R(len(argv), argv)
             setup_unix_callbacks()
             lib.setup_Rmainloop()
@@ -89,9 +59,8 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
             else:
                 setup_unix_callbacks()
 
-    if not libR_loaded:
-        if not lib._libR_load_constants():
-            raise Exception(load_constant_error())
+    if not _initialized:
+        _initialized = True
         lib._libR_setup_xptr_callback()
 
         from rchitect.py_tools import inject_py_tools
@@ -105,7 +74,7 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
 
 
 def loop():
-    lib.run_Rmainloop()
+    lib.rchitect_run_Rmainloop()
 
 
 def ask_input(s):

@@ -10,10 +10,10 @@ typedef struct {
 
 static void protectedParse(void *d) {
     ProtectedParseData *data = (ProtectedParseData *)d;
-    data->val = _R_ParseVector(data->text, data->num, data->status, data->source);
+    data->val = R_ParseVector(data->text, data->num, data->status, data->source);
 }
 
-SEXP R_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) {
+SEXP rchitect_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) {
     Rboolean ok;
     ProtectedParseData d;
     d.text = Rf_protect(text);

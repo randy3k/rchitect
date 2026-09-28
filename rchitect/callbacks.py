@@ -102,10 +102,10 @@ def setup_rstart(rhome, args):
 
 def setup_callback(p, name, cb_name=None):
     if name is None:
-        lib._libR_set_callback(p.encode(), ffi.NULL)
+        setattr(lib, p, ffi.NULL)
     elif getattr(callback, name):
         cb_name = cb_name if cb_name is not None else "cb_" + name
-        lib._libR_set_callback(p.encode(), ffi.addressof(lib, str(cb_name)))
+        setattr(lib, p, ffi.addressof(lib, str(cb_name)))
 
 
 def setup_unix_callbacks():
