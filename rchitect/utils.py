@@ -247,3 +247,122 @@ else:
 
 def id_str(x):
     return str(id(x))
+
+
+def get_utf8_host():
+    if not sys.platform.startswith("win"):
+        return None
+    host = os.path.join(os.path.dirname(os.path.abspath(__file__)), "utf8_host.exe")
+    if os.path.isfile(host):
+        return host
+    return None
+
+
+def should_use_utf8_host(rhome=None):
+    if not sys.platform.startswith("win"):
+        return False
+    if os.environ.get("RCHITECT_UTF8_HOST_DISABLED", "0") == "1":
+        return False
+    if os.environ.get("_RCHITECT_UTF8_HOST_ACTIVE", "0") == "1":
+        return False
+    try:
+        if ctypes.windll.kernel32.GetACP() == 65001:
+            return False
+    except Exception:
+        return False
+    if not get_utf8_host():
+        return False
+    if rversion(rhome) < parse_version("4.2.0"):
+        return False
+    return True
+
+
+def _assign_job_kill_on_close(proc_handle):
+    try:
+        from ctypes import wintypes
+
+        kernel32 = ctypes.windll.kernel32
+        kernel32.CreateJobObjectW.argtypes = [ ctypes.c_void_p, wintypes.LPCWSTR ]
+        kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+        kernel32.SetInformationJobObject.argtypes = [
+            wintypes.HANDLE,
+            ctypes.c_int,
+            ctypes.c_void_p,
+            wintypes.DWORD,
+        ]
+        kernel32.SetInformationJobObject.restype = wintypes.BOOL
+        kernel32.AssignProcessToJobObject.argtypes = [ wintypes.HANDLE, wintypes.HANDLE ]
+        kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
+
+        class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ("PerProcessUserTimeLimit", ctypes.c_int64),
+                ("PerJobUserTimeLimit", ctypes.c_int64),
+                ("LimitFlags", wintypes.DWORD),
+                ("MinimumWorkingSetSize", ctypes.c_size_t),
+                ("MaximumWorkingSetSize", ctypes.c_size_t),
+                ("ActiveProcessLimit", wintypes.DWORD),
+                ("Affinity", ctypes.c_size_t),
+                ("PriorityClass", wintypes.DWORD),
+                ("SchedulingClass", wintypes.DWORD),
+            ]
+
+        class IO_COUNTERS(ctypes.Structure):
+            _fields_ = [
+                ("ReadOperationCount", ctypes.c_uint64),
+                ("WriteOperationCount", ctypes.c_uint64),
+                ("OtherOperationCount", ctypes.c_uint64),
+                ("ReadTransferCount", ctypes.c_uint64),
+                ("WriteTransferCount", ctypes.c_uint64),
+                ("OtherTransferCount", ctypes.c_uint64),
+            ]
+
+        class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+                ("IoInfo", IO_COUNTERS),
+                ("ProcessMemoryLimit", ctypes.c_size_t),
+                ("JobMemoryLimit", ctypes.c_size_t),
+                ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                ("PeakJobMemoryUsed", ctypes.c_size_t),
+            ]
+
+        job = kernel32.CreateJobObjectW(None, None)
+        if not job:
+            return None
+        info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE (0x2000) | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK (0x1000)
+        info.BasicLimitInformation.LimitFlags = 0x2000 | 0x1000
+        # JobObjectExtendedLimitInformation = 9
+        if not kernel32.SetInformationJobObject(job, 9, ctypes.byref(info), ctypes.sizeof(info)):
+            return None
+        kernel32.AssignProcessToJobObject(job, wintypes.HANDLE(proc_handle))
+        return job
+    except Exception:
+        return None
+
+
+def exec_utf8_host(args=None):
+    host = get_utf8_host()
+    if not host:
+        return
+    if args is None:
+        args = sys.argv[1:]
+
+    buf = ctypes.create_unicode_buffer(32768)
+    ctypes.windll.kernel32.GetModuleFileNameW(ctypes.c_void_p(sys.dllhandle), buf, 32768)
+    dll_path = buf.value
+    base_exe = getattr(sys, "_base_executable", sys.executable)
+
+    env = os.environ.copy()
+    env["_RCHITECT_UTF8_HOST_ACTIVE"] = "1"
+    env["_RCHITECT_PYTHON_DLL"] = dll_path
+    env["_RCHITECT_BASE_EXE"] = base_exe
+    if os.path.normcase(sys.executable) != os.path.normcase(base_exe):
+        env["__PYVENV_LAUNCHER__"] = sys.executable
+
+    ctypes.windll.kernel32.SetConsoleCtrlHandler(None, True)
+    p = subprocess.Popen([host] + list(args), env=env)
+    _job = _assign_job_kill_on_close(int(p._handle))  # noqa: F841
+    sys.exit(p.wait())
+
