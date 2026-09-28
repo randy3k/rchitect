@@ -169,16 +169,11 @@ def reval(s, envir=None):
         # we use `base::eval` instead.
         return rcall(("base", "eval"), s, _envir=envir)
 
-    ret = RObject(lib.R_NilValue)
-    status = ffi.new("int[1]")
-    expr_s = s.s
     with capture_console():  # need to capture stderr
-        for i in range(0, lib.Rf_length(expr_s)):
-            val = lib.rchitect_tryEval(lib.VECTOR_ELT(expr_s, i), lib.R_GlobalEnv, status)
-            if status[0] != 0:
-                err = read_stderr().strip() or "Error"
-                raise RuntimeError("{}".format(err))
-            ret = RObject(val)
+        ret, status = _cffi._c_reval(s)
+        if status != 0:
+            err = read_stderr().strip() or "Error"
+            raise RuntimeError("{}".format(err))
     return ret
 
 
@@ -193,16 +188,12 @@ def rcall(f, *args, **kwargs):
     _envir = extract(kwargs, "_envir")
     _asis = extract(kwargs, "_asis", False)
     _convert = extract(kwargs, "_convert", False)
-    env_s = unbox(_envir) if _envir else lib.R_GlobalEnv
-    lang = _cffi._c_rlang(f, args, kwargs, bool(_asis))
-    status = ffi.new("int[1]")
     with capture_console():  # need to capture stderr
-        val = lib.rchitect_tryEval(lang.s, env_s, status)
-        if status[0] != 0:
+        ret, status = _cffi._c_rcall(f, args, kwargs, _envir, bool(_asis), bool(_convert))
+        if status != 0:
             err = read_stderr().strip() or "Error"
             raise RuntimeError("{}".format(err))
-        ret = RObject(val)
-    return rcopy(ret) if _convert else ret
+    return ret
 
 
 def rprint(s, envir=None):

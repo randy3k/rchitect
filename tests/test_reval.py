@@ -38,3 +38,10 @@ def test_rcall_error(gctorture):
     with pytest.raises(Exception) as excinfo:
         rcall("sum", ["a", "b"])
         assert "invalid 'type' (character) of argument" in str(excinfo.value)
+
+
+def test_rcall_tuple(gctorture):
+    assert rcall(("base", "sum"), [1, 2, 3], _convert=True) == 6
+    assert rcall(("base", "::", "sum"), [1, 2, 3], _convert=True) == 6
+    assert isinstance(rcall(("utils", ":::", ".retrieveCompletions"), _convert=True), list)
+
