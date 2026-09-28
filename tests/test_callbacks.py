@@ -22,6 +22,23 @@ def test_read_console_long(mocker, gctorture):
         assert len(rcopy(ret)) == len(s)
 
 
+def test_read_console_long_utf8(mocker, gctorture):
+    mocker.patch("rchitect.callbacks.utf8tosystem", side_effect=lambda x: x.encode("utf-8"))
+    for offset in [0, 1, 2]:
+        s = ("a" * offset) + ("文字" * 1000)
+        mocker.patch("rchitect.setup.ask_input", return_value=s)
+        buf = ffi.new("char[4096]")
+        chunks = []
+        while True:
+            lib.cb_read_console(ffi.new("char[]", b"> "), buf, 4096, 0)
+            chunk = ffi.string(buf).decode("utf-8")
+            chunks.append(chunk)
+            if chunk.endswith("\n"):
+                break
+        assert "".join(chunks) == s + "\n"
+
+
+
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
 def test_read_console_interrupt(mocker, gctorture):
     mocker.patch("rchitect.setup.ask_input", side_effect=KeyboardInterrupt())
