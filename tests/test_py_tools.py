@@ -4,9 +4,19 @@ import os
 
 
 def test_py_tools():
+    unattached_env = new_env()
+    path_unattached = reval("""
+        os <- getOption("rchitect.py_tools")$import("os")
+        os$path$join("foo", "bar")
+    """, envir=unattached_env)
+    assert rcopy(path_unattached) == os.path.join("foo", "bar")
+    assert "path" in rcopy(reval("utils:::.DollarNames(os, 'pa')", envir=unattached_env))
+
     env = new_env()
     reval("getOption('rchitect.py_tools')$attach()", envir=env)
-    assert "import" in rcall("names", env, _convert=True)
+    env_names = rcall("names", env, _convert=True)
+    assert "import" in env_names
+    assert "$.PyObject" not in env_names
 
     reval("os <- import('os')", envir=env)
 

@@ -38,9 +38,8 @@ class RObject(object):
         return False
 
     def __repr__(self):
-        envir = new_env(parent=getoption("rchitect.py_tools"))
         with capture_console(flushable=False):  # need to capture stdout
-            rprint(self, envir=envir)
+            rprint(self)
             output = read_stdout() or ""
 
         name = "RObject{{{}}}".format(_cffi._c_sexptype_name(self))
