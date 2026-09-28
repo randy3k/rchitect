@@ -656,7 +656,31 @@ static SEXP c_sexp_list_with_rclass(
             Rf_unprotect(1);
             return x;
         }
-        if (PyDict_Check(seq)) {
+        if (PyDict_CheckExact(seq)) {
+            Py_ssize_t n = PyDict_Size(seq);
+            SEXP v = Rf_protect(Rf_allocVector(VECSXP, n));
+            SEXP k = Rf_protect(Rf_allocVector(STRSXP, n));
+            Py_ssize_t pos = 0, i = 0;
+            PyObject *key_obj, *val_obj;
+            while (PyDict_Next(seq, &pos, &key_obj, &val_obj)) {
+                SEXP ch = c_mk_rchar_from_py(key_obj);
+                if (ch == NULL) {
+                    Rf_unprotect(2);
+                    return NULL;
+                }
+                SET_STRING_ELT(k, i, ch);
+                SEXP elt = c_sexp_impl(NULL, val_obj, asis, has_convert, convert, invisible);
+                if (elt == NULL) {
+                    Rf_unprotect(2);
+                    return NULL;
+                }
+                SET_VECTOR_ELT(v, i, elt);
+                i++;
+            }
+            Rf_setAttrib(v, R_NamesSymbol, k);
+            Rf_unprotect(2);
+            return v;
+        } else if (PyDict_Check(seq)) {
             PyObject *items = PyMapping_Items(seq);
             if (items == NULL) return NULL;
             Py_ssize_t n = PyList_Size(items);

@@ -154,13 +154,11 @@ static PyObject *py_c_sexptype_name(PyObject *self, PyObject *args) {
 
 static SEXP c_build_rlang(PyObject *f, PyObject *pos_args, PyObject *kw_args, int asis) {
     Py_ssize_t n_pos = PyTuple_Size(pos_args);
-    PyObject *kw_items = PyMapping_Items(kw_args);
-    if (kw_items == NULL) return NULL;
-    Py_ssize_t n_kw = PyList_Size(kw_items);
+    Py_ssize_t n_kw = PyDict_Size(kw_args);
+    if (n_kw < 0) return NULL;
 
     SEXP head_call = Rf_protect(c_as_call(f));
     if (head_call == NULL) {
-        Py_DECREF(kw_items);
         Rf_unprotect(1);
         return NULL;
     }
@@ -173,7 +171,6 @@ static SEXP c_build_rlang(PyObject *f, PyObject *pos_args, PyObject *kw_args, in
         PyObject *a = PyTuple_GetItem(pos_args, i);
         SEXP a_sexp = asis ? c_sexp_as_py_object_impl(a, 0, 0, 1, 0) : c_sexp_impl(NULL, a, 0, 0, 1, 0);
         if (a_sexp == NULL) {
-            Py_DECREF(kw_items);
             Rf_unprotect(2);
             return NULL;
         }
@@ -181,13 +178,11 @@ static SEXP c_build_rlang(PyObject *f, PyObject *pos_args, PyObject *kw_args, in
         SETCAR(s, a_sexp);
     }
 
-    for (Py_ssize_t i = 0; i < n_kw; i++) {
-        PyObject *pair = PyList_GetItem(kw_items, i);
-        PyObject *k_obj = PyTuple_GetItem(pair, 0);
-        PyObject *v_obj = PyTuple_GetItem(pair, 1);
+    Py_ssize_t pos = 0;
+    PyObject *k_obj, *v_obj;
+    while (PyDict_Next(kw_args, &pos, &k_obj, &v_obj)) {
         SEXP v_sexp = asis ? c_sexp_as_py_object_impl(v_obj, 0, 0, 1, 0) : c_sexp_impl(NULL, v_obj, 0, 0, 1, 0);
         if (v_sexp == NULL) {
-            Py_DECREF(kw_items);
             Rf_unprotect(2);
             return NULL;
         }
@@ -195,14 +190,12 @@ static SEXP c_build_rlang(PyObject *f, PyObject *pos_args, PyObject *kw_args, in
         SETCAR(s, v_sexp);
         SEXP tag_sym = c_install_py_str(k_obj);
         if (tag_sym == NULL) {
-            Py_DECREF(kw_items);
             Rf_unprotect(2);
             return NULL;
         }
         SET_TAG(s, tag_sym);
     }
 
-    Py_DECREF(kw_items);
     Rf_unprotect(2);
     return t;
 }

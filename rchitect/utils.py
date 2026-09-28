@@ -229,15 +229,19 @@ UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe", re.S)
 
 
 def rconsole2str(buf):
-    ret = ""
-    m = UTFPATTERN.search(buf)
-    while m:
+    if b"\x02\xff\xfe" not in buf:
+        return system2utf8(buf)
+    parts = []
+    pos = 0
+    for m in UTFPATTERN.finditer(buf):
         a, b = m.span()
-        ret += system2utf8(buf[:a]) + m.group(1).decode("utf-8", "backslashreplace")
-        buf = buf[b:]
-        m = UTFPATTERN.search(buf)
-    ret += system2utf8(buf)
-    return ret
+        if a > pos:
+            parts.append(system2utf8(buf[pos:a]))
+        parts.append(m.group(1).decode("utf-8", "backslashreplace"))
+        pos = b
+    if pos < len(buf):
+        parts.append(system2utf8(buf[pos:]))
+    return "".join(parts)
 
 
 if sys.platform == "win32":
