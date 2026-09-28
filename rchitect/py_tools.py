@@ -21,10 +21,7 @@ def inject_py_tools():
 
     def py_import_builtins(convert=True):
         with sexp_context(convert=convert):
-            if sys.version >= "3":
-                return sexp(importlib.import_module("builtins"))
-            else:
-                return sexp(importlib.import_module("__builtin__"))
+            return sexp(importlib.import_module("builtins"))
 
     def py_call(fun, *args, **kwargs):
         # todo: suuport .asis and .convert

@@ -608,7 +608,7 @@ void _libR_set_callback(char* name, void* cb) {
 }
 
 int xptr_callback_error_occured;
-char xptr_callback_error_message[100];
+char xptr_callback_error_message[4096];
 
 SEXP _libR_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis, SEXP convert) {
     SEXP result;
@@ -620,7 +620,10 @@ SEXP _libR_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis, SEXP convert) {
     result = xptr_callback(exptr, arglist, asis, convert);
     Rf_unprotect(4);
     if (xptr_callback_error_occured == 1) {
-        Rf_error("%s", xptr_callback_error_message);
+        SEXP err_msg = Rf_protect(Rf_ScalarString(Rf_mkCharCE(xptr_callback_error_message, CE_UTF8)));
+        SEXP stop_call = Rf_protect(Rf_lang2(Rf_install("stop"), err_msg));
+        Rf_eval(stop_call, R_BaseEnv);
+        Rf_unprotect(2);
     }
     return result;
 }

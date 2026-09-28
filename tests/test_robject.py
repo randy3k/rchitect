@@ -32,6 +32,7 @@ def test_strings(gctorture):
 
 def test_raw(gctorture):
     assert rcall("rawToChar", robject("raw", b"hello"), _convert=True) == "hello"
+    assert rcopy(robject("raw", b"\x01\x00\x02")) == b"\x01\x00\x02"
 
 
 def test_none(gctorture):
@@ -62,3 +63,12 @@ def test_functions(gctorture):
     ret = rcall(makef)
     assert "PyCallable" in rclass(ret)
     assert rcopy(ret) == f
+
+    msg = "error message " * 30
+
+    def fail():
+        raise ValueError(msg)
+
+    err_fun = robject(fail)
+    captured = rcopy(rcall("tryCatch", rcall("as.call", [err_fun]), error=reval("function(e) conditionMessage(e)")))
+    assert msg in captured

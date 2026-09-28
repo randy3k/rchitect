@@ -35,7 +35,7 @@ void cb_busy_safe(int);
 void _libR_setup_xptr_callback();
 SEXP _libR_xptr_callback(SEXP, SEXP, SEXP, SEXP);
 extern int xptr_callback_error_occured;
-extern char xptr_callback_error_message[100];
+extern char xptr_callback_error_message[4096];
 
 // end cdef
 
