@@ -22,7 +22,7 @@ Homepage = "https://github.com/randy3k/rchitect"
 packages = { find = { where = ["."], exclude = ["tests*"] } }
 
 [tool.setuptools.package-data]
-rchitect = ["reticulate/*.R", "_cffi/*"]
+rchitect = ["reticulate/*.R", "_cffi/*", "utf8_host.exe"]
 
 [tool.setuptools.dynamic]
 version = {attr = "rchitect.__version__"}

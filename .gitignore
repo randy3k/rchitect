@@ -8,3 +8,4 @@ rchitect.egg-info/
 build/
 .venv/
 .vscode/
+rchitect/utf8_host.exe
