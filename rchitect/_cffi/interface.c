@@ -1,7 +1,7 @@
 #include <Python.h>
 #include <string.h>
 
-#include "conv.h"
+#include "robject.h"
 #include "interface.h"
 
 int _libR_is_initialized(void) {
