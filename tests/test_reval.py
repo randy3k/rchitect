@@ -62,3 +62,15 @@ def test_get_rhome_r_binary(monkeypatch):
     assert os.environ.get("R_HOME") == expected_rhome
 
 
+def test_parse_text_complete(gctorture):
+    from rchitect.interface import parse_text_complete, parse_text_incomplete
+
+    assert parse_text_complete("1 + 1")
+    assert not parse_text_incomplete("1 + 1")
+    assert not parse_text_complete("1 + ")
+    assert parse_text_incomplete("1 + ")
+    assert parse_text_complete("1 + *")
+    assert not parse_text_incomplete("1 + *")
+
+
+

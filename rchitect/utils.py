@@ -278,7 +278,7 @@ if sys.platform == "win32":
 
     def utf8tosystem(text):
         loc = locale.getlocale()
-        if loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
+        if text.isascii() or loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
             return text.encode("utf-8", "backslashreplace")
 
         s = ctypes.create_string_buffer(10)

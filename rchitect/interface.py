@@ -128,22 +128,19 @@ def rsym(s, t=None):
 
 def parse_text(s):
     ensure_initialized()
-    status = ffi.new("ParseStatus[1]")
-    s_robj = RObject(lib.Rf_mkString(utf8tosystem(s)))
     with capture_console():  # need to capture stderr
-        val = lib.rchitect_ParseVector(s_robj.s, -1, status, lib.R_NilValue)
-        if status[0] != lib.PARSE_OK:
+        ret, status = _cffi._c_parse_text(utf8tosystem(s))
+        if status != lib.PARSE_OK:
             err = read_stderr().strip() or "Error"
-            ret = None
         else:
             err = None
-            ret = RObject(val)
-        return ret, status[0], err
+        return ret, status, err
 
 
 def parse_text_incomplete(s):
-    _, status, _ = parse_text(s)
-    return status == lib.PARSE_INCOMPLETE
+    ensure_initialized()
+    with capture_console():  # need to capture stderr
+        return not _cffi._c_parse_text_complete(utf8tosystem(s))
 
 
 def parse_text_complete(s):

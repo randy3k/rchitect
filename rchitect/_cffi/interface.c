@@ -397,10 +397,41 @@ static PyObject *py_c_rsym(PyObject *self, PyObject *args) {
     return res;
 }
 
+static PyObject *py_c_parse_text(PyObject *self, PyObject *args) {
+    const char *buf;
+    if (!PyArg_ParseTuple(args, "y", &buf)) return NULL;
+
+    ParseStatus status = PARSE_NULL;
+    SEXP str_s = Rf_protect(Rf_mkString(buf));
+    SEXP val = rchitect_ParseVector(str_s, -1, &status, R_NilValue);
+    if (status != PARSE_OK) {
+        Rf_unprotect(1);
+        return Py_BuildValue("(Oi)", Py_None, (int)status);
+    }
+    Rf_protect(val);
+    PyObject *ret = c_box_sexp(val);
+    Rf_unprotect(2);
+    if (ret == NULL) return NULL;
+    return Py_BuildValue("(Ni)", ret, (int)status);
+}
+
+static PyObject *py_c_parse_text_complete(PyObject *self, PyObject *args) {
+    const char *buf;
+    if (!PyArg_ParseTuple(args, "y", &buf)) return NULL;
+
+    ParseStatus status = PARSE_NULL;
+    SEXP str_s = Rf_protect(Rf_mkString(buf));
+    rchitect_ParseVector(str_s, -1, &status, R_NilValue);
+    Rf_unprotect(1);
+    return PyBool_FromLong(status != PARSE_INCOMPLETE);
+}
+
 static PyMethodDef rchitect_interface_methods[] = {
     {"_c_preserve_sexp", py_c_preserve_sexp, METH_VARARGS, NULL},
     {"_c_release_sexp", py_c_release_sexp, METH_VARARGS, NULL},
     {"_c_sexptype_name", py_c_sexptype_name, METH_VARARGS, NULL},
+    {"_c_parse_text", py_c_parse_text, METH_VARARGS, NULL},
+    {"_c_parse_text_complete", py_c_parse_text_complete, METH_VARARGS, NULL},
     {"_c_rlang", py_c_rlang, METH_VARARGS, NULL},
     {"_c_rcall", py_c_rcall, METH_VARARGS, NULL},
     {"_c_reval", py_c_reval, METH_VARARGS, NULL},
