@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
 def test_read_console(mocker, gctorture):
-    mocker.patch("rchitect.setup.ask_input", return_value="hello")
+    mocker.patch("rchitect.callbacks.ask_input", return_value="hello")
     ret = reval("readline('> ')")
     assert rcopy(ret) == "hello"
 
@@ -15,7 +15,7 @@ def test_read_console(mocker, gctorture):
 def test_read_console_long(mocker, gctorture):
     for h in [2000, 4094, 4095, 4096, 4097, 5000]:
         s = "b" * h
-        mocker.patch("rchitect.setup.ask_input", return_value=s)
+        mocker.patch("rchitect.callbacks.ask_input", return_value=s)
         ret = reval("readline('> ')")
         assert rcopy(ret) == s
         assert len(rcopy(ret)) == len(s)
@@ -25,7 +25,7 @@ def test_read_console_long_utf8(mocker, gctorture):
     mocker.patch("rchitect.callbacks.utf8tosystem", side_effect=lambda x: x.encode("utf-8"))
     for offset in [0, 1, 2]:
         s = ("a" * offset) + ("文字" * 1000)
-        mocker.patch("rchitect.setup.ask_input", return_value=s)
+        mocker.patch("rchitect.callbacks.ask_input", return_value=s)
         buf = ffi.new("char[4096]")
         chunks = []
         while True:
@@ -40,7 +40,7 @@ def test_read_console_long_utf8(mocker, gctorture):
 
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
 def test_read_console_interrupt(mocker, gctorture):
-    mocker.patch("rchitect.setup.ask_input", side_effect=KeyboardInterrupt())
+    mocker.patch("rchitect.callbacks.ask_input", side_effect=KeyboardInterrupt())
     with pytest.raises(Exception) as excinfo:
         reval("readline('> ')")
     assert str(excinfo.value).startswith("Error")
@@ -67,7 +67,7 @@ def test_write_console_stderr(mocker, gctorture):
 
 def test_yes_no_cancel(mocker, gctorture):
     for (a, v) in [('y', 1), ('n', 2), ('c', 0)]:
-        mocker.patch("rchitect.setup.ask_input", return_value=a)
+        mocker.patch("rchitect.callbacks.ask_input", return_value=a)
         ret = lib.cb_yes_no_cancel(ffi.new("char[10]", b"> "))
         assert ret == v
     mocker.resetall()
@@ -83,14 +83,14 @@ def test_yes_no_cancel_exceptions(mocker, gctorture):
         else:
             return "y"
 
-    mocker.patch("rchitect.setup.ask_input", side_effect=throw_on_first_run)
+    mocker.patch("rchitect.callbacks.ask_input", side_effect=throw_on_first_run)
     ret = lib.cb_yes_no_cancel(ffi.new("char[10]", b"> "))
     assert ret == 1
 
-    mocker.patch("rchitect.setup.ask_input", side_effect=EOFError())
+    mocker.patch("rchitect.callbacks.ask_input", side_effect=EOFError())
     ret = lib.cb_yes_no_cancel(ffi.new("char[10]", b"> "))
     assert ret == 0
 
-    mocker.patch("rchitect.setup.ask_input", side_effect=KeyboardInterrupt())
+    mocker.patch("rchitect.callbacks.ask_input", side_effect=KeyboardInterrupt())
     ret = lib.cb_yes_no_cancel(ffi.new("char[10]", b"> "))
     assert ret == 0

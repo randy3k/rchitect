@@ -1,6 +1,8 @@
+import sys
+
 from rchitect._cffi import ffi, lib
-from .utils import rconsole2str, utf8tosystem
 from . import console
+from .console import rconsole2str, utf8tosystem
 
 
 class Callback(object):
@@ -51,8 +53,67 @@ def undef_callback(name):
     setattr(callback, name, None)
 
 
+def ask_input(s):
+    return input(s)
+
+
+@def_callback()
+def show_message(buf):
+    sys.stdout.write(buf)
+    sys.stdout.flush()
+
+
+@def_callback()
+def read_console(p, add_history):
+    sys.stdout.flush()
+    sys.stderr.flush()
+    return ask_input(p)
+
+
+@def_callback()
+def write_console_ex(buf, otype):
+    if otype == 0:
+        if sys.stdout:
+            sys.stdout.write(buf)
+            sys.stdout.flush()
+    else:
+        if sys.stderr:
+            sys.stderr.write(buf)
+            sys.stderr.flush()
+
+
+@def_callback()
+def busy(which):
+    pass
+
+
+@def_callback()
+def polled_events():
+    pass
+
+
+@def_callback()
+def yes_no_cancel(p):
+    while True:
+        try:
+            result = ask_input("{} [y/n/c]: ".format(p))
+            if result in ["Y", "y"]:
+                return 1
+            elif result in ["N", "n"]:
+                return 2
+            else:
+                return 0
+        except EOFError:
+            return 0
+        except KeyboardInterrupt:
+            return 0
+        except Exception:
+            pass
+
+
 # prevent rstart being gc'ed
 _protected = {}
+
 
 
 def setup_rstart(rhome, args):
