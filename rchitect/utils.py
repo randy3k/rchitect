@@ -22,11 +22,13 @@ def is_64bit():
 
 
 def read_registry_from_local_machine(key, valueex):
-    return QueryValueEx(OpenKey(HKEY_LOCAL_MACHINE, key), valueex)
+    with OpenKey(HKEY_LOCAL_MACHINE, key) as k:
+        return QueryValueEx(k, valueex)
 
 
 def read_registry_from_current_user(key, valueex):
-    return QueryValueEx(OpenKey(HKEY_CURRENT_USER, key), valueex)
+    with OpenKey(HKEY_CURRENT_USER, key) as k:
+        return QueryValueEx(k, valueex)
 
 
 def read_registry(key, valueex):
@@ -138,16 +140,18 @@ def get_libr_path(rhome, ensure_path=False):
 
 def ensure_path_for_dll(libr_path):
     libr_dir = os.path.dirname(libr_path)
+    env_path = os.environ.get("PATH", "")
+    if libr_dir not in env_path:
+        os.environ["PATH"] = libr_dir + ";" + env_path
     try:
-        # make sure Rblas.dll can be reachable
+        # make sure Rblas.dll can be reachable in msvcrt as well (R < 4.2)
         msvcrt = ctypes.cdll.msvcrt
         msvcrt._wgetenv.restype = ctypes.c_wchar_p
         path = msvcrt._wgetenv(ctypes.c_wchar_p("PATH"))
-        if libr_dir not in path:
+        if path is not None and libr_dir not in path:
             path = libr_dir + ";" + path
             msvcrt._wputenv(ctypes.c_wchar_p("PATH={}".format(path)))
-    except Exception as e:
-        print(e)
+    except Exception:
         pass
 
 
@@ -165,11 +169,10 @@ def preload_libr():
     libr_dir = os.path.dirname(libr_path)
 
     if sys.platform.startswith("win"):
-        if hasattr(os, "add_dll_directory"):
-            try:
-                _dll_dir_cookies.append(os.add_dll_directory(libr_dir))
-            except Exception:
-                pass
+        try:
+            _dll_dir_cookies.append(os.add_dll_directory(libr_dir))
+        except Exception:
+            pass
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
         kernel32.LoadLibraryExW.argtypes = [
             ctypes.c_wchar_p,
@@ -212,9 +215,35 @@ def preload_libr():
     _libr_preloaded = True
 
 
+_R_VERSION_MAJOR_RE = re.compile(r'^#define\s+R_MAJOR\s+"([^"]+)"', re.M)
+_R_VERSION_MINOR_RE = re.compile(r'^#define\s+R_MINOR\s+"([^"]+)"', re.M)
+_R_DESC_VERSION_RE = re.compile(r"^Version:\s*(\S+)", re.M)
+
+
 def rversion(rhome=None):
     if not rhome:
         rhome = get_rhome()
+    rversion_h = os.path.join(rhome, "include", "Rversion.h")
+    if os.path.isfile(rversion_h):
+        try:
+            with open(rversion_h, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+            m_major = _R_VERSION_MAJOR_RE.search(content)
+            m_minor = _R_VERSION_MINOR_RE.search(content)
+            if m_major and m_minor:
+                return parse_version("{}.{}".format(m_major.group(1), m_minor.group(1)))
+        except Exception:
+            pass
+    base_desc = os.path.join(rhome, "library", "base", "DESCRIPTION")
+    if os.path.isfile(base_desc):
+        try:
+            with open(base_desc, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+            m_ver = _R_DESC_VERSION_RE.search(content)
+            if m_ver:
+                return parse_version(m_ver.group(1))
+        except Exception:
+            pass
     try:
         output = (
             subprocess.check_output(
@@ -254,7 +283,14 @@ def rconsole2str(buf):
     return "".join(parts)
 
 
+_win_is_utf8_acp = False
 if sys.platform == "win32":
+    try:
+        _win_is_utf8_acp = ctypes.windll.kernel32.GetACP() == 65001
+    except Exception:
+        pass
+
+if sys.platform == "win32" and not _win_is_utf8_acp:
     """
     The following only works after setlocale in C and
     R will initialize it for us. To mimic the behaviour, consider
@@ -276,6 +312,8 @@ if sys.platform == "win32":
     wctomb.restype = ctypes.c_int
 
     def system2utf8(buf):
+        if buf.isascii():
+            return buf.decode("ascii")
         loc = locale.getlocale()
         if loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
             return buf.decode("utf-8", DECODE_ERROR_HANDLER)
@@ -291,8 +329,10 @@ if sys.platform == "win32":
         return text
 
     def utf8tosystem(text):
+        if text.isascii():
+            return text.encode("ascii")
         loc = locale.getlocale()
-        if text.isascii() or loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
+        if loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
             return text.encode("utf-8", "backslashreplace")
 
         s = ctypes.create_string_buffer(10)
