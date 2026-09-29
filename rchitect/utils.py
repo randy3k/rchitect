@@ -72,12 +72,22 @@ def get_rhome():
 
     if "R_BINARY" in os.environ:
         rbinary = os.environ["R_BINARY"]
+        cached_rhome = os.environ.get("R_HOME")
+        if (
+            cached_rhome
+            and os.environ.get("_RCHITECT_R_BINARY") == rbinary
+            and os.environ.get("_RCHITECT_R_HOME") == cached_rhome
+            and os.path.isdir(cached_rhome)
+        ):
+            return cached_rhome
         rhome = get_rhome_from_binary(rbinary)
         if not rhome:
             raise RuntimeError(
                 "R binary ({}) does not exist.".format(rbinary)
             )
         os.environ["R_HOME"] = rhome
+        os.environ["_RCHITECT_R_BINARY"] = rbinary
+        os.environ["_RCHITECT_R_HOME"] = rhome
         return rhome
 
     if "R_HOME" in os.environ:
