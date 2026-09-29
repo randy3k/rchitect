@@ -128,9 +128,7 @@ def get_libr_path(rhome, ensure_path=False):
     
     if not os.path.exists(libr_path):
         raise RuntimeError("R share library ({}) does not exist.".format(libr_path))
-    
-    # microsoft python doesn't load DLL's from PATH
-    # we will need to open the DLL's directly in _libR_load    
+
     if sys.platform.startswith("win"):
         if ensure_path:
             ensure_path_for_dll(libr_path)
@@ -180,6 +178,8 @@ def preload_libr():
             ctypes.c_uint32,
         ]
         kernel32.LoadLibraryExW.restype = ctypes.c_void_p
+        # Microsoft Store Python doesn't load DLLs from PATH,
+        # so we open the R DLLs directly by full path.
         for dll_name in [
             "R.dll",
             "Rgraphapp.dll",
