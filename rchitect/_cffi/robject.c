@@ -4,6 +4,13 @@
 #include "robject.h"
 #include "interface.h"
 
+#ifndef PyList_SET_ITEM
+#define PyList_SET_ITEM(op, i, v) ((void)PyList_SetItem((op), (i), (v)))
+#endif
+#ifndef PyTuple_SET_ITEM
+#define PyTuple_SET_ITEM(op, i, v) ((void)PyTuple_SetItem((op), (i), (v)))
+#endif
+
 static PyObject *g_RObject_Type = NULL;
 static PyObject *g_OrderedDict_Type = NULL;
 static PyObject *g_Function_Type = NULL;
