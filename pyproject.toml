@@ -26,3 +26,6 @@ rchitect = ["_cffi/*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "rchitect.__version__"}
+
+[tool.cibuildwheel]
+skip = ["*-win32"]
