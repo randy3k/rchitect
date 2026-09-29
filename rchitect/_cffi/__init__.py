@@ -1,6 +1,6 @@
-from rchitect.utils import preload_libr
+from rchitect.utils import ensure_libr
 
-preload_libr()
+ensure_libr()
 
 from rchitect._cffi_lib import ffi, lib  # noqa: E402
 

@@ -54,7 +54,7 @@ class build_ext(_build_ext):
             self.build_unix_stub_lib()
         super().run()
         if sys.platform.startswith("win"):
-            self.build_utf8_host()
+            self.build_host()
 
     def get_outputs(self):
         outputs = super().get_outputs()
@@ -62,10 +62,12 @@ class build_ext(_build_ext):
 
     def _get_initialized_compiler(self):
         from setuptools._distutils.ccompiler import new_compiler
+        from setuptools._distutils.sysconfig import customize_compiler
 
         compiler = getattr(self, "compiler", None)
         if compiler is None or isinstance(compiler, str):
             compiler = new_compiler(compiler=compiler)
+            customize_compiler(compiler)
         if hasattr(compiler, "initialize") and not getattr(compiler, "initialized", False):
             compiler.initialize()
         return compiler
@@ -102,10 +104,8 @@ class build_ext(_build_ext):
         plat = (getattr(self, "plat_name", None) or "").lower()
         if "arm64" in plat:
             machine = "/MACHINE:ARM64"
-        elif "amd64" in plat or "x64" in plat or sys.maxsize > 2**32:
-            machine = "/MACHINE:X64"
         else:
-            machine = "/MACHINE:X86"
+            machine = "/MACHINE:X64"
 
         r_lib = os.path.join(self.build_temp, "R.lib")
         rga_lib = os.path.join(self.build_temp, "Rgraphapp.lib")
@@ -135,12 +135,11 @@ class build_ext(_build_ext):
         )
         self._add_temp_library_dir(self.build_temp)
 
-    def build_utf8_host(self):
+    def build_host(self):
         compiler = self._get_initialized_compiler()
-
         sources = [
-            os.path.join("rchitect", "_cffi", "utf8_host.c"),
-            os.path.join("rchitect", "_cffi", "utf8_host.rc"),
+            os.path.join("rchitect", "_cffi", "host.c"),
+            os.path.join("rchitect", "_cffi", "host.rc"),
         ]
         objs = compiler.compile(
             sources,
@@ -151,14 +150,15 @@ class build_ext(_build_ext):
         os.makedirs(out_dir, exist_ok=True)
         compiler.link_executable(
             objs,
-            "utf8_host",
+            "host",
             output_dir=out_dir,
+            libraries=["advapi32"],
             extra_postargs=["/MANIFEST:NO", "/STACK:0x4000000"],
         )
-        built_exe = os.path.join(out_dir, "utf8_host.exe")
+        built_exe = os.path.join(out_dir, "host.exe")
         self._extra_outputs.append(built_exe)
         if self.inplace:
-            shutil.copy2(built_exe, os.path.join("rchitect", "utf8_host.exe"))
+            shutil.copy2(built_exe, os.path.join("rchitect", "host.exe"))
 
 
 setup(
