@@ -500,6 +500,12 @@ typedef struct {
     void (*Busy)(int);
     int CharacterMode;
     void (*WriteConsoleEx)(const char *, int, int);
+    int EmitEmbeddedUTF8;
+    void (*CleanUp)(int, int, int);
+    void (*ClearerrConsole)(void);
+    void (*FlushConsole)(void);
+    void (*ResetConsole)(void);
+    void (*Suicide)(const char *);
 } structRstart;
 typedef structRstart *Rstart;
 
