@@ -1,12 +1,17 @@
+from collections import OrderedDict
 import struct
 import sys
-from collections import OrderedDict
 from types import FunctionType
 
 import rchitect._cffi as _cffi
 from rchitect._cffi import ffi, lib
-from .console import capture_console, read_stdout, read_stderr
-from .utils import utf8tosystem
+from .console import capture_console, read_stderr, read_stdout, utf8tosystem
+from .setup import ensure_initialized
+
+
+# =============================================================================
+# 1. RObject & Conversion
+# =============================================================================
 
 
 class RObject(object):
@@ -87,20 +92,30 @@ lib._rchitect_init_conv(
 )
 
 
-def extract(kwargs, key, default=None):
-    if key in kwargs:
-        value = kwargs[key]
-        del kwargs[key]
+def rcopy(*args, **kwargs):
+    ensure_initialized()
+    asis = bool(kwargs.get("asis", False))
+    convert = bool(kwargs.get("convert", True))
+    if len(args) == 1:
+        return _cffi._c_rcopy(None, args[0], asis, convert)
+    elif len(args) == 2:
+        return _cffi._c_rcopy(args[0], args[1], asis, convert)
     else:
-        value = default
-    return value
+        raise TypeError("wrong number of arguments")
 
 
-def ensure_initialized():
-    from . import setup
-
-    if not setup._initialized:
-        setup.init(register_callbacks=False, register_signal_handlers=False)
+def robject(*args, **kwargs):
+    ensure_initialized()
+    asis = bool(kwargs.get("asis", False))
+    has_convert = "convert" in kwargs and kwargs["convert"] is not None
+    convert = bool(kwargs.get("convert", True))
+    invisible = int(bool(kwargs.get("invisible", False)))
+    if len(args) == 2 and isinstance(args[0], str):
+        return _cffi._c_sexp(args[0], args[1], asis, has_convert, convert, invisible)
+    elif len(args) == 1:
+        return _cffi._c_sexp(None, args[0], asis, has_convert, convert, invisible)
+    else:
+        raise TypeError("wrong number of arguments or argument types")
 
 
 def rint(s):
@@ -126,6 +141,11 @@ def rstring(s):
 def rsym(s, t=None):
     ensure_initialized()
     return _cffi._c_rsym(s, t)
+
+
+# =============================================================================
+# 2. Parsing, Evaluation & Calls
+# =============================================================================
 
 
 def parse_text(s):
@@ -178,15 +198,15 @@ def reval(s, envir=None):
 
 def rlang(f, *args, **kwargs):
     ensure_initialized()
-    _asis = extract(kwargs, "_asis", False)
+    _asis = kwargs.pop("_asis", False)
     return _cffi._c_rlang(f, args, kwargs, bool(_asis))
 
 
 def rcall(f, *args, **kwargs):
     ensure_initialized()
-    _envir = extract(kwargs, "_envir")
-    _asis = extract(kwargs, "_asis", False)
-    _convert = extract(kwargs, "_convert", False)
+    _envir = kwargs.pop("_envir", None)
+    _asis = kwargs.pop("_asis", False)
+    _convert = kwargs.pop("_convert", False)
     with capture_console():  # need to capture stderr
         ret, status = _cffi._c_rcall(f, args, kwargs, _envir, bool(_asis), bool(_convert))
         if status != 0:
@@ -208,19 +228,9 @@ def rprint(s, envir=None):
         lib.Rf_defineVar(symx.s, lib.R_NilValue, envir.s)
 
 
-def getoption(key):
-    ensure_initialized()
-    sym = rsym(key)
-    return RObject(lib.Rf_GetOption1(sym.s))
-
-
-def roption(key, default=None):
-    ret = rcopy(getoption(key))
-    return ret if ret is not None else default
-
-
-def setoption(key, value):
-    rcall(("base", "options"), **{key: value})
+# =============================================================================
+# 3. Attributes, Classes, Options & Environments
+# =============================================================================
 
 
 def getattrib(s, key):
@@ -238,26 +248,29 @@ def rnames(s):
     return _cffi._c_rnames(s)
 
 
-def setclass(s, classes):
-    ensure_initialized()
-    _cffi._c_setclass(s, classes)
-
-
 def rclass(s, singleString=0):
     ensure_initialized()
     return _cffi._c_rclass(s, bool(singleString))
 
 
-def process_events():
-    lib.process_events()
+def setclass(s, classes):
+    ensure_initialized()
+    _cffi._c_setclass(s, classes)
 
 
-def polled_events():
-    lib.polled_events()
+def getoption(key):
+    ensure_initialized()
+    sym = rsym(key)
+    return RObject(lib.Rf_GetOption1(sym.s))
 
 
-def peek_event():
-    return lib.peek_event()
+def roption(key, default=None):
+    ret = rcopy(getoption(key))
+    return ret if ret is not None else default
+
+
+def setoption(key, value):
+    rcall(("base", "options"), **{key: value})
 
 
 def new_env(parent=None):
@@ -273,6 +286,23 @@ def package_event(pkg, event):
     return rcall(("base", "packageEvent"), pkg, event)
 
 
+# =============================================================================
+# 4. Event Loop & Session Info
+# =============================================================================
+
+
+def process_events():
+    lib.process_events()
+
+
+def polled_events():
+    lib.polled_events()
+
+
+def peek_event():
+    return lib.peek_event()
+
+
 def greeting():
     info = rcopy(rcall("R.Version"))
     return '{} -- "{}"\nPlatform: {} ({}-bit)\n'.format(
@@ -282,28 +312,3 @@ def greeting():
         8 * struct.calcsize("P"),
     )
 
-
-def rcopy(*args, **kwargs):
-    ensure_initialized()
-    asis = bool(kwargs.get("asis", False))
-    convert = bool(kwargs.get("convert", True))
-    if len(args) == 1:
-        return _cffi._c_rcopy(None, args[0], asis, convert)
-    elif len(args) == 2:
-        return _cffi._c_rcopy(args[0], args[1], asis, convert)
-    else:
-        raise TypeError("wrong number of arguments")
-
-
-def robject(*args, **kwargs):
-    ensure_initialized()
-    asis = bool(kwargs.get("asis", False))
-    has_convert = "convert" in kwargs and kwargs["convert"] is not None
-    convert = bool(kwargs.get("convert", True))
-    invisible = int(bool(kwargs.get("invisible", False)))
-    if len(args) == 2 and isinstance(args[0], str):
-        return _cffi._c_sexp(args[0], args[1], asis, has_convert, convert, invisible)
-    elif len(args) == 1:
-        return _cffi._c_sexp(None, args[0], asis, has_convert, convert, invisible)
-    else:
-        raise TypeError("wrong number of arguments or argument types")

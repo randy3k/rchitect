@@ -1,9 +1,9 @@
-import sys
 import os
+import sys
 
 from rchitect._cffi import ffi, lib
+from .callbacks import setup_rstart, setup_unix_callbacks
 from .utils import get_rhome
-from .callbacks import def_callback, setup_unix_callbacks, setup_rstart
 
 
 _initialized = False
@@ -26,7 +26,6 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
     rhome = get_rhome()
 
     if not lib._libR_is_initialized():
-
         _argv = [ffi.new("char[]", a.encode("utf-8")) for a in args]
         argv = ffi.new("char *[]", _argv)
 
@@ -63,78 +62,21 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
         _initialized = True
         lib._libR_setup_xptr_callback()
 
-        from rchitect.py_tools import inject_py_tools
+        from .py_tools import inject_py_tools
 
         inject_py_tools()
 
         if os.environ.get("RCHITECT_RETICULATE_CONFIG", "1") != "0":
-            from rchitect import reticulate
+            from . import reticulate
 
             reticulate.configure()
+
+
+def ensure_initialized():
+    if not _initialized:
+        init(register_callbacks=False, register_signal_handlers=False)
 
 
 def loop():
     lib.rchitect_run_Rmainloop()
 
-
-def ask_input(s):
-    return input(s)
-
-
-@def_callback()
-def show_message(buf):
-    sys.stdout.write(buf)
-    sys.stdout.flush()
-
-
-@def_callback()
-def read_console(p, add_history):
-    sys.stdout.flush()
-    sys.stderr.flush()
-    return ask_input(p)
-
-
-@def_callback()
-def write_console_ex(buf, otype):
-    if otype == 0:
-        if sys.stdout:
-            sys.stdout.write(buf)
-            sys.stdout.flush()
-    else:
-        if sys.stderr:
-            sys.stderr.write(buf)
-            sys.stderr.flush()
-
-
-@def_callback()
-def busy(which):
-    pass
-
-
-@def_callback()
-def polled_events():
-    pass
-
-
-# @def_callback()
-# def clean_up(saveact, status, run_last):
-#     lib.Rstd_CleanUp(saveact, status, run_last)
-
-
-@def_callback()
-def yes_no_cancel(p):
-    while True:
-        try:
-            result = ask_input("{} [y/n/c]: ".format(p))
-            if result in ["Y", "y"]:
-                return 1
-            elif result in ["N", "n"]:
-                return 2
-            else:
-                return 0
-        except EOFError:
-            return 0
-        except KeyboardInterrupt:
-            return 0
-        except Exception:
-            pass
