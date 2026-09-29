@@ -1,10 +1,10 @@
+import ctypes
+import locale
 import os
+import platform
 import re
 import subprocess
 import sys
-import platform
-import ctypes
-import locale
 from shutil import which
 
 from packaging.version import parse as parse_version
@@ -13,12 +13,13 @@ if sys.platform.startswith("win"):
     from winreg import OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER
 
 
+# =============================================================================
+# 1. R Discovery & Version
+# =============================================================================
+
+
 def is_arm():
     return platform.machine().lower() == "arm64"
-
-
-def is_64bit():
-    return sys.maxsize > 2**32
 
 
 def read_registry_from_local_machine(key, valueex):
@@ -50,13 +51,9 @@ def read_r_install_path_from_registry():
     return None
 
 
-DECODE_ERROR_HANDLER = "backslashreplace"
-
-
-
 def get_rhome_from_binary(rbinary):
     if sys.platform.startswith("win"):
-        if rbinary and not rbinary.endswith(".exe"):
+        if rbinary and not rbinary.lower().endswith((".exe", ".bat", ".cmd")):
             rbinary = rbinary + ".exe"
 
     if not which(rbinary):
@@ -72,7 +69,7 @@ def get_rhome_from_binary(rbinary):
 def get_rhome():
     rhome = None
 
-    if "R_BINARY" in os.environ:
+    if os.environ.get("R_BINARY"):
         rbinary = os.environ["R_BINARY"]
         cached_rhome = os.environ.get("R_HOME")
         if (
@@ -84,15 +81,13 @@ def get_rhome():
             return cached_rhome
         rhome = get_rhome_from_binary(rbinary)
         if not rhome:
-            raise RuntimeError(
-                "R binary ({}) does not exist.".format(rbinary)
-            )
+            raise RuntimeError("R binary ({}) does not exist.".format(rbinary))
         os.environ["R_HOME"] = rhome
         os.environ["_RCHITECT_R_BINARY"] = rbinary
         os.environ["_RCHITECT_R_HOME"] = rhome
         return rhome
 
-    if "R_HOME" in os.environ:
+    if os.environ.get("R_HOME"):
         rhome = os.environ["R_HOME"]
         if not os.path.isdir(rhome):
             raise RuntimeError("R_HOME ({}) does not exist.".format(rhome))
@@ -100,9 +95,8 @@ def get_rhome():
 
     rhome = get_rhome_from_binary("R")
 
-    if not rhome:
-        if sys.platform.startswith("win"):
-            rhome = read_r_install_path_from_registry()        
+    if not rhome and sys.platform.startswith("win"):
+        rhome = read_r_install_path_from_registry()
 
     if rhome:
         os.environ["R_HOME"] = rhome
@@ -110,109 +104,6 @@ def get_rhome():
         raise RuntimeError("Cannot determine R HOME.")
 
     return rhome
-
-
-def get_libr_path(rhome, ensure_path=False):
-    # TODO: better support R_ARCH
-    if sys.platform.startswith("win"):
-        if is_arm():
-            libr_path = os.path.join(rhome, "bin", "R.dll")
-        elif is_64bit():
-            libr_path = os.path.join(rhome, "bin", "x64", "R.dll")
-        else:
-            libr_path = os.path.join(rhome, "bin", "i386", "R.dll")
-    elif sys.platform == "darwin":
-        libr_path = os.path.join(rhome, "lib", "libR.dylib")
-    else:
-        libr_path = os.path.join(rhome, "lib", "libR.so")
-    
-    if not os.path.exists(libr_path):
-        raise RuntimeError("R share library ({}) does not exist.".format(libr_path))
-
-    if sys.platform.startswith("win"):
-        if ensure_path:
-            ensure_path_for_dll(libr_path)
-
-    return libr_path
-
-
-def ensure_path_for_dll(libr_path):
-    libr_dir = os.path.dirname(libr_path)
-    env_path = os.environ.get("PATH", "")
-    if libr_dir not in env_path:
-        os.environ["PATH"] = libr_dir + ";" + env_path
-    try:
-        # make sure Rblas.dll can be reachable in msvcrt as well (R < 4.2)
-        msvcrt = ctypes.cdll.msvcrt
-        msvcrt._wgetenv.restype = ctypes.c_wchar_p
-        path = msvcrt._wgetenv(ctypes.c_wchar_p("PATH"))
-        if path is not None and libr_dir not in path:
-            path = libr_dir + ";" + path
-            msvcrt._wputenv(ctypes.c_wchar_p("PATH={}".format(path)))
-    except Exception:
-        pass
-
-
-_libr_preloaded = False
-_dll_dir_cookies = []
-
-
-def preload_libr():
-    global _libr_preloaded
-    if _libr_preloaded:
-        return
-
-    rhome = get_rhome()
-    libr_path = get_libr_path(rhome, ensure_path=True)
-    libr_dir = os.path.dirname(libr_path)
-
-    if sys.platform.startswith("win"):
-        try:
-            _dll_dir_cookies.append(os.add_dll_directory(libr_dir))
-        except Exception:
-            pass
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel32.LoadLibraryExW.argtypes = [
-            ctypes.c_wchar_p,
-            ctypes.c_void_p,
-            ctypes.c_uint32,
-        ]
-        kernel32.LoadLibraryExW.restype = ctypes.c_void_p
-        # Microsoft Store Python doesn't load DLLs from PATH,
-        # so we open the R DLLs directly by full path.
-        for dll_name in [
-            "R.dll",
-            "Rgraphapp.dll",
-            "Rblas.dll",
-            "Riconv.dll",
-            "Rlapack.dll",
-        ]:
-            dll_path = os.path.join(libr_dir, dll_name)
-            # LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
-            handle = kernel32.LoadLibraryExW(dll_path, None, 0x00001100)
-            if not handle:
-                handle = kernel32.LoadLibraryExW(dll_path, None, 0)
-            if not handle:
-                err = ctypes.get_last_error()
-                raise Exception(
-                    "Cannot load shared library {}: {}".format(
-                        dll_path, ctypes.FormatError(err).strip()
-                    )
-                )
-    else:
-        if sys.platform != "darwin":
-            rblas_path = os.path.join(libr_dir, "libRblas.so")
-            if os.path.exists(rblas_path):
-                try:
-                    ctypes.CDLL(rblas_path, mode=ctypes.RTLD_GLOBAL)
-                except OSError:
-                    pass
-        try:
-            ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)
-        except OSError as e:
-            raise Exception("Cannot load shared library: {}".format(e))
-
-    _libr_preloaded = True
 
 
 _R_VERSION_MAJOR_RE = re.compile(r'^#define\s+R_MAJOR\s+"([^"]+)"', re.M)
@@ -264,126 +155,275 @@ def rversion(rhome=None):
     return version
 
 
-UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe", re.S)
+def ensure_path_for_dll(libr_path):
+    libr_dir = os.path.dirname(libr_path)
+    env_path = os.environ.get("PATH", "")
+    if libr_dir not in env_path:
+        os.environ["PATH"] = libr_dir + ";" + env_path
 
 
-def rconsole2str(buf):
-    if b"\x02\xff\xfe" not in buf:
-        return system2utf8(buf)
-    parts = []
-    pos = 0
-    for m in UTFPATTERN.finditer(buf):
-        a, b = m.span()
-        if a > pos:
-            parts.append(system2utf8(buf[pos:a]))
-        parts.append(m.group(1).decode("utf-8", "backslashreplace"))
-        pos = b
-    if pos < len(buf):
-        parts.append(system2utf8(buf[pos:]))
-    return "".join(parts)
+def get_libr_path(rhome, ensure_path=False):
+    # TODO: better support R_ARCH
+    if sys.platform.startswith("win"):
+        if is_arm():
+            libr_path = os.path.join(rhome, "bin", "R.dll")
+        else:
+            libr_path = os.path.join(rhome, "bin", "x64", "R.dll")
+    elif sys.platform == "darwin":
+        libr_path = os.path.join(rhome, "lib", "libR.dylib")
+    else:
+        libr_path = os.path.join(rhome, "lib", "libR.so")
+
+    if not os.path.exists(libr_path):
+        raise RuntimeError("R share library ({}) does not exist.".format(libr_path))
+
+    if sys.platform.startswith("win") and ensure_path:
+        ensure_path_for_dll(libr_path)
+
+    return libr_path
 
 
-_win_is_utf8_acp = False
-if sys.platform == "win32":
+# =============================================================================
+# 2. Shared Library Loading & Preload State
+# =============================================================================
+
+_libr_loaded = False
+_external_libr = False
+_host_active = False
+_dll_dir_cookies = []
+
+
+def _is_libr_in_process():
     try:
-        _win_is_utf8_acp = ctypes.windll.kernel32.GetACP() == 65001
+        if sys.platform.startswith("win"):
+            kernel32 = ctypes.windll.kernel32
+            kernel32.GetModuleHandleW.argtypes = [ctypes.c_wchar_p]
+            kernel32.GetModuleHandleW.restype = ctypes.c_void_p
+            return bool(kernel32.GetModuleHandleW("R.dll"))
+        else:
+            return hasattr(ctypes.CDLL(None), "R_GlobalEnv")
+    except Exception:
+        return False
+
+
+def reset_preload_env():
+    global _libr_loaded, _external_libr, _host_active
+    if not _host_active and not _libr_loaded:
+        if (
+            "_RCHITECT_HOST_ACTIVE" not in os.environ
+            and "_RCHITECT_LIBR_LOADED" not in os.environ
+            and _is_libr_in_process()
+        ):
+            _external_libr = True
+            _libr_loaded = True
+
+    if os.environ.pop("_RCHITECT_HOST_ACTIVE", None) == "1":
+        _host_active = True
+    if os.environ.pop("_RCHITECT_LIBR_LOADED", None) == "1":
+        if sys.platform.startswith("win"):
+            _libr_loaded = True
+        else:
+            _libr_loaded = _is_libr_in_process()
+
+    preload_libs = os.environ.pop("_RCHITECT_PRELOAD_LIBS", None)
+    if not preload_libs:
+        return
+
+    var = "DYLD_INSERT_LIBRARIES" if sys.platform == "darwin" else "LD_PRELOAD"
+    if var not in os.environ:
+        return
+
+    injected = set(preload_libs.split(":"))
+    libs = [lib for lib in os.environ[var].split(":") if lib and lib not in injected]
+    if libs:
+        os.environ[var] = ":".join(libs)
+    else:
+        del os.environ[var]
+
+
+reset_preload_env()
+
+
+def setup_r_dll_dir(rhome=None):
+    if not rhome:
+        rhome = get_rhome()
+    libr_path = get_libr_path(rhome, ensure_path=True)
+    libr_dir = os.path.dirname(libr_path)
+    try:
+        _dll_dir_cookies.append(os.add_dll_directory(libr_dir))
     except Exception:
         pass
 
-if sys.platform == "win32" and not _win_is_utf8_acp:
-    """
-    The following only works after setlocale in C and
-    R will initialize it for us. To mimic the behaviour, consider
-    ```
-    ctypes.cdll.msvcrt.setlocale(0, ctypes.c_char_p("chinese-traditional"))
-    ```
-    """
 
-    mbtowc = ctypes.cdll.msvcrt.mbtowc
-    mbtowc.argtypes = [
-        ctypes.POINTER(ctypes.c_wchar),
-        ctypes.POINTER(ctypes.c_char),
-        ctypes.c_size_t,
-    ]
-    mbtowc.restype = ctypes.c_int
-
-    wctomb = ctypes.cdll.msvcrt.wctomb
-    wctomb.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.c_wchar]
-    wctomb.restype = ctypes.c_int
-
-    def system2utf8(buf):
-        if buf.isascii():
-            return buf.decode("ascii")
-        loc = locale.getlocale()
-        if loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
-            return buf.decode("utf-8", DECODE_ERROR_HANDLER)
-
-        wcbuf = ctypes.create_unicode_buffer(1)
-        text = ""
-        while buf:
-            n = mbtowc(wcbuf, buf, len(buf))
-            if n <= 0:
-                break
-            text += wcbuf[0]
-            buf = buf[n:]
-        return text
-
-    def utf8tosystem(text):
-        if text.isascii():
-            return text.encode("ascii")
-        loc = locale.getlocale()
-        if loc[1] == "UTF-8" or loc[1] == "utf8" or loc[1] == "65001":
-            return text.encode("utf-8", "backslashreplace")
-
-        s = ctypes.create_string_buffer(10)
-        buf = b""
-        for c in text:
+def load_libr(rhome=None):
+    if not rhome:
+        rhome = get_rhome()
+    libr_path = get_libr_path(rhome)
+    libr_dir = os.path.dirname(libr_path)
+    if sys.platform != "darwin":
+        rblas_path = os.path.join(libr_dir, "libRblas.so")
+        if os.path.exists(rblas_path):
             try:
-                n = wctomb(s, c)
-            except Exception:
-                n = -1
-
-            if n > 0:
-                buf += s[:n]
-            else:
-                buf += "\\u{{{}}}".format(hex(ord(c))[2:]).encode("ascii")
-        return buf
-
-else:
-
-    def system2utf8(buf):
-        return buf.decode("utf-8", DECODE_ERROR_HANDLER)
-
-    def utf8tosystem(text):
-        return text.encode("utf-8", "backslashreplace")
+                ctypes.CDLL(rblas_path, mode=ctypes.RTLD_GLOBAL)
+            except OSError:
+                pass
+    try:
+        ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)
+    except OSError as e:
+        raise Exception("Cannot load shared library: {}".format(e))
 
 
-def get_utf8_host():
+def ensure_libr():
+    global _libr_loaded
+    reset_preload_env()
+    rhome = get_rhome()
+    if rversion(rhome) < parse_version("4.2.0"):
+        raise RuntimeError("R >= 4.2.0 is required")
+    if _libr_loaded:
+        return
+    if sys.platform.startswith("win"):
+        setup_r_dll_dir(rhome)
+    else:
+        load_libr(rhome)
+    _libr_loaded = True
+
+
+# =============================================================================
+# 3. Host Launcher & Process Re-Exec
+# =============================================================================
+
+
+def get_host():
     if not sys.platform.startswith("win"):
         return None
-    host = os.path.join(os.path.dirname(os.path.abspath(__file__)), "utf8_host.exe")
+    host = os.path.join(os.path.dirname(os.path.abspath(__file__)), "host.exe")
     if os.path.isfile(host):
         return host
     return None
 
 
-def should_use_utf8_host(rhome=None):
-    if not sys.platform.startswith("win"):
+def should_use_host():
+    reset_preload_env()
+    if _host_active or _external_libr:
         return False
-    if os.environ.get("RCHITECT_UTF8_HOST_DISABLED", "0") == "1":
+    if os.environ.get("RCHITECT_HOST_DISABLED", "0") == "1":
         return False
-    if os.environ.get("_RCHITECT_UTF8_HOST_ACTIVE", "0") == "1":
-        return False
-    try:
-        if ctypes.windll.kernel32.GetACP() == 65001:
-            return False
-    except Exception:
-        return False
-    if not get_utf8_host():
-        return False
-    if rversion(rhome) < parse_version("4.2.0"):
+    if sys.platform.startswith("win") and not get_host():
         return False
     return True
+
+
+def _get_macos_blas_path(libr_path):
+    class _Dl_info(ctypes.Structure):
+        _fields_ = [
+            ("dli_fname", ctypes.c_char_p),
+            ("dli_fbase", ctypes.c_void_p),
+            ("dli_sname", ctypes.c_char_p),
+            ("dli_saddr", ctypes.c_void_p),
+        ]
+
+    lib_dir = os.path.dirname(libr_path)
+    open_path = os.path.realpath(libr_path)
+    try:
+        libc = ctypes.CDLL(None)
+        libc.dlopen.argtypes = [ctypes.c_char_p, ctypes.c_int]
+        libc.dlopen.restype = ctypes.c_void_p
+        libc.dlsym.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        libc.dlsym.restype = ctypes.c_void_p
+        libc.dladdr.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Dl_info)]
+        libc.dladdr.restype = ctypes.c_int
+        libc.dlclose.argtypes = [ctypes.c_void_p]
+        libc.dlclose.restype = ctypes.c_int
+
+        # RTLD_LAZY (0x1) | RTLD_LOCAL (0x4)
+        handle = libc.dlopen(open_path.encode("utf-8"), 0x1 | 0x4)
+        if handle:
+            try:
+                addr = libc.dlsym(handle, b"dgemm_")
+                info = _Dl_info()
+                if addr and libc.dladdr(addr, ctypes.byref(info)) and info.dli_fname:
+                    blas_path = info.dli_fname.decode("utf-8", "ignore")
+                    if blas_path:
+                        return blas_path
+            finally:
+                libc.dlclose(handle)
+    except Exception:
+        pass
+    fallback = os.path.join(lib_dir, "libRblas.dylib")
+    if os.path.isfile(fallback):
+        return fallback
+    return None
+
+
+def _setup_unix_preload_env(rhome, env):
+    lib_path = os.path.join(rhome, "lib")
+    ldpaths = os.path.join(rhome, "etc", "ldpaths")
+    ldpaths_out = ""
+
+    if os.path.isfile(ldpaths):
+        try:
+            sub_env = env.copy()
+            sub_env["_RCHITECT_TMP_LDPATHS"] = ldpaths
+            ldpaths_out = (
+                subprocess.check_output(
+                    [
+                        "/bin/sh",
+                        "-c",
+                        '. "$_RCHITECT_TMP_LDPATHS" >/dev/null 2>&1; printf "%s" "$R_LD_LIBRARY_PATH"',
+                    ],
+                    env=sub_env,
+                )
+                .decode("utf-8", "ignore")
+                .strip()
+            )
+        except Exception:
+            pass
+    else:
+        ldpaths_out = env.get("R_LD_LIBRARY_PATH", "")
+
+    if not ldpaths_out:
+        r_ld_library_path = lib_path
+    elif lib_path not in ldpaths_out.split(":"):
+        r_ld_library_path = "{}:{}".format(lib_path, ldpaths_out)
+    else:
+        r_ld_library_path = ldpaths_out
+    env["R_LD_LIBRARY_PATH"] = r_ld_library_path
+
+    ld_var = "DYLD_FALLBACK_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH"
+    existing_ld = env.get(ld_var, "")
+    env[ld_var] = (
+        "{}:{}".format(r_ld_library_path, existing_ld) if existing_ld else r_ld_library_path
+    )
+
+    if sys.platform == "darwin":
+        libr_path = os.path.join(lib_path, "libR.dylib")
+        if os.path.isfile(libr_path):
+            open_path = os.path.realpath(libr_path)
+            blas_path = _get_macos_blas_path(libr_path)
+            if blas_path and blas_path != libr_path and blas_path != open_path:
+                preload_libs = "{}:{}".format(blas_path, libr_path)
+            else:
+                preload_libs = libr_path
+            existing_insert = env.get("DYLD_INSERT_LIBRARIES", "")
+            env["DYLD_INSERT_LIBRARIES"] = (
+                "{}:{}".format(existing_insert, preload_libs) if existing_insert else preload_libs
+            )
+            env["_RCHITECT_PRELOAD_LIBS"] = preload_libs
+            env["_RCHITECT_LIBR_LOADED"] = "1"
+    else:
+        libr_path = os.path.join(lib_path, "libR.so")
+        rblas_path = os.path.join(lib_path, "libRblas.so")
+        if os.path.isfile(libr_path):
+            if os.path.isfile(rblas_path):
+                preload_libs = "{}:{}".format(rblas_path, libr_path)
+            else:
+                preload_libs = libr_path
+            existing_preload = env.get("LD_PRELOAD", "")
+            env["LD_PRELOAD"] = (
+                "{}:{}".format(existing_preload, preload_libs) if existing_preload else preload_libs
+            )
+            env["_RCHITECT_PRELOAD_LIBS"] = preload_libs
+            env["_RCHITECT_LIBR_LOADED"] = "1"
 
 
 def _assign_job_kill_on_close(proc_handle):
@@ -391,7 +431,7 @@ def _assign_job_kill_on_close(proc_handle):
         from ctypes import wintypes
 
         kernel32 = ctypes.windll.kernel32
-        kernel32.CreateJobObjectW.argtypes = [ ctypes.c_void_p, wintypes.LPCWSTR ]
+        kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
         kernel32.CreateJobObjectW.restype = wintypes.HANDLE
         kernel32.SetInformationJobObject.argtypes = [
             wintypes.HANDLE,
@@ -400,7 +440,7 @@ def _assign_job_kill_on_close(proc_handle):
             wintypes.DWORD,
         ]
         kernel32.SetInformationJobObject.restype = wintypes.BOOL
-        kernel32.AssignProcessToJobObject.argtypes = [ wintypes.HANDLE, wintypes.HANDLE ]
+        kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
         kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
 
         class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
@@ -451,27 +491,132 @@ def _assign_job_kill_on_close(proc_handle):
         return None
 
 
-def exec_utf8_host(args=None):
-    host = get_utf8_host()
-    if not host:
-        return
+def exec_host(args=None):
     if args is None:
         args = sys.argv[1:]
+    args = list(args)
 
-    buf = ctypes.create_unicode_buffer(32768)
-    ctypes.windll.kernel32.GetModuleFileNameW(ctypes.c_void_p(sys.dllhandle), buf, 32768)
-    dll_path = buf.value
-    base_exe = getattr(sys, "_base_executable", sys.executable)
+    if sys.platform.startswith("win"):
+        host = get_host()
+        if not host:
+            return
+        env = os.environ.copy()
+        env["_RCHITECT_HOST_ACTIVE"] = "1"
 
-    env = os.environ.copy()
-    env["_RCHITECT_UTF8_HOST_ACTIVE"] = "1"
-    env["_RCHITECT_PYTHON_DLL"] = dll_path
-    env["_RCHITECT_BASE_EXE"] = base_exe
-    if os.path.normcase(sys.executable) != os.path.normcase(base_exe):
-        env["__PYVENV_LAUNCHER__"] = sys.executable
+        buf = ctypes.create_unicode_buffer(32768)
+        ctypes.windll.kernel32.GetModuleFileNameW(ctypes.c_void_p(sys.dllhandle), buf, 32768)
+        dll_path = buf.value
+        base_exe = getattr(sys, "_base_executable", sys.executable)
 
-    ctypes.windll.kernel32.SetConsoleCtrlHandler(None, True)
-    p = subprocess.Popen([host] + list(args), env=env)
-    _job = _assign_job_kill_on_close(int(p._handle))  # noqa: F841
-    sys.exit(p.wait())
+        env["_RCHITECT_PYTHON_DLL"] = dll_path
+        env["_RCHITECT_BASE_EXE"] = base_exe
+        if os.path.normcase(sys.executable) != os.path.normcase(base_exe):
+            env["__PYVENV_LAUNCHER__"] = sys.executable
 
+        ctypes.windll.kernel32.SetConsoleCtrlHandler(None, True)
+        p = subprocess.Popen([host] + args, env=env)
+        _job = _assign_job_kill_on_close(int(p._handle))  # noqa: F841
+        sys.exit(p.wait())
+    else:
+        for i, arg in enumerate(args):
+            if arg.startswith("--r-binary=") and arg[11:]:
+                os.environ["R_BINARY"] = arg[11:]
+            elif arg == "--r-binary" and i + 1 < len(args) and args[i + 1]:
+                os.environ["R_BINARY"] = args[i + 1]
+
+        rhome = None
+        try:
+            rhome = get_rhome()
+        except Exception:
+            pass
+
+        env = os.environ.copy()
+        env["_RCHITECT_HOST_ACTIVE"] = "1"
+        if rhome and os.path.isdir(rhome):
+            _setup_unix_preload_env(rhome, env)
+
+        os.execve(sys.executable, [sys.executable] + args, env)
+
+
+def maybe_reexec(args=None, module=None):
+    if not should_use_host():
+        return
+    if args is None:
+        reexec_args = ["-P"] if sys.version_info >= (3, 11) else []
+        if module:
+            reexec_args += ["-m", module] + sys.argv[1:]
+        else:
+            reexec_args += sys.argv
+    else:
+        reexec_args = list(args)
+    exec_host(reexec_args)
+
+
+# =============================================================================
+# 4. Console Text & Encoding Helpers
+# =============================================================================
+
+DECODE_ERROR_HANDLER = "backslashreplace"
+UTFPATTERN = re.compile(b"\x02\xff\xfe(.*?)\x03\xff\xfe", re.S)
+
+_win_is_utf8_acp = False
+if sys.platform == "win32":
+    try:
+        _win_is_utf8_acp = ctypes.windll.kernel32.GetACP() == 65001
+    except Exception:
+        pass
+
+if sys.platform == "win32" and not _win_is_utf8_acp:
+
+    def _win_encoding():
+        loc = locale.getlocale()[1]
+        if not loc:
+            return "mbcs"
+        if loc in ("UTF-8", "utf8", "65001"):
+            return "utf-8"
+        if loc.isdigit():
+            return "cp" + loc
+        return loc
+
+    def system2utf8(buf):
+        if buf.isascii():
+            return buf.decode("ascii")
+        return buf.decode(_win_encoding(), DECODE_ERROR_HANDLER)
+
+    def utf8tosystem(text):
+        if text.isascii():
+            return text.encode("ascii")
+        enc = _win_encoding()
+        if enc == "utf-8":
+            return text.encode("utf-8", "backslashreplace")
+        buf = []
+        for c in text:
+            try:
+                buf.append(c.encode(enc))
+            except UnicodeEncodeError:
+                buf.append("\\u{{{}}}".format(hex(ord(c))[2:]).encode("ascii"))
+        return b"".join(buf)
+
+else:
+
+    def system2utf8(buf):
+        return buf.decode("utf-8", DECODE_ERROR_HANDLER)
+
+    def utf8tosystem(text):
+        return text.encode("utf-8", "backslashreplace")
+
+
+def rconsole2str(buf):
+    if b"\x02\xff\xfe" not in buf:
+        return system2utf8(buf)
+    parts = []
+    pos = 0
+    for m in UTFPATTERN.finditer(buf):
+        a, b = m.span()
+        if a > pos:
+            parts.append(system2utf8(buf[pos:a]))
+        parts.append(m.group(1).decode("utf-8", "backslashreplace"))
+        pos = b
+    if pos < len(buf):
+        parts.append(system2utf8(buf[pos:]))
+    return "".join(parts)
