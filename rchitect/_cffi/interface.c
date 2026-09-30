@@ -258,9 +258,17 @@ static PyObject *py_c_reval(PyObject *self, PyObject *args) {
 
     SEXP val = R_NilValue;
     int status = 0;
-    R_xlen_t n = Rf_xlength(expr_s);
-    for (R_xlen_t i = 0; i < n; i++) {
-        val = R_tryEval(VECTOR_ELT(expr_s, i), R_GlobalEnv, &status);
+    if (TYPEOF(expr_s) == EXPRSXP) {
+        R_xlen_t n = Rf_xlength(expr_s);
+        for (R_xlen_t i = 0; i < n; i++) {
+            val = R_tryEval(VECTOR_ELT(expr_s, i), R_GlobalEnv, &status);
+            if (status != 0) {
+                Rf_unprotect(1);
+                return Py_BuildValue("(Oi)", Py_None, status);
+            }
+        }
+    } else {
+        val = R_tryEval(expr_s, R_GlobalEnv, &status);
         if (status != 0) {
             Rf_unprotect(1);
             return Py_BuildValue("(Oi)", Py_None, status);
