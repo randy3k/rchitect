@@ -3,30 +3,64 @@
 
 #include "callbacks.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <windows.h>
+static DWORD main_thread_id = 0;
+
+int rchitect_is_main_process(void) {
+    return 1;
+}
+
+int rchitect_is_main_thread(void) {
+    if (main_thread_id == 0) {
+        main_thread_id = GetCurrentThreadId();
+    }
+    return GetCurrentThreadId() == main_thread_id;
+}
+#else
+#include <pthread.h>
 #include <unistd.h>  // for getpid
+static pid_t main_id = -1;
+static pthread_t main_thread;
+
+int rchitect_is_main_process(void) {
+    if (main_id == -1) {
+        main_id = getpid();
+        main_thread = pthread_self();
+    }
+    return getpid() == main_id;
+}
+
+int rchitect_is_main_thread(void) {
+    return rchitect_is_main_process() && pthread_equal(pthread_self(), main_thread);
+}
 #endif
 
-#ifndef _WIN32
-static int main_id = -1;
+void rchitect_record_main_thread(void) {
+#ifdef _WIN32
+    main_thread_id = GetCurrentThreadId();
+#else
+    main_id = getpid();
+    main_thread = pthread_self();
 #endif
+}
 
 int cb_interrupted;
 
 // cffi releases GIL, so we need to ensure it. Mainly needed for loading reticulate.
 void rchitect_run_Rmainloop(void) {
     PyGILState_STATE gstate = PyGILState_Ensure();
+    rchitect_record_main_thread();
     run_Rmainloop();
     PyGILState_Release(gstate);
 }
 
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
-int cb_read_console_interruptible(const char* p, unsigned char* buf, int buflen, int add_history) {
+int cb_read_console_safe(const char* p, unsigned char* buf, int buflen, int add_history) {
     // flush buffered stdio
     fflush(NULL);
 #ifndef _WIN32
-    if (main_id == -1) main_id = getpid();
-    if (getpid() != main_id) abort();
+    if (!rchitect_is_main_thread()) abort();
 #endif
     int ret;
     cb_interrupted = 0;
@@ -43,11 +77,8 @@ int cb_read_console_interruptible(const char* p, unsigned char* buf, int buflen,
     return ret;
 }
 
-void cb_polled_events_interruptible(void) {
-#ifndef _WIN32
-    if (main_id == -1) main_id = getpid();
-    if (getpid() != main_id) return;
-#endif
+void cb_polled_events_safe(void) {
+    if (!rchitect_is_main_thread()) return;
     cb_polled_events();
     if (cb_interrupted == 1) {
         cb_interrupted = 0;
@@ -62,23 +93,18 @@ void cb_polled_events_interruptible(void) {
 
 #ifdef _WIN32
 
-void cb_write_console_safe(const char* s, int bufline, int otype) {
-    cb_write_console_capturable(s, bufline, otype);
-}
-
-void cb_busy_safe(int which) {
-    cb_busy(which);
+void cb_write_console_ex_safe(const char* s, int bufline, int otype) {
+    cb_write_console_ex(s, bufline, otype);
 }
 
 #else
 
-void cb_write_console_safe(const char* s, int bufline, int otype) {
-    if (main_id == -1) main_id = getpid();
-    // only capture the main process
-    if (getpid() == main_id) {
-        // flush buffered stdio
-        fflush(NULL);
-        cb_write_console_capturable(s, bufline, otype);
+void cb_write_console_ex_safe(const char* s, int bufline, int otype) {
+    // flush buffered stdio
+    fflush(NULL);
+    // only capture the main process and thread
+    if (rchitect_is_main_thread()) {
+        cb_write_console_ex(s, bufline, otype);
     } else {
         if (otype == 0) {
             printf("%s", s);
@@ -90,13 +116,12 @@ void cb_write_console_safe(const char* s, int bufline, int otype) {
     }
 }
 
+#endif
+
 void cb_busy_safe(int which) {
-    if (main_id == -1) main_id = getpid();
-    if (getpid() != main_id) return;
+    if (!rchitect_is_main_thread()) return;
     cb_busy(which);
 }
-
-#endif
 
 static void _process_events(void* n) {
     R_ProcessEvents();
@@ -117,7 +142,7 @@ void process_events(void) {
 #if defined(_WIN32)
 
 void polled_events(void) {
-    cb_polled_events();
+    cb_polled_events_safe();
 }
 
 int peek_event(void) {
@@ -127,7 +152,7 @@ int peek_event(void) {
 #else
 
 void polled_events(void) {
-    R_ToplevelExec((void (*)(void*))cb_polled_events_interruptible, NULL);
+    R_ToplevelExec((void (*)(void*))cb_polled_events_safe, NULL);
 }
 
 static void Call_R_checkActivity(void** what) {
