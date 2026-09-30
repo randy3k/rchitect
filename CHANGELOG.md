@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.1 - 2026-09-29
+
+### Bug Fixes
+
+* Detect Python architecture accurately on Windows ARM64, match R registry install path by architecture, and patch `reticulate:::current_python_arch` on Windows ARM64 R ([#40](https://github.com/randy3k/rchitect/issues/40), [#51](https://github.com/randy3k/rchitect/pull/51))
+
+**Full Changelog**: https://github.com/randy3k/rchitect/compare/v0.5.0...v0.5.1
+
 ## 0.5.0 - 2026-09-29
 
 ### Features
