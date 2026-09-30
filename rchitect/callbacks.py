@@ -5,7 +5,62 @@ from . import console
 from .console import rconsole2str, utf8tosystem
 
 
-class Callback(object):
+_CALLBACK_NAMES = frozenset(
+    {
+        "suicide",
+        "show_message",
+        "read_console",
+        "write_console_ex",
+        "reset_console",
+        "flush_console",
+        "clearerr_console",
+        "busy",
+        "clean_up",
+        "show_files",
+        "choose_file",
+        "edit_file",
+        "loadhistory",
+        "savehistory",
+        "addhistory",
+        "edit_files",
+        "do_selectlist",
+        "do_dataentry",
+        "do_dataviewer",
+        "process_events",
+        "polled_events",
+        "yes_no_cancel",
+    }
+)
+
+_UNIX_CALLBACKS = {
+    "suicide": ("ptr_R_Suicide", None),
+    "show_message": ("ptr_R_ShowMessage", None),
+    "read_console": ("ptr_R_ReadConsole", "cb_read_console_interruptible"),
+    "write_console_ex": ("ptr_R_WriteConsoleEx", "cb_write_console_safe"),
+    "reset_console": ("ptr_R_ResetConsole", None),
+    "flush_console": ("ptr_R_FlushConsole", None),
+    "clearerr_console": ("ptr_R_ClearerrConsole", None),
+    "busy": ("ptr_R_Busy", "cb_busy_safe"),
+    "clean_up": ("ptr_R_CleanUp", None),
+    "show_files": ("ptr_R_ShowFiles", None),
+    "choose_file": ("ptr_R_ChooseFile", None),
+    "edit_file": ("ptr_R_EditFile", None),
+    "loadhistory": ("ptr_R_loadhistory", None),
+    "savehistory": ("ptr_R_savehistory", None),
+    "addhistory": ("ptr_R_addhistory", None),
+    "edit_files": ("ptr_R_EditFiles", None),
+    "do_selectlist": ("ptr_do_selectlist", None),
+    "do_dataentry": ("ptr_do_dataentry", None),
+    "do_dataviewer": ("ptr_do_dataviewer", None),
+    "process_events": ("ptr_R_ProcessEvents", None),
+    "polled_events": ("R_PolledEvents", "cb_polled_events_interruptible"),
+}
+
+_unix_callbacks_initialized = False
+_default_unix_callbacks = {}
+
+
+class Callback:
     suicide = None
     show_message = None
     read_console = None
@@ -30,7 +85,7 @@ class Callback(object):
     yes_no_cancel = None
 
     def __setattr__(self, item, value):
-        if item not in Callback.__dict__.keys():
+        if item not in _CALLBACK_NAMES:
             raise KeyError()
         self.__dict__[item] = value
 
@@ -41,16 +96,20 @@ console.reg_callback(callback)
 
 def def_callback(name=None):
     def _(fun):
-        fname = name
-        if fname is None:
-            fname = fun.__name__
+        fname = name if name is not None else fun.__name__
         setattr(callback, fname, fun)
+        if _unix_callbacks_initialized and fname in _UNIX_CALLBACKS:
+            p, cb_name = _UNIX_CALLBACKS[fname]
+            setup_callback(p, fname, cb_name)
 
     return _
 
 
 def undef_callback(name):
     setattr(callback, name, None)
+    if _unix_callbacks_initialized and name in _UNIX_CALLBACKS:
+        p, cb_name = _UNIX_CALLBACKS[name]
+        setup_callback(p, name, cb_name)
 
 
 def ask_input(s):
@@ -115,7 +174,6 @@ def yes_no_cancel(p):
 _protected = {}
 
 
-
 def setup_rstart(rhome, args):
     rstart = ffi.new("Rstart")
     _protected["rstart"] = rstart
@@ -162,39 +220,26 @@ def setup_rstart(rhome, args):
 
 
 def setup_callback(p, name, cb_name=None):
+    if p not in _default_unix_callbacks:
+        _default_unix_callbacks[p] = getattr(lib, p)
     if name is None:
         setattr(lib, p, ffi.NULL)
     elif getattr(callback, name):
         cb_name = cb_name if cb_name is not None else "cb_" + name
         setattr(lib, p, ffi.addressof(lib, str(cb_name)))
+    else:
+        setattr(lib, p, _default_unix_callbacks[p])
 
 
 def setup_unix_callbacks():
+    global _unix_callbacks_initialized
+    _unix_callbacks_initialized = True
     setup_callback("R_Outputfile", None)
     setup_callback("R_Consolefile", None)
-
-    setup_callback("ptr_R_Suicide", "suicide")
-    setup_callback("ptr_R_ShowMessage", "show_message")
-    setup_callback("ptr_R_ReadConsole", "read_console", "cb_read_console_interruptible")
     setup_callback("ptr_R_WriteConsole", None)
-    setup_callback("ptr_R_WriteConsoleEx", "write_console_ex", "cb_write_console_safe")
-    setup_callback("ptr_R_ResetConsole", "reset_console")
-    setup_callback("ptr_R_FlushConsole", "flush_console")
-    setup_callback("ptr_R_ClearerrConsole", "clearerr_console")
-    setup_callback("ptr_R_Busy", "busy", "cb_busy_safe")
-    setup_callback("ptr_R_CleanUp", "clean_up")
-    setup_callback("ptr_R_ShowFiles", "show_files")
-    setup_callback("ptr_R_ChooseFile", "choose_file")
-    setup_callback("ptr_R_EditFile", "edit_file")
-    setup_callback("ptr_R_loadhistory", "loadhistory")
-    setup_callback("ptr_R_savehistory", "savehistory")
-    setup_callback("ptr_R_addhistory", "addhistory")
-    setup_callback("ptr_R_EditFiles", "edit_files")
-    setup_callback("ptr_do_selectlist", "do_selectlist")
-    setup_callback("ptr_do_dataentry", "do_dataentry")
-    setup_callback("ptr_do_dataviewer", "do_dataviewer")
-    setup_callback("ptr_R_ProcessEvents", "process_events")
-    setup_callback("R_PolledEvents", "polled_events", "cb_polled_events_interruptible")
+
+    for name, (p, cb_name) in _UNIX_CALLBACKS.items():
+        setup_callback(p, name, cb_name)
 
 
 @ffi.def_extern()
