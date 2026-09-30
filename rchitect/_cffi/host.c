@@ -154,11 +154,42 @@ static int read_reg_install_path_win(HKEY root, const wchar_t *subkey, wchar_t *
     return 0;
 }
 
+static int has_matching_libr_win(const wchar_t *rhome) {
+    wchar_t libr_path[32768];
+#if defined(_M_ARM64) || defined(__aarch64__)
+    _snwprintf_s(libr_path, 32768, _TRUNCATE, L"%ls\\bin\\R.dll", rhome);
+#else
+    _snwprintf_s(libr_path, 32768, _TRUNCATE, L"%ls\\bin\\x64\\R.dll", rhome);
+#endif
+    return is_file_win(libr_path);
+}
+
 static int read_registry_rhome_win(wchar_t *out, size_t out_cap) {
-    if (read_reg_install_path_win(HKEY_CURRENT_USER, L"Software\\WOW6432Node\\R-Core\\R", out, out_cap)) return 1;
-    if (read_reg_install_path_win(HKEY_LOCAL_MACHINE, L"Software\\WOW6432Node\\R-Core\\R", out, out_cap)) return 1;
-    if (read_reg_install_path_win(HKEY_CURRENT_USER, L"Software\\R-Core\\R", out, out_cap)) return 1;
-    if (read_reg_install_path_win(HKEY_LOCAL_MACHINE, L"Software\\R-Core\\R", out, out_cap)) return 1;
+    const HKEY roots[4] = {HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+    const wchar_t *subkeys[4] = {
+        L"Software\\R-Core\\R",
+        L"Software\\R-Core\\R",
+        L"Software\\WOW6432Node\\R-Core\\R",
+        L"Software\\WOW6432Node\\R-Core\\R",
+    };
+    wchar_t fallback[32768];
+    int has_fallback = 0;
+
+    for (int i = 0; i < 4; i++) {
+        if (read_reg_install_path_win(roots[i], subkeys[i], out, out_cap)) {
+            if (!has_fallback) {
+                wcscpy_s(fallback, 32768, out);
+                has_fallback = 1;
+            }
+            if (has_matching_libr_win(out)) {
+                return 1;
+            }
+        }
+    }
+    if (has_fallback) {
+        wcscpy_s(out, out_cap, fallback);
+        return 1;
+    }
     return 0;
 }
 
