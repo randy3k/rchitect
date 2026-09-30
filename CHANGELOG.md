@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.0 - 2026-09-29
+
+### Features
+
+* Add `rchitect/host.exe` on Windows with a UTF-8 fusion manifest (`GetACP() == 65001`) and unified cross-platform `maybe_reexec()` / `exec_host()` ([#44](https://github.com/randy3k/rchitect/pull/44), [#48](https://github.com/randy3k/rchitect/pull/48))
+* Require Python >= 3.10 and R >= 4.2.0 ([#44](https://github.com/randy3k/rchitect/pull/44), [#48](https://github.com/randy3k/rchitect/pull/48))
+
+### Bug Fixes
+
+* Add R 4.0+ and R 4.2+ fields to `structRstart` on Windows ([#46](https://github.com/randy3k/rchitect/pull/46))
+* Ensure UTF-8 character boundary safety in `cb_read_console` ([#45](https://github.com/randy3k/rchitect/pull/45))
+* Define `PyList_SET_ITEM` and `PyTuple_SET_ITEM` fallbacks for free-threaded Python 3.15 (`cp315t`) ([#47](https://github.com/randy3k/rchitect/pull/47))
+* Support non-`EXPRSXP` objects in `reval()` and dynamically update Unix callback pointers in `def_callback()` / `undef_callback()` ([#49](https://github.com/randy3k/rchitect/pull/49))
+
+### Performance & Refactoring
+
+* Dynamically link `libR` and replace Python dispatch conversion machinery with direct C conversions (`_c_sexp_to_py` / `_c_py_to_sexp`), C `rcall`/`reval`, and lazy `rchitect` top-level imports ([#44](https://github.com/randy3k/rchitect/pull/44), [#45](https://github.com/randy3k/rchitect/pull/45))
+* Simplify `reticulate` and `py_tools` S3 method registration via `base::registerS3method` ([#44](https://github.com/randy3k/rchitect/pull/44))
+* Cache `R_BINARY` resolution in `get_rhome()`, read `Rversion.h` directly in `rversion()`, and cache R completion functions ([#45](https://github.com/randy3k/rchitect/pull/45), [#46](https://github.com/randy3k/rchitect/pull/46))
+
+**Full Changelog**: https://github.com/randy3k/rchitect/compare/v0.4.10...v0.5.0
+
 ## 0.4.10 - 2026-05-01
 
 ### Other
