@@ -47,12 +47,9 @@ void rchitect_record_main_thread(void) {
 
 int cb_interrupted;
 
-// cffi releases GIL, so we need to ensure it. Mainly needed for loading reticulate.
 void rchitect_run_Rmainloop(void) {
-    PyGILState_STATE gstate = PyGILState_Ensure();
     rchitect_record_main_thread();
     run_Rmainloop();
-    PyGILState_Release(gstate);
 }
 
 // we need to wrap cb_read_console to make it KeyboardInterrupt aware
@@ -100,10 +97,13 @@ void cb_write_console_ex_safe(const char* s, int bufline, int otype) {
 #else
 
 void cb_write_console_ex_safe(const char* s, int bufline, int otype) {
-    // flush buffered stdio
-    fflush(NULL);
-    // only capture the main process and thread
-    if (rchitect_is_main_thread()) {
+    // only capture the main process (worker threads are queued in console.py)
+    int is_main = rchitect_is_main_thread();
+    if (is_main || rchitect_is_main_process()) {
+        if (is_main) {
+            // flush buffered stdio
+            fflush(NULL);
+        }
         cb_write_console_ex(s, bufline, otype);
     } else {
         if (otype == 0) {

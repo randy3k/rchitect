@@ -1,9 +1,11 @@
+import atexit
+from collections import deque
 from contextlib import contextmanager
 import ctypes
-from io import StringIO
 import locale
 import re
 import sys
+import threading
 
 
 # =============================================================================
@@ -80,11 +82,11 @@ def rconsole2str(buf):
 # 2. Console Output & Capture
 # =============================================================================
 
-output_buffer = StringIO()
-error_buffer = StringIO()
+_buffer = deque()
 _flushable = True
 _capture_state = False
 _callback = None
+_main_thread_ident = threading.main_thread().ident
 
 
 def reg_callback(callback):
@@ -92,36 +94,43 @@ def reg_callback(callback):
     _callback = callback
 
 
+def record_main_thread():
+    global _main_thread_ident
+    _main_thread_ident = threading.get_ident()
+
+
 def write_console(buf, otype):
-    if _capture_state:
-        if otype == 0:
-            output_buffer.write(buf)
-        else:
-            error_buffer.write(buf)
+    is_main = threading.get_ident() == _main_thread_ident
+    if _capture_state or not is_main:
+        _buffer.append((buf, otype, is_main))
     else:
+        if _buffer:
+            flush()
         _callback.write_console_ex(buf, otype)
 
 
-def read_buffer(b):
-    out = ""
-    try:
-        b.seek(0)
-        out = b.getvalue()
-        b.seek(0)
-        b.truncate(0)
-    except SystemError:
-        # catch possible exception
-        # see https://github.com/randy3k/radian/issues/288
-        pass
-    return out
+def _read_by_otype(target_otype):
+    if not _buffer:
+        return ""
+    out = []
+    remaining = []
+    while _buffer:
+        buf, otype, capturable = _buffer.popleft()
+        if capturable and (otype == 0) == (target_otype == 0):
+            out.append(buf)
+        else:
+            remaining.append((buf, otype, capturable))
+    if remaining:
+        _buffer.extendleft(reversed(remaining))
+    return "".join(out)
 
 
 def read_stdout():
-    return read_buffer(output_buffer)
+    return _read_by_otype(0)
 
 
 def flush_stdout():
-    if not _flushable:
+    if not _flushable or threading.get_ident() != _main_thread_ident:
         return
     out = read_stdout()
     if out:
@@ -129,11 +138,11 @@ def flush_stdout():
 
 
 def read_stderr():
-    return read_buffer(error_buffer)
+    return _read_by_otype(1)
 
 
 def flush_stderr():
-    if not _flushable:
+    if not _flushable or threading.get_ident() != _main_thread_ident:
         return
     err = read_stderr()
     if err:
@@ -141,14 +150,27 @@ def flush_stderr():
 
 
 def flush():
-    flush_stdout()
-    flush_stderr()
+    if not _buffer or not _flushable or threading.get_ident() != _main_thread_ident:
+        return
+    chunks = []
+    while _buffer:
+        buf, otype, _ = _buffer.popleft()
+        norm_otype = 0 if otype == 0 else 1
+        if chunks and chunks[-1][1] == norm_otype:
+            chunks[-1][0].append(buf)
+        else:
+            chunks.append(([buf], norm_otype))
+    for bufs, otype in chunks:
+        text = "".join(bufs)
+        if text:
+            _callback.write_console_ex(text, otype)
 
 
 @contextmanager
 def capture_console(flushable=True):
     global _capture_state
     global _flushable
+    flush()
     _capture_state_old = _capture_state
     _capture_state = True
     _flushable_old = _flushable
@@ -156,8 +178,21 @@ def capture_console(flushable=True):
     try:
         yield
     finally:
+        if not flushable:
+            kept = []
+            while _buffer:
+                item = _buffer.popleft()
+                if not item[2]:
+                    kept.append(item)
+            if kept:
+                _buffer.extendleft(reversed(kept))
         _capture_state = _capture_state_old
-        if flushable and _capture_state == 0:
-            flush()
         _flushable = _flushable_old
+        if not _capture_state and _flushable:
+            flush()
+
+
+atexit.register(flush)
+
+
 

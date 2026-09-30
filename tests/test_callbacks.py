@@ -65,6 +65,73 @@ def test_write_console_stderr(mocker, gctorture):
     mocker_write_console.assert_called_once_with('helloworld', 1)
 
 
+def test_write_console_worker_thread(mocker, gctorture):
+    import threading
+
+    mocker_write_console_ex = mocker.patch("rchitect.callbacks.callback.write_console_ex")
+    mocker_busy = mocker.patch("rchitect.callbacks.callback.busy")
+    mocker_polled_events = mocker.patch("rchitect.callbacks.callback.polled_events")
+
+    def worker():
+        out_buf = ffi.new("char[]", b"worker stdout\n")
+        err_buf = ffi.new("char[]", b"worker stderr\n")
+        lib.cb_write_console_ex_safe(out_buf, 14, 0)
+        lib.cb_write_console_ex_safe(err_buf, 14, 1)
+        lib.cb_busy_safe(1)
+        lib.cb_polled_events_safe()
+
+    t = threading.Thread(target=worker)
+    t.start()
+    t.join()
+
+    # Worker thread output is queued, not written from the worker thread
+    mocker_write_console_ex.assert_not_called()
+    mocker_busy.assert_not_called()
+    mocker_polled_events.assert_not_called()
+
+    # Main thread flushes the queued worker output in order along with its own output
+    reval("cat('main thread')")
+    assert mocker_write_console_ex.call_args_list == [
+        mocker.call("worker stdout\n", 0),
+        mocker.call("worker stderr\n", 1),
+        mocker.call("main thread", 0),
+    ]
+
+    # Verify GIL is released during reval so a worker thread can call cb_write_console_ex_safe
+    # while R is executing without deadlocking
+    mocker_write_console_ex.reset_mock()
+    worker_done = threading.Event()
+
+    def concurrent_worker():
+        buf = ffi.new("char[]", b"during reval\n")
+        lib.cb_write_console_ex_safe(buf, 13, 0)
+        worker_done.set()
+
+    t2 = threading.Thread(target=concurrent_worker)
+    t2.start()
+    reval("Sys.sleep(0.05)")
+    t2.join(timeout=1.0)
+    assert worker_done.is_set()
+    assert mocker_write_console_ex.call_args_list == [
+        mocker.call("during reval\n", 0),
+    ]
+
+    # Verify worker output does not contaminate RObject.__repr__ or RuntimeError messages
+    obj = reval("1L")
+    mocker_write_console_ex.reset_mock()
+    t3 = threading.Thread(target=worker)
+    t3.start()
+    t3.join()
+    assert "worker stdout" not in repr(obj)
+    assert mocker_write_console_ex.call_args_list == [
+        mocker.call("worker stdout\n", 0),
+        mocker.call("worker stderr\n", 1),
+    ]
+
+
+
+
+
 def test_yes_no_cancel(mocker, gctorture):
     for (a, v) in [('y', 1), ('n', 2), ('c', 0)]:
         mocker.patch("rchitect.callbacks.ask_input", return_value=a)
