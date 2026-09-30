@@ -4,6 +4,7 @@ import sys
 from rchitect.interface import (
     rcall,
     rcopy,
+    reval,
     robject,
     setattrib,
     set_hook,
@@ -55,6 +56,25 @@ def configure():
         if python_path and python_path not in sys.path:
             sys.path.append(python_path)
         ns = rcall(("base", "getNamespace"), "reticulate")
+        if sys.platform.startswith("win"):
+            # On native Windows ARM64 builds of R (R >= 4.4), R is built without
+            # subarchitectures so `.Platform$r_arch` is `""` instead of `"x64"`.
+            # `reticulate:::current_python_arch()` only checks for `"i386"` and
+            # `"x64"` and otherwise returns `"Unknown"`, causing
+            # `reticulate:::is_incompatible_arch()` to reject 64-bit ARM64 Python.
+            try:
+                if (
+                    rcopy(bool, rcall(("base", "exists"), "current_python_arch", envir=ns, inherits=False))
+                    and rcopy(str, rcall(("reticulate", ":::", "current_python_arch"))) == "Unknown"
+                ):
+                    rcall(
+                        ("utils", "assignInNamespace"),
+                        "current_python_arch",
+                        reval("function() '64bit'"),
+                        "reticulate",
+                    )
+            except Exception:
+                pass
         rcall(
             ("base", "registerS3method"),
             "py_to_r",
