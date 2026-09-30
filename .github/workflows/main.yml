@@ -19,7 +19,10 @@ jobs:
       matrix:
         r: [oldrel, latest, devel]
         python: ["3.10", "3.14"]
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest, windows-11-arm]
+        exclude:
+          - os: windows-11-arm
+            python: "3.10"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -32,6 +35,7 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.r }}
+          Ncpus: 4
       - name: Install libpng-dev
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y libpng-dev

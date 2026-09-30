@@ -19,7 +19,9 @@ if sys.platform.startswith("win"):
 
 
 def is_arm():
-    return platform.machine().lower() == "arm64"
+    if sys.platform.startswith("win"):
+        return "(arm64)" in sys.version.lower()
+    return platform.machine().lower() in ("arm64", "aarch64")
 
 
 def read_registry_from_local_machine(key, valueex):
@@ -40,15 +42,28 @@ def read_registry(key, valueex):
 
 
 def read_r_install_path_from_registry():
-    try:
-        return read_registry("Software\\WOW6432Node\\R-Core\\R", "InstallPath")[0]
-    except Exception:
-        pass
-    try:
-        return read_registry("Software\\R-Core\\R", "InstallPath")[0]
-    except Exception:
-        pass
-    return None
+    keys = (
+        "Software\\R-Core\\R",
+        "Software\\WOW6432Node\\R-Core\\R",
+    )
+    fallback = None
+    for key in keys:
+        for reader in (read_registry_from_current_user, read_registry_from_local_machine):
+            try:
+                path = reader(key, "InstallPath")[0]
+            except Exception:
+                continue
+            if path and os.path.isdir(path):
+                if fallback is None:
+                    fallback = path
+                dll_rel = (
+                    os.path.join("bin", "R.dll")
+                    if is_arm()
+                    else os.path.join("bin", "x64", "R.dll")
+                )
+                if os.path.isfile(os.path.join(path, dll_rel)):
+                    return path
+    return fallback
 
 
 def get_rhome_from_binary(rbinary):
@@ -175,6 +190,19 @@ def get_libr_path(rhome, ensure_path=False):
         libr_path = os.path.join(rhome, "lib", "libR.so")
 
     if not os.path.exists(libr_path):
+        if sys.platform.startswith("win"):
+            other_path = (
+                os.path.join(rhome, "bin", "x64", "R.dll")
+                if is_arm()
+                else os.path.join(rhome, "bin", "R.dll")
+            )
+            if os.path.exists(other_path):
+                raise RuntimeError(
+                    "R ({}) and Python ({}) architectures do not match.".format(
+                        "x64" if is_arm() else "ARM64",
+                        "ARM64" if is_arm() else "x64",
+                    )
+                )
         raise RuntimeError("R share library ({}) does not exist.".format(libr_path))
 
     if sys.platform.startswith("win") and ensure_path:

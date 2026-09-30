@@ -101,7 +101,9 @@ class build_ext(_build_ext):
             for sym in rgraphapp_funcs:
                 f.write("    {}\n".format(sym))
 
-        plat = (getattr(self, "plat_name", None) or "").lower()
+        import sysconfig
+
+        plat = (getattr(self, "plat_name", None) or sysconfig.get_platform()).lower()
         if "arm64" in plat:
             machine = "/MACHINE:ARM64"
         else:

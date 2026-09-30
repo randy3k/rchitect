@@ -166,3 +166,70 @@ def test_r_version_check(monkeypatch):
     with pytest.raises(RuntimeError, match="R >= 4.2.0 is required"):
         u.ensure_libr()
 
+
+def test_windows_arm64_detection_and_libr_path(monkeypatch, tmp_path):
+    import pytest
+    import rchitect.utils as u
+
+    monkeypatch.setattr(u.sys, "platform", "win32")
+    monkeypatch.setattr(u.platform, "machine", lambda: "ARM64")
+
+    # x64 Python running under emulation on Windows 11 ARM64 (#40)
+    monkeypatch.setattr(
+        u.sys,
+        "version",
+        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:38:07) [MSC v.1941 64 bit (AMD64)]",
+    )
+    assert u.is_arm() is False
+
+    rhome_x64 = tmp_path / "R-x64"
+    (rhome_x64 / "bin" / "x64").mkdir(parents=True)
+    dll_x64 = rhome_x64 / "bin" / "x64" / "R.dll"
+    dll_x64.write_bytes(b"")
+    assert u.get_libr_path(str(rhome_x64)) == str(dll_x64)
+
+    # Native ARM64 Python on Windows 11 ARM64
+    monkeypatch.setattr(
+        u.sys,
+        "version",
+        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:53:29) [MSC v.1941 64 bit (ARM64)]",
+    )
+    assert u.is_arm() is True
+
+    rhome_arm = tmp_path / "R-arm64"
+    (rhome_arm / "bin").mkdir(parents=True)
+    dll_arm = rhome_arm / "bin" / "R.dll"
+    dll_arm.write_bytes(b"")
+    assert u.get_libr_path(str(rhome_arm)) == str(dll_arm)
+
+    # Architecture mismatch: ARM64 Python with x64 R
+    with pytest.raises(RuntimeError, match=r"R \(x64\) and Python \(ARM64\) architectures do not match"):
+        u.get_libr_path(str(rhome_x64))
+
+    # Architecture mismatch: x64 Python with ARM64 R
+    monkeypatch.setattr(
+        u.sys,
+        "version",
+        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:38:07) [MSC v.1941 64 bit (AMD64)]",
+    )
+    with pytest.raises(RuntimeError, match=r"R \(ARM64\) and Python \(x64\) architectures do not match"):
+        u.get_libr_path(str(rhome_arm))
+
+    # Registry lookup prefers R installation matching Python architecture
+    reg_entries = {
+        "Software\\R-Core\\R": (str(rhome_arm), 1),
+        "Software\\WOW6432Node\\R-Core\\R": (str(rhome_x64), 1),
+    }
+    monkeypatch.setattr(u, "read_registry_from_current_user", lambda k, v: (_ for _ in ()).throw(OSError()))
+    monkeypatch.setattr(u, "read_registry_from_local_machine", lambda k, v: reg_entries[k])
+
+    assert u.read_r_install_path_from_registry() == str(rhome_x64)
+
+    monkeypatch.setattr(
+        u.sys,
+        "version",
+        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:53:29) [MSC v.1941 64 bit (ARM64)]",
+    )
+    assert u.read_r_install_path_from_registry() == str(rhome_arm)
+
+
