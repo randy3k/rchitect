@@ -3,6 +3,21 @@
 
 #include "robject.h"
 #include "interface.h"
+#include "callbacks.h"
+
+static SEXP *deferred_release = NULL;
+static size_t deferred_release_len = 0;
+static size_t deferred_release_cap = 0;
+
+static void flush_deferred_release(void) {
+    if (deferred_release_len == 0 || R_GlobalEnv == NULL || !rchitect_is_main_thread()) {
+        return;
+    }
+    for (size_t i = 0; i < deferred_release_len; i++) {
+        R_ReleaseObject(deferred_release[i]);
+    }
+    deferred_release_len = 0;
+}
 
 int _libR_is_initialized(void) {
     return R_GlobalEnv != NULL;
@@ -125,6 +140,7 @@ static PyObject *py_c_preserve_sexp(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O", &ptr_obj)) return NULL;
     SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
     if (s != NULL) {
+        flush_deferred_release();
         R_PreserveObject(s);
     }
     Py_RETURN_NONE;
@@ -135,7 +151,22 @@ static PyObject *py_c_release_sexp(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O", &ptr_obj)) return NULL;
     SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
     if (s != NULL && R_GlobalEnv != NULL) {
-        R_ReleaseObject(s);
+        if (rchitect_is_main_thread()) {
+            flush_deferred_release();
+            R_ReleaseObject(s);
+        } else if (rchitect_is_main_process()) {
+            if (deferred_release_len == deferred_release_cap) {
+                size_t new_cap = deferred_release_cap == 0 ? 16 : deferred_release_cap * 2;
+                SEXP *new_buf = (SEXP *)realloc(deferred_release, new_cap * sizeof(SEXP));
+                if (new_buf != NULL) {
+                    deferred_release = new_buf;
+                    deferred_release_cap = new_cap;
+                }
+            }
+            if (deferred_release_len < deferred_release_cap) {
+                deferred_release[deferred_release_len++] = s;
+            }
+        }
     }
     Py_RETURN_NONE;
 }
@@ -220,6 +251,8 @@ static PyObject *py_c_rcall(PyObject *self, PyObject *args) {
     int convert = 0;
     if (!PyArg_ParseTuple(args, "OOO|Opp", &f, &pos_args, &kw_args, &envir, &asis, &convert)) return NULL;
 
+    flush_deferred_release();
+
     SEXP env_s = R_GlobalEnv;
     if (envir != Py_None) {
         env_s = extract_sexp(envir);
@@ -235,6 +268,7 @@ static PyObject *py_c_rcall(PyObject *self, PyObject *args) {
     Py_BEGIN_ALLOW_THREADS
     val = R_tryEval(t, env_s, &status);
     Py_END_ALLOW_THREADS
+    flush_deferred_release();
     if (status != 0) {
         Rf_unprotect(1);
         return Py_BuildValue("(Oi)", Py_None, status);
@@ -251,6 +285,8 @@ static PyObject *py_c_reval(PyObject *self, PyObject *args) {
     PyObject *s_obj;
     if (!PyArg_ParseTuple(args, "O", &s_obj)) return NULL;
 
+    flush_deferred_release();
+
     SEXP expr_s = extract_sexp(s_obj);
     if (expr_s == NULL) return NULL;
     Rf_protect(expr_s);
@@ -264,6 +300,7 @@ static PyObject *py_c_reval(PyObject *self, PyObject *args) {
             Py_BEGIN_ALLOW_THREADS
             val = R_tryEval(elt, R_GlobalEnv, &status);
             Py_END_ALLOW_THREADS
+            flush_deferred_release();
             if (status != 0) {
                 Rf_unprotect(1);
                 return Py_BuildValue("(Oi)", Py_None, status);
@@ -273,6 +310,7 @@ static PyObject *py_c_reval(PyObject *self, PyObject *args) {
         Py_BEGIN_ALLOW_THREADS
         val = R_tryEval(expr_s, R_GlobalEnv, &status);
         Py_END_ALLOW_THREADS
+        flush_deferred_release();
         if (status != 0) {
             Rf_unprotect(1);
             return Py_BuildValue("(Oi)", Py_None, status);

@@ -128,6 +128,73 @@ def test_write_console_worker_thread(mocker, gctorture):
         mocker.call("worker stderr\n", 1),
     ]
 
+    # Verify dropping an RObject reference on a worker thread defers release to the main thread
+    holder = [reval("c(1L, 2L, 3L)")]
+    del obj
+
+    def release_on_worker():
+        holder.clear()
+
+    t4 = threading.Thread(target=release_on_worker)
+    t4.start()
+    t4.join()
+    assert rcopy(reval("1L + 1L")) == 2
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="fork not supported on Windows")
+def test_fork_xptr_finalizer():
+    import os
+    import threading
+    from rchitect import rcall, robject
+
+    parent_pid = os.getpid()
+    r_fd, w_fd = os.pipe()
+    os.set_blocking(r_fd, False)
+
+    def read_pids():
+        try:
+            data = os.read(r_fd, 4096)
+        except BlockingIOError:
+            return []
+        return [int(x) for x in data.decode("ascii").splitlines() if x]
+
+    class TrackedResource(object):
+        def __del__(self):
+            try:
+                os.write(w_fd, "{}\n".format(os.getpid()).encode("ascii"))
+            except OSError:
+                pass
+
+    stop_bg = threading.Event()
+
+    def bg_gil_worker():
+        while not stop_bg.is_set():
+            _ = sum(range(100))
+
+    bg = threading.Thread(target=bg_gil_worker)
+    bg.start()
+    try:
+        rcall(("base", "assign"), "tracked_res", robject("PyObject", TrackedResource()))
+        res = rcopy(
+            reval(
+                "parallel::mclapply(1:2, function(i) {"
+                "  rm(tracked_res, envir = .GlobalEnv);"
+                "  gc();"
+                "  i"
+                "}, mc.cores = 2)"
+            )
+        )
+        assert res == [1, 2]
+        assert read_pids() == []
+
+        reval("rm(tracked_res, envir = .GlobalEnv); gc()")
+        assert read_pids() == [parent_pid]
+    finally:
+        stop_bg.set()
+        bg.join(timeout=1.0)
+        os.close(r_fd)
+        os.close(w_fd)
+
 
 
 

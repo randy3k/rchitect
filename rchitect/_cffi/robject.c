@@ -3,6 +3,7 @@
 
 #include "robject.h"
 #include "interface.h"
+#include "callbacks.h"
 
 #ifndef PyList_SET_ITEM
 #define PyList_SET_ITEM(op, i, v) ((void)PyList_SetItem((op), (i), (v)))
@@ -61,7 +62,7 @@ static void c_xptr_finalizer(SEXP s) {
     void *addr = R_ExternalPtrAddr(s);
     if (addr != NULL) {
         R_ClearExternalPtr(s);
-        if (Py_IsInitialized()) {
+        if (Py_IsInitialized() && rchitect_is_main_thread()) {
             PyGILState_STATE gstate = PyGILState_Ensure();
             Py_DECREF((PyObject *)addr);
             PyGILState_Release(gstate);
