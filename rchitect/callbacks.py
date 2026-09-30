@@ -35,8 +35,8 @@ _CALLBACK_NAMES = frozenset(
 _UNIX_CALLBACKS = {
     "suicide": ("ptr_R_Suicide", None),
     "show_message": ("ptr_R_ShowMessage", None),
-    "read_console": ("ptr_R_ReadConsole", "cb_read_console_interruptible"),
-    "write_console_ex": ("ptr_R_WriteConsoleEx", "cb_write_console_safe"),
+    "read_console": ("ptr_R_ReadConsole", "cb_read_console_safe"),
+    "write_console_ex": ("ptr_R_WriteConsoleEx", "cb_write_console_ex_safe"),
     "reset_console": ("ptr_R_ResetConsole", None),
     "flush_console": ("ptr_R_FlushConsole", None),
     "clearerr_console": ("ptr_R_ClearerrConsole", None),
@@ -53,7 +53,7 @@ _UNIX_CALLBACKS = {
     "do_dataentry": ("ptr_do_dataentry", None),
     "do_dataviewer": ("ptr_do_dataviewer", None),
     "process_events": ("ptr_R_ProcessEvents", None),
-    "polled_events": ("R_PolledEvents", "cb_polled_events_interruptible"),
+    "polled_events": ("R_PolledEvents", "cb_polled_events_safe"),
 }
 
 _unix_callbacks_initialized = False
@@ -207,15 +207,16 @@ def setup_rstart(rhome, args):
     home = ffi.new("char[]", ffi.string(lib.getRUser()))
     _protected["home"] = home
     rstart.home = home
-    rstart._ReadConsole = ffi.addressof(lib, "cb_read_console_interruptible")
+    rstart._ReadConsole = ffi.addressof(lib, "cb_read_console_safe")
     rstart._WriteConsole = ffi.NULL
-    rstart.CallBack = ffi.addressof(lib, "cb_polled_events_interruptible")
+    rstart.CallBack = ffi.addressof(lib, "cb_polled_events_safe")
     rstart.ShowMessage = ffi.addressof(lib, "cb_show_message")
     rstart.YesNoCancel = ffi.addressof(lib, "cb_yes_no_cancel")
-    rstart.Busy = ffi.addressof(lib, "cb_busy")
+    rstart.Busy = ffi.addressof(lib, "cb_busy_safe")
     # we cannot get it to RGui, otherwise `do_system` will clear the standard handlers
     rstart.CharacterMode = 1  # RTerm
-    rstart.WriteConsoleEx = ffi.addressof(lib, "cb_write_console_capturable")
+    rstart.WriteConsoleEx = ffi.addressof(lib, "cb_write_console_ex_safe")
+    lib.rchitect_record_main_thread()
     lib.R_SetParams(rstart)
 
 
@@ -234,6 +235,7 @@ def setup_callback(p, name, cb_name=None):
 def setup_unix_callbacks():
     global _unix_callbacks_initialized
     _unix_callbacks_initialized = True
+    lib.rchitect_record_main_thread()
     setup_callback("R_Outputfile", None)
     setup_callback("R_Consolefile", None)
     setup_callback("ptr_R_WriteConsole", None)
@@ -290,7 +292,7 @@ def cb_read_console(p, buf, buflen, add_history):
 
 
 @ffi.def_extern(error=None, onerror=on_callback_error)
-def cb_write_console_capturable(buf, bufline, otype):
+def cb_write_console_ex(buf, bufline, otype):
     text = rconsole2str(ffi.string(buf))
     console.write_console(text, otype)
 

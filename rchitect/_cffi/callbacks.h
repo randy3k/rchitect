@@ -10,11 +10,14 @@
 
 extern int cb_interrupted;
 
-int cb_read_console_interruptible(const char *, unsigned char *, int, int);
-void cb_polled_events_interruptible(void);
-void cb_write_console_safe(const char *, int, int);
+int cb_read_console_safe(const char *, unsigned char *, int, int);
+void cb_polled_events_safe(void);
+void cb_write_console_ex_safe(const char *, int, int);
 void cb_busy_safe(int);
 
+int rchitect_is_main_process(void);
+int rchitect_is_main_thread(void);
+void rchitect_record_main_thread(void);
 void rchitect_run_Rmainloop(void);
 void process_events(void);
 void polled_events(void);
@@ -23,8 +26,6 @@ int peek_event(void);
 // end cdef
 
 // begin cb cdef
-
-void cb_write_console_capturable(const char *, int, int);
 
 void cb_suicide(const char *);
 void cb_show_message(const char *);
