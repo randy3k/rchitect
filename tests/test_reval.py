@@ -1,4 +1,4 @@
-from rchitect import rparse, reval, rcall, rlang, rprint, robject
+from rchitect import rparse, reval, rcall, rlang, rprint, robject, rcopy
 from rchitect.interface import rclass
 
 import pytest
@@ -9,6 +9,9 @@ def test_reval(gctorture):
     assert "expression" in rclass(exp)
     assert "integer" in rclass(reval(exp))
     assert str(exp) == 'RObject{EXPRSXP}\nexpression(x = 1L)'
+    call = rlang("seq", 1, 10, by=2)
+    assert rcopy(reval(call)) == [1, 3, 5, 7, 9]
+
 
 
 def test_rprint(gctorture):
