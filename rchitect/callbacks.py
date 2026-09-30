@@ -217,6 +217,7 @@ def setup_rstart(rhome, args):
     rstart.CharacterMode = 1  # RTerm
     rstart.WriteConsoleEx = ffi.addressof(lib, "cb_write_console_ex_safe")
     lib.rchitect_record_main_thread()
+    console.record_main_thread()
     lib.R_SetParams(rstart)
 
 
@@ -236,6 +237,7 @@ def setup_unix_callbacks():
     global _unix_callbacks_initialized
     _unix_callbacks_initialized = True
     lib.rchitect_record_main_thread()
+    console.record_main_thread()
     setup_callback("R_Outputfile", None)
     setup_callback("R_Consolefile", None)
     setup_callback("ptr_R_WriteConsole", None)
@@ -263,6 +265,7 @@ _code = [b""]
 
 @ffi.def_extern(error=0, onerror=on_callback_error)
 def cb_read_console(p, buf, buflen, add_history):
+    console.flush()
     # cache the code as buflen is limited to 4096
     if _code[0]:
         code = _code[0]
@@ -299,6 +302,7 @@ def cb_write_console_ex(buf, bufline, otype):
 
 @ffi.def_extern()
 def cb_busy(which):
+    console.flush()
     callback.busy(which)
 
 

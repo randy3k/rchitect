@@ -2,6 +2,7 @@ import os
 import sys
 
 from rchitect._cffi import ffi, lib
+from . import console
 from .callbacks import setup_rstart, setup_unix_callbacks
 from .utils import get_rhome
 
@@ -24,6 +25,9 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
         )
 
     rhome = get_rhome()
+
+    lib.rchitect_record_main_thread()
+    console.record_main_thread()
 
     if not lib._libR_is_initialized():
         _argv = [ffi.new("char[]", a.encode("utf-8")) for a in args]
@@ -78,5 +82,7 @@ def ensure_initialized():
 
 
 def loop():
+    console.record_main_thread()
     lib.rchitect_run_Rmainloop()
+
 

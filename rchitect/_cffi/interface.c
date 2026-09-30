@@ -38,12 +38,8 @@ SEXP rchitect_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) 
     return d.val;
 }
 
-// cffi releases GIL, so we need to ensure it. Mainly needed for loading reticulate.
 SEXP rchitect_tryEval(SEXP x, SEXP e, int *s) {
-    PyGILState_STATE gstate = PyGILState_Ensure();
-    SEXP result = R_tryEval(x, e, s);
-    PyGILState_Release(gstate);
-    return result;
+    return R_tryEval(x, e, s);
 }
 
 static const char *sexptype_to_str(unsigned int t) {
@@ -235,7 +231,10 @@ static PyObject *py_c_rcall(PyObject *self, PyObject *args) {
     Rf_protect(t);
 
     int status = 0;
-    SEXP val = R_tryEval(t, env_s, &status);
+    SEXP val;
+    Py_BEGIN_ALLOW_THREADS
+    val = R_tryEval(t, env_s, &status);
+    Py_END_ALLOW_THREADS
     if (status != 0) {
         Rf_unprotect(1);
         return Py_BuildValue("(Oi)", Py_None, status);
@@ -261,14 +260,19 @@ static PyObject *py_c_reval(PyObject *self, PyObject *args) {
     if (TYPEOF(expr_s) == EXPRSXP) {
         R_xlen_t n = Rf_xlength(expr_s);
         for (R_xlen_t i = 0; i < n; i++) {
-            val = R_tryEval(VECTOR_ELT(expr_s, i), R_GlobalEnv, &status);
+            SEXP elt = VECTOR_ELT(expr_s, i);
+            Py_BEGIN_ALLOW_THREADS
+            val = R_tryEval(elt, R_GlobalEnv, &status);
+            Py_END_ALLOW_THREADS
             if (status != 0) {
                 Rf_unprotect(1);
                 return Py_BuildValue("(Oi)", Py_None, status);
             }
         }
     } else {
+        Py_BEGIN_ALLOW_THREADS
         val = R_tryEval(expr_s, R_GlobalEnv, &status);
+        Py_END_ALLOW_THREADS
         if (status != 0) {
             Rf_unprotect(1);
             return Py_BuildValue("(Oi)", Py_None, status);
