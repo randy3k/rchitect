@@ -19,11 +19,11 @@ def test_rprint(gctorture):
     assert rcall("capture.output", la, _convert=True) == "[1] 1"
 
     # Symbol and call objects must be printed as language objects, not evaluated
-    with capture_console():
+    with capture_console(flushable=False):
         rprint(rsym("undefined_symbol_xyz"))
         assert read_stdout().strip() == "undefined_symbol_xyz"
 
-    with capture_console():
+    with capture_console(flushable=False):
         rprint(rlang("stop", "should not be evaluated"))
         assert read_stdout().strip() == 'stop("should not be evaluated")'
 
@@ -35,7 +35,7 @@ def test_rprint(gctorture):
         envir=env,
     )
     obj = reval('structure(99L, class = "rprint_test_cls")', envir=env)
-    with capture_console():
+    with capture_console(flushable=False):
         rprint(obj, envir=env)
         assert read_stdout().strip() == "x:99"
     assert rcopy(reval("x", envir=env)) == 42
