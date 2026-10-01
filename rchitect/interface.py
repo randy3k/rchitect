@@ -260,12 +260,12 @@ def setclass(s, classes):
 
 def getoption(key):
     ensure_initialized()
-    sym = rsym(key)
-    return RObject(lib.Rf_GetOption1(sym.s))
+    return _cffi._c_getoption(key)
 
 
 def roption(key, default=None):
-    ret = rcopy(getoption(key))
+    ensure_initialized()
+    ret = _cffi._c_roption(key)
     return ret if ret is not None else default
 
 

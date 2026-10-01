@@ -485,6 +485,28 @@ static PyObject *py_c_rsym(PyObject *self, PyObject *args) {
     return res;
 }
 
+static PyObject *py_c_getoption(PyObject *self, PyObject *args) {
+    PyObject *key_obj;
+    if (!PyArg_ParseTuple(args, "O", &key_obj)) return NULL;
+    SEXP sym = c_install_py_str(key_obj);
+    if (sym == NULL) return NULL;
+    SEXP val = Rf_protect(Rf_GetOption1(sym));
+    PyObject *res = c_box_sexp(val);
+    Rf_unprotect(1);
+    return res;
+}
+
+static PyObject *py_c_roption(PyObject *self, PyObject *args) {
+    PyObject *key_obj;
+    if (!PyArg_ParseTuple(args, "O", &key_obj)) return NULL;
+    SEXP sym = c_install_py_str(key_obj);
+    if (sym == NULL) return NULL;
+    SEXP val = Rf_protect(Rf_GetOption1(sym));
+    PyObject *res = c_rcopy_impl(val, Py_None, 0, 1);
+    Rf_unprotect(1);
+    return res;
+}
+
 // =============================================================================
 // 5. CPython Method Table Registration
 // =============================================================================
@@ -505,6 +527,8 @@ static PyMethodDef rchitect_interface_methods[] = {
     {"_c_rnames", py_c_rnames, METH_VARARGS, NULL},
     {"_c_new_env", py_c_new_env, METH_VARARGS, NULL},
     {"_c_rsym", py_c_rsym, METH_VARARGS, NULL},
+    {"_c_getoption", py_c_getoption, METH_VARARGS, NULL},
+    {"_c_roption", py_c_roption, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

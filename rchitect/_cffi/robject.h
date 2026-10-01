@@ -23,6 +23,9 @@ extern PyObject *g_OrderedDict_Type;
 extern PyObject *g_Function_Type;
 extern PyObject *g_WrapRFunction;
 
+extern SEXP r_sym_py_object;
+extern SEXP r_sym_get;
+
 int is_robject(PyObject *obj);
 SEXP extract_sexp(PyObject *obj);
 PyObject *c_box_sexp(SEXP s);
