@@ -38,7 +38,6 @@ _SUBMODULES = {
     "completion",
     "console",
     "py_tools",
-    "repl",
     "reticulate",
     "utils",
 }
