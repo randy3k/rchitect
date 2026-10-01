@@ -13,6 +13,8 @@ PyObject *g_RObject_Type = NULL;
 PyObject *g_OrderedDict_Type = NULL;
 PyObject *g_Function_Type = NULL;
 PyObject *g_WrapRFunction = NULL;
+static PyObject *g_str_ptr = NULL;
+static PyObject *g_str_s = NULL;
 
 SEXP r_sym_py_object = NULL;
 SEXP r_sym_get = NULL;
@@ -51,14 +53,17 @@ SEXP extract_sexp(PyObject *obj) {
     if (PyLong_CheckExact(obj)) {
         return (SEXP)PyLong_AsVoidPtr(obj);
     }
-    if (is_robject(obj) || PyObject_HasAttrString(obj, "_ptr")) {
-        PyObject *ptr_obj = PyObject_GetAttrString(obj, "_ptr");
-        if (ptr_obj == NULL) return NULL;
+    PyObject *ptr_obj = g_str_ptr != NULL
+        ? PyObject_GetAttr(obj, g_str_ptr)
+        : PyObject_GetAttrString(obj, "_ptr");
+    if (ptr_obj != NULL) {
         SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
         Py_DECREF(ptr_obj);
         return s;
     }
-    PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
+    if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
+        PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
+    }
     return NULL;
 }
 
@@ -73,8 +78,21 @@ PyObject *c_box_sexp(SEXP s) {
         Rf_unprotect(1);
         return NULL;
     }
-    PyObject *robj = PyObject_CallFunctionObjArgs(g_RObject_Type, ptr_int, NULL);
+    PyObject *robj = PyType_GenericAlloc((PyTypeObject *)g_RObject_Type, 0);
+    if (robj == NULL) {
+        Py_DECREF(ptr_int);
+        Rf_unprotect(1);
+        return NULL;
+    }
+    if (PyObject_SetAttr(robj, g_str_ptr, ptr_int) < 0 ||
+            PyObject_SetAttr(robj, g_str_s, Py_None) < 0) {
+        Py_DECREF(ptr_int);
+        Py_DECREF(robj);
+        Rf_unprotect(1);
+        return NULL;
+    }
     Py_DECREF(ptr_int);
+    c_preserve_sexp(s);
     Rf_unprotect(1);
     return robj;
 }
@@ -744,8 +762,15 @@ int _rchitect_init_conv(
     g_WrapRFunction = (PyObject *)wrap_r_func_ptr;
     Py_XINCREF(g_WrapRFunction);
 
+    if (g_str_ptr == NULL) {
+        g_str_ptr = PyUnicode_InternFromString("_ptr");
+    }
+    if (g_str_s == NULL) {
+        g_str_s = PyUnicode_InternFromString("_s");
+    }
+
     int rc1 = PyModule_AddFunctions(mod, rchitect_conv_methods);
     int rc2 = _rchitect_register_interface_methods(mod_ptr);
     PyGILState_Release(gstate);
-    return (rc1 == 0 && rc2 == 0) ? 1 : 0;
+    return (rc1 == 0 && rc2 == 0 && g_str_ptr != NULL && g_str_s != NULL) ? 1 : 0;
 }

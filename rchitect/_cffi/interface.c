@@ -94,14 +94,18 @@ static const char *sexptype_to_str(unsigned int t) {
     }
 }
 
-static PyObject *py_c_preserve_sexp(PyObject *self, PyObject *args) {
-    PyObject *ptr_obj;
-    if (!PyArg_ParseTuple(args, "O", &ptr_obj)) return NULL;
-    SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
+void c_preserve_sexp(SEXP s) {
     if (s != NULL) {
         flush_deferred_release();
         R_PreserveObject(s);
     }
+}
+
+static PyObject *py_c_preserve_sexp(PyObject *self, PyObject *args) {
+    PyObject *ptr_obj;
+    if (!PyArg_ParseTuple(args, "O", &ptr_obj)) return NULL;
+    SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
+    c_preserve_sexp(s);
     Py_RETURN_NONE;
 }
 

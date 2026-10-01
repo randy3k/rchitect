@@ -15,6 +15,8 @@ from .setup import ensure_initialized
 
 
 class RObject(object):
+    __slots__ = ("_ptr", "_s")
+
     def __init__(self, s):
         if isinstance(s, int):
             self._ptr = s
