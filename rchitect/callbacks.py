@@ -5,6 +5,10 @@ from . import console
 from .console import rconsole2str, utf8tosystem
 
 
+# =============================================================================
+# 1. Callback Registry & Default Callbacks
+# =============================================================================
+
 _CALLBACK_NAMES = frozenset(
     {
         "suicide",
@@ -170,6 +174,10 @@ def yes_no_cancel(p):
             pass
 
 
+# =============================================================================
+# 2. R Startup & Callback Wiring
+# =============================================================================
+
 # prevent rstart being gc'ed
 _protected = {}
 
@@ -244,6 +252,11 @@ def setup_unix_callbacks():
 
     for name, (p, cb_name) in _UNIX_CALLBACKS.items():
         setup_callback(p, name, cb_name)
+
+
+# =============================================================================
+# 3. CFFI Callback Trampolines
+# =============================================================================
 
 
 @ffi.def_extern()

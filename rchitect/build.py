@@ -69,7 +69,7 @@ ffibuilder.set_source(
     include_dirs=[os.path.join(BASEDIR, "_cffi")],
     sources=[
         os.path.join("rchitect", "_cffi", f)
-        for f in ["callbacks.c", "interface.c", "robject.c"]
+        for f in ["callbacks.c", "interface.c", "rcopy.c", "robject.c"]
     ],
     libraries=libraries,
     extra_compile_args=extra_compile_args,

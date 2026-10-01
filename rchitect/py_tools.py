@@ -19,6 +19,11 @@ from .interface import (
 )
 
 
+# =============================================================================
+# 1. Python Object Operations & S3 Method Helpers
+# =============================================================================
+
+
 def py_import(module, convert=True):
     return robject("PyObject", importlib.import_module(module), convert=convert)
 
@@ -118,6 +123,11 @@ def py_tuple(*args):
 
 def py_unicode(obj):
     return str(obj)
+
+
+# =============================================================================
+# 2. R S3 Method & Environment Registration
+# =============================================================================
 
 
 def _rfunction(x, **kwargs):

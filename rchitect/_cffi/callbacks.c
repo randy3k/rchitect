@@ -3,6 +3,10 @@
 
 #include "callbacks.h"
 
+// =============================================================================
+// 1. Main Process & Main Thread Tracking
+// =============================================================================
+
 #ifdef _WIN32
 #include <windows.h>
 static DWORD main_thread_id = 0;
@@ -44,6 +48,10 @@ void rchitect_record_main_thread(void) {
     main_thread = pthread_self();
 #endif
 }
+
+// =============================================================================
+// 2. R Main Loop & Safe Console Callbacks
+// =============================================================================
 
 int cb_interrupted;
 
@@ -122,6 +130,10 @@ void cb_busy_safe(int which) {
     if (!rchitect_is_main_thread()) return;
     cb_busy(which);
 }
+
+// =============================================================================
+// 3. Event Processing & Polling
+// =============================================================================
 
 static void _process_events(void* n) {
     R_ProcessEvents();

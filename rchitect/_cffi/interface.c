@@ -5,6 +5,10 @@
 #include "interface.h"
 #include "callbacks.h"
 
+// =============================================================================
+// 1. Deferred SEXP Release & R Parse/Eval Helpers
+// =============================================================================
+
 static SEXP *deferred_release = NULL;
 static size_t deferred_release_len = 0;
 static size_t deferred_release_cap = 0;
@@ -57,6 +61,10 @@ SEXP rchitect_tryEval(SEXP x, SEXP e, int *s) {
     return R_tryEval(x, e, s);
 }
 
+// =============================================================================
+// 2. SEXP Preservation & Inspection
+// =============================================================================
+
 static const char *sexptype_to_str(unsigned int t) {
     switch (t) {
         case NILSXP: return "NILSXP";
@@ -88,51 +96,6 @@ static const char *sexptype_to_str(unsigned int t) {
         case FUNSXP: return "FUNSXP";
         default: return "SEXP";
     }
-}
-
-static SEXP c_as_call(PyObject *f) {
-    if (is_robject(f)) {
-        return extract_sexp(f);
-    }
-    if (PyUnicode_Check(f)) {
-        return c_install_py_str(f);
-    }
-    if (PyTuple_Check(f)) {
-        Py_ssize_t n = PyTuple_Size(f);
-        if (n == 2) {
-            PyObject *pkg = PyTuple_GetItem(f, 0);
-            PyObject *name = PyTuple_GetItem(f, 1);
-            if (PyUnicode_Check(pkg) && PyUnicode_Check(name)) {
-                SEXP pkg_sym = c_install_py_str(pkg);
-                if (pkg_sym == NULL) return NULL;
-                SEXP name_sym = c_install_py_str(name);
-                if (name_sym == NULL) return NULL;
-                return Rf_lang3(R_DoubleColonSymbol, pkg_sym, name_sym);
-            }
-        } else if (n == 3) {
-            PyObject *pkg = PyTuple_GetItem(f, 0);
-            PyObject *op = PyTuple_GetItem(f, 1);
-            PyObject *name = PyTuple_GetItem(f, 2);
-            if (PyUnicode_Check(pkg) && PyUnicode_Check(op) && PyUnicode_Check(name)) {
-                SEXP op_sym = NULL;
-                if (PyUnicode_CompareWithASCIIString(op, ":::") == 0) {
-                    op_sym = R_TripleColonSymbol;
-                } else if (PyUnicode_CompareWithASCIIString(op, "::") == 0) {
-                    op_sym = R_DoubleColonSymbol;
-                } else {
-                    op_sym = c_install_py_str(op);
-                }
-                if (op_sym == NULL) return NULL;
-                SEXP pkg_sym = c_install_py_str(pkg);
-                if (pkg_sym == NULL) return NULL;
-                SEXP name_sym = c_install_py_str(name);
-                if (name_sym == NULL) return NULL;
-                return Rf_lang3(op_sym, pkg_sym, name_sym);
-            }
-        }
-    }
-    PyErr_SetString(PyExc_TypeError, "unexpected function");
-    return NULL;
 }
 
 static PyObject *py_c_preserve_sexp(PyObject *self, PyObject *args) {
@@ -177,6 +140,55 @@ static PyObject *py_c_sexptype_name(PyObject *self, PyObject *args) {
     SEXP s = extract_sexp(ptr_obj);
     if (s == NULL) return NULL;
     return PyUnicode_FromString(sexptype_to_str(TYPEOF(s)));
+}
+
+// =============================================================================
+// 3. Language Construction & Evaluation (rlang / rcall / reval / rparse)
+// =============================================================================
+
+static SEXP c_as_call(PyObject *f) {
+    if (is_robject(f)) {
+        return extract_sexp(f);
+    }
+    if (PyUnicode_Check(f)) {
+        return c_install_py_str(f);
+    }
+    if (PyTuple_Check(f)) {
+        Py_ssize_t n = PyTuple_Size(f);
+        if (n == 2) {
+            PyObject *pkg = PyTuple_GetItem(f, 0);
+            PyObject *name = PyTuple_GetItem(f, 1);
+            if (PyUnicode_Check(pkg) && PyUnicode_Check(name)) {
+                SEXP pkg_sym = c_install_py_str(pkg);
+                if (pkg_sym == NULL) return NULL;
+                SEXP name_sym = c_install_py_str(name);
+                if (name_sym == NULL) return NULL;
+                return Rf_lang3(R_DoubleColonSymbol, pkg_sym, name_sym);
+            }
+        } else if (n == 3) {
+            PyObject *pkg = PyTuple_GetItem(f, 0);
+            PyObject *op = PyTuple_GetItem(f, 1);
+            PyObject *name = PyTuple_GetItem(f, 2);
+            if (PyUnicode_Check(pkg) && PyUnicode_Check(op) && PyUnicode_Check(name)) {
+                SEXP op_sym = NULL;
+                if (PyUnicode_CompareWithASCIIString(op, ":::") == 0) {
+                    op_sym = R_TripleColonSymbol;
+                } else if (PyUnicode_CompareWithASCIIString(op, "::") == 0) {
+                    op_sym = R_DoubleColonSymbol;
+                } else {
+                    op_sym = c_install_py_str(op);
+                }
+                if (op_sym == NULL) return NULL;
+                SEXP pkg_sym = c_install_py_str(pkg);
+                if (pkg_sym == NULL) return NULL;
+                SEXP name_sym = c_install_py_str(name);
+                if (name_sym == NULL) return NULL;
+                return Rf_lang3(op_sym, pkg_sym, name_sym);
+            }
+        }
+    }
+    PyErr_SetString(PyExc_TypeError, "unexpected function");
+    return NULL;
 }
 
 static SEXP c_build_rlang(PyObject *f, PyObject *pos_args, PyObject *kw_args, int asis) {
@@ -324,6 +336,39 @@ static PyObject *py_c_reval(PyObject *self, PyObject *args) {
     return Py_BuildValue("(Ni)", ret, 0);
 }
 
+static PyObject *py_c_parse_text(PyObject *self, PyObject *args) {
+    const char *buf;
+    if (!PyArg_ParseTuple(args, "y", &buf)) return NULL;
+
+    ParseStatus status = PARSE_NULL;
+    SEXP str_s = Rf_protect(Rf_mkString(buf));
+    SEXP val = rchitect_ParseVector(str_s, -1, &status, R_NilValue);
+    if (status != PARSE_OK) {
+        Rf_unprotect(1);
+        return Py_BuildValue("(Oi)", Py_None, (int)status);
+    }
+    Rf_protect(val);
+    PyObject *ret = c_box_sexp(val);
+    Rf_unprotect(2);
+    if (ret == NULL) return NULL;
+    return Py_BuildValue("(Ni)", ret, (int)status);
+}
+
+static PyObject *py_c_parse_text_complete(PyObject *self, PyObject *args) {
+    const char *buf;
+    if (!PyArg_ParseTuple(args, "y", &buf)) return NULL;
+
+    ParseStatus status = PARSE_NULL;
+    SEXP str_s = Rf_protect(Rf_mkString(buf));
+    rchitect_ParseVector(str_s, -1, &status, R_NilValue);
+    Rf_unprotect(1);
+    return PyBool_FromLong(status != PARSE_INCOMPLETE);
+}
+
+// =============================================================================
+// 4. Attributes, Classes, Environments & Symbols
+// =============================================================================
+
 static PyObject *py_c_rclass(PyObject *self, PyObject *args) {
     PyObject *obj;
     int single_string = 0;
@@ -440,34 +485,9 @@ static PyObject *py_c_rsym(PyObject *self, PyObject *args) {
     return res;
 }
 
-static PyObject *py_c_parse_text(PyObject *self, PyObject *args) {
-    const char *buf;
-    if (!PyArg_ParseTuple(args, "y", &buf)) return NULL;
-
-    ParseStatus status = PARSE_NULL;
-    SEXP str_s = Rf_protect(Rf_mkString(buf));
-    SEXP val = rchitect_ParseVector(str_s, -1, &status, R_NilValue);
-    if (status != PARSE_OK) {
-        Rf_unprotect(1);
-        return Py_BuildValue("(Oi)", Py_None, (int)status);
-    }
-    Rf_protect(val);
-    PyObject *ret = c_box_sexp(val);
-    Rf_unprotect(2);
-    if (ret == NULL) return NULL;
-    return Py_BuildValue("(Ni)", ret, (int)status);
-}
-
-static PyObject *py_c_parse_text_complete(PyObject *self, PyObject *args) {
-    const char *buf;
-    if (!PyArg_ParseTuple(args, "y", &buf)) return NULL;
-
-    ParseStatus status = PARSE_NULL;
-    SEXP str_s = Rf_protect(Rf_mkString(buf));
-    rchitect_ParseVector(str_s, -1, &status, R_NilValue);
-    Rf_unprotect(1);
-    return PyBool_FromLong(status != PARSE_INCOMPLETE);
-}
+// =============================================================================
+// 5. CPython Method Table Registration
+// =============================================================================
 
 static PyMethodDef rchitect_interface_methods[] = {
     {"_c_preserve_sexp", py_c_preserve_sexp, METH_VARARGS, NULL},
