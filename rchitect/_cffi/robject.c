@@ -127,38 +127,37 @@ PyObject *c_from_xptr(SEXP s) {
     return obj;
 }
 
-static SEXP c_mk_rchar_utf8(const char *buf, Py_ssize_t len) {
-    int is_ascii = 1;
+static int c_is_ascii_str(PyObject *str_obj, const char *buf, Py_ssize_t len) {
+#if !defined(Py_LIMITED_API) && !defined(Py_TARGET_ABI3T) && defined(PyUnicode_IS_ASCII)
+    (void)buf;
+    (void)len;
+    return PyUnicode_IS_ASCII(str_obj);
+#else
+    (void)str_obj;
     for (Py_ssize_t i = 0; i < len; i++) {
         if ((unsigned char)buf[i] >= 128) {
-            is_ascii = 0;
-            break;
+            return 0;
         }
     }
-    return Rf_mkCharLenCE(buf, (int)len, is_ascii ? CE_NATIVE : CE_UTF8);
+    return 1;
+#endif
 }
 
 SEXP c_mk_rchar_from_py(PyObject *str_obj) {
     Py_ssize_t len = 0;
     const char *buf = PyUnicode_AsUTF8AndSize(str_obj, &len);
     if (buf == NULL) return NULL;
-    if (PyUnicode_Check(str_obj) && PyUnicode_IS_ASCII(str_obj)) {
-        return Rf_mkCharLenCE(buf, (int)len, CE_NATIVE);
-    }
-    return c_mk_rchar_utf8(buf, len);
+    return Rf_mkCharLenCE(buf, (int)len, c_is_ascii_str(str_obj, buf, len) ? CE_NATIVE : CE_UTF8);
 }
 
 SEXP c_install_py_str(PyObject *str_obj) {
-    if (PyUnicode_Check(str_obj) && PyUnicode_IS_ASCII(str_obj)) {
-        const char *buf = PyUnicode_AsUTF8(str_obj);
-        if (buf == NULL) return NULL;
+    Py_ssize_t len = 0;
+    const char *buf = PyUnicode_AsUTF8AndSize(str_obj, &len);
+    if (buf == NULL) return NULL;
+    if (c_is_ascii_str(str_obj, buf, len)) {
         return Rf_install(buf);
     }
-    SEXP ch = Rf_protect(c_mk_rchar_from_py(str_obj));
-    if (ch == NULL) {
-        Rf_unprotect(1);
-        return NULL;
-    }
+    SEXP ch = Rf_protect(Rf_mkCharLenCE(buf, (int)len, CE_UTF8));
     SEXP sym = Rf_install(Rf_translateChar(ch));
     Rf_unprotect(1);
     return sym;
@@ -587,41 +586,73 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
     SEXP names = Rf_protect(Rf_getAttrib(arglist, R_NamesSymbol));
     int has_names = !Rf_isNull(names);
 
-    PyObject *pos_list = PyList_New(0);
-    PyObject *kwargs = PyDict_New();
+    PyObject *args = NULL;
+    PyObject *kwargs = NULL;
     const void *vmax = vmaxget();
-    for (R_xlen_t i = 0; i < n; i++) {
-        SEXP elt = VECTOR_ELT(arglist, i);
-        const char *k = has_names ? Rf_translateCharUTF8(STRING_ELT(names, i)) : "";
-        PyObject *py_val;
-        if (asis) {
-            py_val = c_box_sexp(elt);
-        } else {
-            py_val = c_rcopy_impl(elt, Py_None, 0, 1);
-        }
-        if (py_val == NULL) {
-            vmaxset(vmax);
+
+    if (!has_names) {
+        args = PyTuple_New((Py_ssize_t)n);
+        if (args == NULL) {
             Rf_unprotect(1);
-            Py_DECREF(pos_list);
+            goto handle_error;
+        }
+        for (R_xlen_t i = 0; i < n; i++) {
+            SEXP elt = VECTOR_ELT(arglist, i);
+            PyObject *py_val = asis ? c_box_sexp(elt) : c_rcopy_impl(elt, Py_None, 0, 1);
+            if (py_val == NULL) {
+                vmaxset(vmax);
+                Rf_unprotect(1);
+                Py_DECREF(args);
+                goto handle_error;
+            }
+            PyTuple_SetItem(args, (Py_ssize_t)i, py_val);
+            vmaxset(vmax);
+        }
+        Rf_unprotect(1);
+    } else {
+        PyObject *pos_list = PyList_New(0);
+        kwargs = PyDict_New();
+        if (pos_list == NULL || kwargs == NULL) {
+            Rf_unprotect(1);
+            Py_XDECREF(pos_list);
+            Py_XDECREF(kwargs);
+            goto handle_error;
+        }
+        for (R_xlen_t i = 0; i < n; i++) {
+            SEXP elt = VECTOR_ELT(arglist, i);
+            const char *k = Rf_translateCharUTF8(STRING_ELT(names, i));
+            PyObject *py_val = asis ? c_box_sexp(elt) : c_rcopy_impl(elt, Py_None, 0, 1);
+            if (py_val == NULL) {
+                vmaxset(vmax);
+                Rf_unprotect(1);
+                Py_DECREF(pos_list);
+                Py_DECREF(kwargs);
+                goto handle_error;
+            }
+            int rc = (k != NULL && k[0] != '\0')
+                ? PyDict_SetItemString(kwargs, k, py_val)
+                : PyList_Append(pos_list, py_val);
+            Py_DECREF(py_val);
+            vmaxset(vmax);
+            if (rc < 0) {
+                Rf_unprotect(1);
+                Py_DECREF(pos_list);
+                Py_DECREF(kwargs);
+                goto handle_error;
+            }
+        }
+        Rf_unprotect(1);
+        args = PyList_AsTuple(pos_list);
+        Py_DECREF(pos_list);
+        if (args == NULL) {
             Py_DECREF(kwargs);
             goto handle_error;
         }
-        if (k != NULL && k[0] != '\0') {
-            PyDict_SetItemString(kwargs, k, py_val);
-            Py_DECREF(py_val);
-        } else {
-            PyList_Append(pos_list, py_val);
-            Py_DECREF(py_val);
-        }
-        vmaxset(vmax);
     }
-    Rf_unprotect(1);
 
-    PyObject *args = PyList_AsTuple(pos_list);
-    Py_DECREF(pos_list);
     PyObject *ret = PyObject_Call(f, args, kwargs);
     Py_DECREF(args);
-    Py_DECREF(kwargs);
+    Py_XDECREF(kwargs);
 
     if (ret == NULL) {
         goto handle_error;
