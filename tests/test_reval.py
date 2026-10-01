@@ -1,5 +1,6 @@
 from rchitect import rparse, reval, rcall, rlang, rprint, robject, rcopy
-from rchitect.interface import rclass
+from rchitect.console import capture_console, read_stdout
+from rchitect.interface import new_env, rclass, rsym
 
 import pytest
 
@@ -13,10 +14,40 @@ def test_reval(gctorture):
     assert rcopy(reval(call)) == [1, 3, 5, 7, 9]
 
 
-
 def test_rprint(gctorture):
     la = rlang(robject(rprint, asis=True, invisible=True), robject(1))
     assert rcall("capture.output", la, _convert=True) == "[1] 1"
+
+    # Symbol and call objects must be printed as language objects, not evaluated
+    with capture_console(flushable=False):
+        rprint(rsym("undefined_symbol_xyz"))
+        assert read_stdout().strip() == "undefined_symbol_xyz"
+
+    with capture_console(flushable=False):
+        rprint(rlang("stop", "should not be evaluated"))
+        assert read_stdout().strip() == 'stop("should not be evaluated")'
+
+    # Custom S3 print method should see `substitute(x)` as `x` and `envir$x` must not be clobbered
+    env = new_env()
+    reval("x <- 42L", envir=env)
+    reval(
+        'print.rprint_test_cls <- function(x, ...) cat(deparse(substitute(x)), x, sep = ":")',
+        envir=env,
+    )
+    obj = reval('structure(99L, class = "rprint_test_cls")', envir=env)
+    with capture_console(flushable=False):
+        rprint(obj, envir=env)
+        assert read_stdout().strip() == "x:99"
+    assert rcopy(reval("x", envir=env)) == 42
+
+    with pytest.raises(TypeError, match="expect SEXP or RObject"):
+        rprint(1)
+    with pytest.raises(TypeError, match="expect SEXP or RObject"):
+        reval(1)
+    with pytest.raises(TypeError, match="expect SEXP or RObject"):
+        rcopy(1)
+    with pytest.raises(TypeError, match="expect SEXP or RObject"):
+        rclass(1)
 
 
 def test_rparse_error(gctorture):
@@ -46,7 +77,7 @@ def test_rcall_error(gctorture):
 def test_rcall_tuple(gctorture):
     assert rcall(("base", "sum"), [1, 2, 3], _convert=True) == 6
     assert rcall(("base", "::", "sum"), [1, 2, 3], _convert=True) == 6
-    assert isinstance(rcall(("utils", ":::", ".retrieveCompletions"), _convert=True), list)
+    assert rcall(("base", ":::", "sum"), [1, 2, 3], _convert=True) == 6
 
 
 def test_get_rhome_r_binary(monkeypatch):

@@ -13,10 +13,51 @@ PyObject *g_RObject_Type = NULL;
 PyObject *g_OrderedDict_Type = NULL;
 PyObject *g_Function_Type = NULL;
 PyObject *g_WrapRFunction = NULL;
+static PyObject *g_CData_Type = NULL;
+static PyObject *g_CDataToPtr = NULL;
+static PyObject *g_str_ptr = NULL;
+static PyObject *g_str_s = NULL;
+
+SEXP r_sym_py_object = NULL;
+SEXP r_sym_get = NULL;
+static SEXP r_sym_convert = NULL;
+static SEXP r_sym_pointer = NULL;
+static SEXP r_sym_list = NULL;
+static SEXP r_sym_dot_call = NULL;
+static SEXP r_sym_invisible = NULL;
+static SEXP r_sym_function = NULL;
+static SEXP r_sym_stop = NULL;
+
+static void ensure_cached_symbols(void) {
+    if (r_sym_py_object == NULL) {
+        r_sym_py_object = Rf_install("py_object");
+        r_sym_get = Rf_install("get");
+        r_sym_convert = Rf_install("convert");
+        r_sym_pointer = Rf_install("pointer");
+        r_sym_list = Rf_install("list");
+        r_sym_dot_call = Rf_install(".Call");
+        r_sym_invisible = Rf_install("invisible");
+        r_sym_function = Rf_install("function");
+        r_sym_stop = Rf_install("stop");
+    }
+}
 
 int is_robject(PyObject *obj) {
-    if (g_RObject_Type == NULL || obj == NULL) return 0;
-    return PyObject_TypeCheck(obj, (PyTypeObject *)g_RObject_Type);
+    if (obj == NULL) return 0;
+    if (g_RObject_Type != NULL && PyObject_TypeCheck(obj, (PyTypeObject *)g_RObject_Type)) {
+        return 1;
+    }
+    if (g_CData_Type != NULL && PyObject_TypeCheck(obj, (PyTypeObject *)g_CData_Type) && g_CDataToPtr != NULL) {
+        PyObject *ptr_obj = PyObject_CallFunctionObjArgs(g_CDataToPtr, obj, NULL);
+        if (ptr_obj == NULL) {
+            PyErr_Clear();
+            return 0;
+        }
+        int ok = (ptr_obj != Py_None);
+        Py_DECREF(ptr_obj);
+        return ok;
+    }
+    return 0;
 }
 
 SEXP extract_sexp(PyObject *obj) {
@@ -24,12 +65,28 @@ SEXP extract_sexp(PyObject *obj) {
         PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
         return NULL;
     }
-    if (PyLong_CheckExact(obj)) {
-        return (SEXP)PyLong_AsVoidPtr(obj);
+    if (g_RObject_Type != NULL && PyObject_TypeCheck(obj, (PyTypeObject *)g_RObject_Type)) {
+        PyObject *ptr_obj = g_str_ptr != NULL
+            ? PyObject_GetAttr(obj, g_str_ptr)
+            : PyObject_GetAttrString(obj, "_ptr");
+        if (ptr_obj != NULL) {
+            SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
+            Py_DECREF(ptr_obj);
+            return s;
+        }
+        if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
+            PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
+        }
+        return NULL;
     }
-    if (is_robject(obj) || PyObject_HasAttrString(obj, "_ptr")) {
-        PyObject *ptr_obj = PyObject_GetAttrString(obj, "_ptr");
+    if (g_CData_Type != NULL && PyObject_TypeCheck(obj, (PyTypeObject *)g_CData_Type) && g_CDataToPtr != NULL) {
+        PyObject *ptr_obj = PyObject_CallFunctionObjArgs(g_CDataToPtr, obj, NULL);
         if (ptr_obj == NULL) return NULL;
+        if (ptr_obj == Py_None) {
+            Py_DECREF(ptr_obj);
+            PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
+            return NULL;
+        }
         SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
         Py_DECREF(ptr_obj);
         return s;
@@ -49,8 +106,21 @@ PyObject *c_box_sexp(SEXP s) {
         Rf_unprotect(1);
         return NULL;
     }
-    PyObject *robj = PyObject_CallFunctionObjArgs(g_RObject_Type, ptr_int, NULL);
+    PyObject *robj = PyType_GenericAlloc((PyTypeObject *)g_RObject_Type, 0);
+    if (robj == NULL) {
+        Py_DECREF(ptr_int);
+        Rf_unprotect(1);
+        return NULL;
+    }
+    if (PyObject_SetAttr(robj, g_str_ptr, ptr_int) < 0 ||
+            PyObject_SetAttr(robj, g_str_s, Py_None) < 0) {
+        Py_DECREF(ptr_int);
+        Py_DECREF(robj);
+        Rf_unprotect(1);
+        return NULL;
+    }
     Py_DECREF(ptr_int);
+    c_preserve_sexp(s);
     Rf_unprotect(1);
     return robj;
 }
@@ -85,30 +155,37 @@ PyObject *c_from_xptr(SEXP s) {
     return obj;
 }
 
-static SEXP c_mk_rchar_utf8(const char *buf, Py_ssize_t len) {
-    int is_ascii = 1;
+static int c_is_ascii_str(PyObject *str_obj, const char *buf, Py_ssize_t len) {
+#if !defined(Py_LIMITED_API) && !defined(Py_TARGET_ABI3T) && defined(PyUnicode_IS_ASCII)
+    (void)buf;
+    (void)len;
+    return PyUnicode_IS_ASCII(str_obj);
+#else
+    (void)str_obj;
     for (Py_ssize_t i = 0; i < len; i++) {
         if ((unsigned char)buf[i] >= 128) {
-            is_ascii = 0;
-            break;
+            return 0;
         }
     }
-    return Rf_mkCharLenCE(buf, (int)len, is_ascii ? CE_NATIVE : CE_UTF8);
+    return 1;
+#endif
 }
 
 SEXP c_mk_rchar_from_py(PyObject *str_obj) {
     Py_ssize_t len = 0;
     const char *buf = PyUnicode_AsUTF8AndSize(str_obj, &len);
     if (buf == NULL) return NULL;
-    return c_mk_rchar_utf8(buf, len);
+    return Rf_mkCharLenCE(buf, (int)len, c_is_ascii_str(str_obj, buf, len) ? CE_NATIVE : CE_UTF8);
 }
 
 SEXP c_install_py_str(PyObject *str_obj) {
-    SEXP ch = Rf_protect(c_mk_rchar_from_py(str_obj));
-    if (ch == NULL) {
-        Rf_unprotect(1);
-        return NULL;
+    Py_ssize_t len = 0;
+    const char *buf = PyUnicode_AsUTF8AndSize(str_obj, &len);
+    if (buf == NULL) return NULL;
+    if (c_is_ascii_str(str_obj, buf, len)) {
+        return Rf_install(buf);
     }
+    SEXP ch = Rf_protect(Rf_mkCharLenCE(buf, (int)len, CE_UTF8));
     SEXP sym = Rf_install(Rf_translateChar(ch));
     Rf_unprotect(1);
     return sym;
@@ -143,28 +220,29 @@ static SEXP c_sexp_function(PyObject *f, int asis, int convert, int invisible, i
         return s;
     }
 
+    ensure_cached_symbols();
     SEXP env = Rf_protect(Rf_NewEnvironment(R_NilValue, R_NilValue, R_GlobalEnv));
     SEXP fp = Rf_protect(c_new_xptr(f));
     SEXP pyobj_cls = Rf_protect(Rf_mkString("PyObject"));
     Rf_setAttrib(fp, R_ClassSymbol, pyobj_cls);
-    Rf_defineVar(Rf_install("pointer"), fp, env);
+    Rf_defineVar(r_sym_pointer, fp, env);
 
-    SEXP dotlist = Rf_protect(Rf_lang2(Rf_install("list"), R_DotsSymbol));
+    SEXP dotlist = Rf_protect(Rf_lang2(r_sym_list, R_DotsSymbol));
     SEXP cb_name = Rf_protect(Rf_mkString("_libR_xptr_callback"));
     SEXP asis_s = Rf_protect(Rf_ScalarLogical(asis));
     SEXP conv_s = Rf_protect(Rf_ScalarLogical(convert));
     SEXP body = Rf_protect(
-        Rf_lang6(Rf_install(".Call"), cb_name, Rf_install("pointer"), dotlist, asis_s, conv_s)
+        Rf_lang6(r_sym_dot_call, cb_name, r_sym_pointer, dotlist, asis_s, conv_s)
     );
     int nprot = 8;
     if (invisible) {
-        body = Rf_protect(Rf_lang2(Rf_install("invisible"), body));
+        body = Rf_protect(Rf_lang2(r_sym_invisible, body));
         nprot++;
     }
 
     SEXP dots_formals = Rf_protect(Rf_list1(R_MissingArg));
     SET_TAG(dots_formals, R_DotsSymbol);
-    SEXP lang = Rf_protect(Rf_lang3(Rf_install("function"), dots_formals, body));
+    SEXP lang = Rf_protect(Rf_lang3(r_sym_function, dots_formals, body));
     nprot += 2;
 
     int status = 0;
@@ -175,7 +253,7 @@ static SEXP c_sexp_function(PyObject *f, int asis, int convert, int invisible, i
         PyErr_SetString(PyExc_RuntimeError, "Failed to create R function wrapper");
         return NULL;
     }
-    Rf_setAttrib(val, Rf_install("py_object"), fp);
+    Rf_setAttrib(val, r_sym_py_object, fp);
 
     if (is_pycallable) {
         SEXP cls = Rf_protect(Rf_allocVector(STRSXP, 2));
@@ -196,11 +274,12 @@ static SEXP c_sexp_pyobject(PyObject *obj, int convert) {
             return existing;
         }
     }
+    ensure_cached_symbols();
     SEXP p = Rf_protect(c_new_xptr(obj));
     SEXP cls = Rf_protect(Rf_mkString("PyObject"));
     Rf_setAttrib(p, R_ClassSymbol, cls);
     SEXP conv_val = Rf_protect(Rf_ScalarLogical(convert));
-    Rf_setAttrib(p, Rf_install("convert"), conv_val);
+    Rf_setAttrib(p, r_sym_convert, conv_val);
     Rf_unprotect(3);
     return p;
 }
@@ -535,41 +614,73 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
     SEXP names = Rf_protect(Rf_getAttrib(arglist, R_NamesSymbol));
     int has_names = !Rf_isNull(names);
 
-    PyObject *pos_list = PyList_New(0);
-    PyObject *kwargs = PyDict_New();
+    PyObject *args = NULL;
+    PyObject *kwargs = NULL;
     const void *vmax = vmaxget();
-    for (R_xlen_t i = 0; i < n; i++) {
-        SEXP elt = VECTOR_ELT(arglist, i);
-        const char *k = has_names ? Rf_translateCharUTF8(STRING_ELT(names, i)) : "";
-        PyObject *py_val;
-        if (asis) {
-            py_val = c_box_sexp(elt);
-        } else {
-            py_val = c_rcopy_impl(elt, Py_None, 0, 1);
-        }
-        if (py_val == NULL) {
-            vmaxset(vmax);
+
+    if (!has_names) {
+        args = PyTuple_New((Py_ssize_t)n);
+        if (args == NULL) {
             Rf_unprotect(1);
-            Py_DECREF(pos_list);
+            goto handle_error;
+        }
+        for (R_xlen_t i = 0; i < n; i++) {
+            SEXP elt = VECTOR_ELT(arglist, i);
+            PyObject *py_val = asis ? c_box_sexp(elt) : c_rcopy_impl(elt, Py_None, 0, 1);
+            if (py_val == NULL) {
+                vmaxset(vmax);
+                Rf_unprotect(1);
+                Py_DECREF(args);
+                goto handle_error;
+            }
+            PyTuple_SetItem(args, (Py_ssize_t)i, py_val);
+            vmaxset(vmax);
+        }
+        Rf_unprotect(1);
+    } else {
+        PyObject *pos_list = PyList_New(0);
+        kwargs = PyDict_New();
+        if (pos_list == NULL || kwargs == NULL) {
+            Rf_unprotect(1);
+            Py_XDECREF(pos_list);
+            Py_XDECREF(kwargs);
+            goto handle_error;
+        }
+        for (R_xlen_t i = 0; i < n; i++) {
+            SEXP elt = VECTOR_ELT(arglist, i);
+            const char *k = Rf_translateCharUTF8(STRING_ELT(names, i));
+            PyObject *py_val = asis ? c_box_sexp(elt) : c_rcopy_impl(elt, Py_None, 0, 1);
+            if (py_val == NULL) {
+                vmaxset(vmax);
+                Rf_unprotect(1);
+                Py_DECREF(pos_list);
+                Py_DECREF(kwargs);
+                goto handle_error;
+            }
+            int rc = (k != NULL && k[0] != '\0')
+                ? PyDict_SetItemString(kwargs, k, py_val)
+                : PyList_Append(pos_list, py_val);
+            Py_DECREF(py_val);
+            vmaxset(vmax);
+            if (rc < 0) {
+                Rf_unprotect(1);
+                Py_DECREF(pos_list);
+                Py_DECREF(kwargs);
+                goto handle_error;
+            }
+        }
+        Rf_unprotect(1);
+        args = PyList_AsTuple(pos_list);
+        Py_DECREF(pos_list);
+        if (args == NULL) {
             Py_DECREF(kwargs);
             goto handle_error;
         }
-        if (k != NULL && k[0] != '\0') {
-            PyDict_SetItemString(kwargs, k, py_val);
-            Py_DECREF(py_val);
-        } else {
-            PyList_Append(pos_list, py_val);
-            Py_DECREF(py_val);
-        }
-        vmaxset(vmax);
     }
-    Rf_unprotect(1);
 
-    PyObject *args = PyList_AsTuple(pos_list);
-    Py_DECREF(pos_list);
     PyObject *ret = PyObject_Call(f, args, kwargs);
     Py_DECREF(args);
-    Py_DECREF(kwargs);
+    Py_XDECREF(kwargs);
 
     if (ret == NULL) {
         goto handle_error;
@@ -618,9 +729,10 @@ handle_error:
         Py_XDECREF(ptraceback);
         PyGILState_Release(gstate);
 
+        ensure_cached_symbols();
         SEXP err_ch = Rf_protect(Rf_mkCharCE(err_buf, CE_UTF8));
         SEXP err_msg = Rf_protect(Rf_ScalarString(err_ch));
-        SEXP stop_call = Rf_protect(Rf_lang2(Rf_install("stop"), err_msg));
+        SEXP stop_call = Rf_protect(Rf_lang2(r_sym_stop, err_msg));
         Rf_eval(stop_call, R_BaseEnv);
         Rf_unprotect(3);
         return R_NilValue;
@@ -633,6 +745,7 @@ static const R_CallMethodDef CallEntries[] = {
 };
 
 void _libR_setup_xptr_callback(void) {
+    ensure_cached_symbols();
     DllInfo *dll = R_getEmbeddingDllInfo();
     R_registerRoutines(dll, NULL, (void *)CallEntries, NULL, NULL);
 }
@@ -708,8 +821,23 @@ int _rchitect_init_conv(
     g_WrapRFunction = (PyObject *)wrap_r_func_ptr;
     Py_XINCREF(g_WrapRFunction);
 
+    Py_XDECREF(g_CData_Type);
+    g_CData_Type = PyObject_GetAttrString(mod, "_cdata_type");
+    PyErr_Clear();
+
+    Py_XDECREF(g_CDataToPtr);
+    g_CDataToPtr = PyObject_GetAttrString(mod, "_sexp_cdata_to_ptr");
+    PyErr_Clear();
+
+    if (g_str_ptr == NULL) {
+        g_str_ptr = PyUnicode_InternFromString("_ptr");
+    }
+    if (g_str_s == NULL) {
+        g_str_s = PyUnicode_InternFromString("_s");
+    }
+
     int rc1 = PyModule_AddFunctions(mod, rchitect_conv_methods);
     int rc2 = _rchitect_register_interface_methods(mod_ptr);
     PyGILState_Release(gstate);
-    return (rc1 == 0 && rc2 == 0) ? 1 : 0;
+    return (rc1 == 0 && rc2 == 0 && g_str_ptr != NULL && g_str_s != NULL) ? 1 : 0;
 }

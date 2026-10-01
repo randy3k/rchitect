@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 
 from rchitect._cffi import ffi, lib
@@ -8,6 +9,50 @@ from .utils import get_rhome
 
 
 _initialized = False
+
+
+def _setup_r_env_vars(rhome):
+    doc_dir = os.environ.get("R_DOC_DIR") or os.path.join(rhome, "doc")
+    include_dir = os.environ.get("R_INCLUDE_DIR") or os.path.join(rhome, "include")
+    share_dir = os.environ.get("R_SHARE_DIR") or os.path.join(rhome, "share")
+    if not (
+        os.path.isdir(doc_dir)
+        and os.path.isdir(include_dir)
+        and os.path.isdir(share_dir)
+    ):
+        try:
+            paths = subprocess.check_output(
+                [
+                    os.path.join(rhome, "bin", "R"),
+                    "--no-echo",
+                    "--vanilla",
+                    "-e",
+                    "cat(paste(R.home('doc'), R.home('include'), R.home('share'), sep=':'))",
+                ]
+            )
+            doc_dir, include_dir, share_dir = paths.decode().split(":")
+        except Exception:
+            pass
+
+    os.environ["R_DOC_DIR"] = doc_dir
+    os.environ["R_INCLUDE_DIR"] = include_dir
+    os.environ["R_SHARE_DIR"] = share_dir
+
+
+def _set_utf8():
+    if sys.platform.startswith("win"):
+        import ctypes
+
+        try:
+            if ctypes.windll.kernel32.GetACP() == 65001:
+                return
+        except Exception:
+            pass
+        if not os.environ.get("LANG", ""):
+            os.environ["LANG"] = "en_US.UTF-8"
+        from .interface import setoption
+
+        setoption("encoding", "UTF-8")
 
 
 def init(args=None, register_callbacks=None, register_signal_handlers=None):
@@ -25,6 +70,7 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
         )
 
     rhome = get_rhome()
+    _setup_r_env_vars(rhome)
 
     lib.rchitect_record_main_thread()
     console.record_main_thread()
@@ -65,6 +111,9 @@ def init(args=None, register_callbacks=None, register_signal_handlers=None):
     if not _initialized:
         _initialized = True
         lib._libR_setup_xptr_callback()
+
+        if sys.platform.startswith("win"):
+            _set_utf8()
 
         from .py_tools import inject_py_tools
 

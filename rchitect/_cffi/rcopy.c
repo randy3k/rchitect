@@ -19,12 +19,13 @@ static PyObject *c_extract_pyobj_from_env_or_clos(SEXP s) {
         return c_from_xptr(s);
     }
     if (TYPEOF(s) == CLOSXP) {
-        SEXP py_obj_attr = Rf_getAttrib(s, Rf_install("py_object"));
+        SEXP py_obj_sym = r_sym_py_object ? r_sym_py_object : Rf_install("py_object");
+        SEXP py_obj_attr = Rf_getAttrib(s, py_obj_sym);
         if (py_obj_attr != R_NilValue && TYPEOF(py_obj_attr) == EXTPTRSXP) {
             return c_from_xptr(py_obj_attr);
         }
     }
-    SEXP get_sym = Rf_install("get");
+    SEXP get_sym = r_sym_get ? r_sym_get : Rf_install("get");
     SEXP pyobj_str = Rf_protect(Rf_mkString("pyobj"));
     SEXP call = Rf_protect(Rf_lang3(get_sym, pyobj_str, s));
     int status = 0;

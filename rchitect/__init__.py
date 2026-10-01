@@ -15,7 +15,7 @@ __all__ = [
     "robject",
 ]
 
-__version__ = "0.5.2"
+__version__ = "0.6.0"
 
 _LAZY_ATTRS = {
     "init": ".setup",
@@ -35,7 +35,6 @@ _SUBMODULES = {
     "setup",
     "callbacks",
     "interface",
-    "completion",
     "console",
     "py_tools",
     "reticulate",
