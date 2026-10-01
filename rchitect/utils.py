@@ -124,11 +124,14 @@ def get_rhome():
 _R_VERSION_MAJOR_RE = re.compile(r'^#define\s+R_MAJOR\s+"([^"]+)"', re.M)
 _R_VERSION_MINOR_RE = re.compile(r'^#define\s+R_MINOR\s+"([^"]+)"', re.M)
 _R_DESC_VERSION_RE = re.compile(r"^Version:\s*(\S+)", re.M)
+_rversion_cache = {}
 
 
 def rversion(rhome=None):
     if not rhome:
         rhome = get_rhome()
+    if rhome in _rversion_cache:
+        return _rversion_cache[rhome]
     rversion_h = os.path.join(rhome, "include", "Rversion.h")
     if os.path.isfile(rversion_h):
         try:
@@ -137,7 +140,9 @@ def rversion(rhome=None):
             m_major = _R_VERSION_MAJOR_RE.search(content)
             m_minor = _R_VERSION_MINOR_RE.search(content)
             if m_major and m_minor:
-                return parse_version("{}.{}".format(m_major.group(1), m_minor.group(1)))
+                version = parse_version("{}.{}".format(m_major.group(1), m_minor.group(1)))
+                _rversion_cache[rhome] = version
+                return version
         except Exception:
             pass
     base_desc = os.path.join(rhome, "library", "base", "DESCRIPTION")
@@ -147,7 +152,9 @@ def rversion(rhome=None):
                 content = f.read()
             m_ver = _R_DESC_VERSION_RE.search(content)
             if m_ver:
-                return parse_version(m_ver.group(1))
+                version = parse_version(m_ver.group(1))
+                _rversion_cache[rhome] = version
+                return version
         except Exception:
             pass
     try:
@@ -167,6 +174,7 @@ def rversion(rhome=None):
         version = parse_version(output)
     except Exception:
         version = parse_version("1000.0.0")
+    _rversion_cache[rhome] = version
     return version
 
 
