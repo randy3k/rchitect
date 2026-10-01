@@ -40,7 +40,7 @@ static void protectedParse(void *d) {
     data->val = R_ParseVector(data->text, data->num, data->status, data->source);
 }
 
-SEXP rchitect_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) {
+static SEXP rchitect_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) {
     Rboolean ok;
     ProtectedParseData d;
     d.text = Rf_protect(text);
@@ -55,10 +55,6 @@ SEXP rchitect_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) 
     }
     Rf_unprotect(2);
     return d.val;
-}
-
-SEXP rchitect_tryEval(SEXP x, SEXP e, int *s) {
-    return R_tryEval(x, e, s);
 }
 
 // =============================================================================
