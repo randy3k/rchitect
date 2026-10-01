@@ -46,7 +46,7 @@ def test_rcall_error(gctorture):
 def test_rcall_tuple(gctorture):
     assert rcall(("base", "sum"), [1, 2, 3], _convert=True) == 6
     assert rcall(("base", "::", "sum"), [1, 2, 3], _convert=True) == 6
-    assert isinstance(rcall(("utils", ":::", ".retrieveCompletions"), _convert=True), list)
+    assert rcall(("base", ":::", "sum"), [1, 2, 3], _convert=True) == 6
 
 
 def test_get_rhome_r_binary(monkeypatch):

@@ -13,6 +13,29 @@ from rchitect.interface import (
 
 
 _pending_py_object = None
+_py_repl_active_fn = None
+
+
+def is_installed():
+    return len(rcall(("base", "find.package"), "reticulate", quiet=True, _convert=True)) > 0
+
+
+def is_loaded():
+    return "reticulate" in rcall(("base", "loadedNamespaces"), _convert=True)
+
+
+def on_load(callback):
+    if is_loaded():
+        callback()
+    else:
+        set_hook(package_event("reticulate", "onLoad"), lambda *args: callback())
+
+
+def py_repl_active():
+    global _py_repl_active_fn
+    if _py_repl_active_fn is None:
+        _py_repl_active_fn = reval("reticulate:::py_repl_active")
+    return bool(rcall(_py_repl_active_fn, _convert=True))
 
 
 def pop_pending_py_object():
@@ -91,7 +114,4 @@ def configure():
         )
         atexit.register(_finalize_reticulate)
 
-    if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
-        _configure()
-    else:
-        set_hook(package_event("reticulate", "onLoad"), _configure)
+    on_load(_configure)

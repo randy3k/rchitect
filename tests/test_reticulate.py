@@ -1,4 +1,4 @@
-from rchitect import reval, rcopy, rcall, robject
+from rchitect import reticulate, reval, rcopy, rcall, robject
 import string
 import pytest
 import sys
@@ -32,3 +32,13 @@ def test_py_to_r_rchitect_object():
     del py_wrapped
     del r_vec
     rcall("gc")
+
+
+def test_reticulate_helpers():
+    reval("library(reticulate)")
+    assert reticulate.is_installed() is True
+    assert reticulate.is_loaded() is True
+    called = []
+    reticulate.on_load(lambda: called.append(True))
+    assert called == [True]
+    assert reticulate.py_repl_active() is False
