@@ -163,7 +163,7 @@ def parse_text(s):
 
 def parse_text_incomplete(s):
     ensure_initialized()
-    with capture_console():  # need to capture stderr
+    with capture_console(flushable=False):  # need to capture stderr
         return not _cffi._c_parse_text_complete(utf8tosystem(s))
 
 
