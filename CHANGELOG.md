@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.2 - 2026-09-30
+
+### Bug Fixes
+
+* Release CPython GIL during R evaluation (`R_tryEval`), queue worker-thread console output onto the main thread, and guard `SEXP` finalizers/releases across worker threads and forked processes ([#52](https://github.com/randy3k/rchitect/pull/52))
+
+### Performance & Refactoring
+
+* Extract `rcopy.c`, organize C and Python modules, collapse `assign_line_buffer` into a single R call, and remove unused `repl.py` ([#53](https://github.com/randy3k/rchitect/pull/53))
+
+**Full Changelog**: https://github.com/randy3k/rchitect/compare/v0.5.1...v0.5.2
+
 ## 0.5.1 - 2026-09-29
 
 ### Bug Fixes
