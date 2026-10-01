@@ -219,15 +219,7 @@ def rcall(f, *args, **kwargs):
 
 def rprint(s, envir=None):
     ensure_initialized()
-    s_obj = box(s)
-    symx = rsym("x")
-    if not envir:
-        envir = new_env()
-    lib.Rf_defineVar(symx.s, s_obj.s, envir.s)
-    try:
-        rcall(("base", "print"), symx, _envir=envir)
-    finally:
-        lib.Rf_defineVar(symx.s, lib.R_NilValue, envir.s)
+    rcall(("base", "print"), rlang("quote", box(s), _asis=True), _asis=True, _envir=envir)
 
 
 # =============================================================================
