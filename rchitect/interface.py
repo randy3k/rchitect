@@ -218,8 +218,21 @@ def rcall(f, *args, **kwargs):
 
 
 def rprint(s, envir=None):
+    # Bind value to a variable in a local mask environment, mirroring R's
+    # internal PrintObjectS3() (`local({ x <- <value>; base::print(x) })`).
+    # This avoids evaluating `s` when it is a symbol or language/call object,
+    # avoids inlining `s` into the call AST (which would alter `substitute(x)`
+    # inside print methods and bloat `sys.calls()`/error messages), and avoids
+    # clobbering `x` in `envir`.
     ensure_initialized()
-    rcall(("base", "print"), rlang("quote", box(s), _asis=True), _asis=True, _envir=envir)
+    s_obj = box(s)
+    symx = rsym("x")
+    mask = new_env(parent=envir)
+    lib.Rf_defineVar(symx.s, s_obj.s, mask.s)
+    try:
+        rcall(("base", "print"), symx, _envir=mask)
+    finally:
+        lib.Rf_defineVar(symx.s, lib.R_NilValue, mask.s)
 
 
 # =============================================================================
