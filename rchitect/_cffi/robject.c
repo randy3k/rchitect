@@ -13,6 +13,8 @@ PyObject *g_RObject_Type = NULL;
 PyObject *g_OrderedDict_Type = NULL;
 PyObject *g_Function_Type = NULL;
 PyObject *g_WrapRFunction = NULL;
+static PyObject *g_CData_Type = NULL;
+static PyObject *g_CDataToPtr = NULL;
 static PyObject *g_str_ptr = NULL;
 static PyObject *g_str_s = NULL;
 
@@ -41,8 +43,21 @@ static void ensure_cached_symbols(void) {
 }
 
 int is_robject(PyObject *obj) {
-    if (g_RObject_Type == NULL || obj == NULL) return 0;
-    return PyObject_TypeCheck(obj, (PyTypeObject *)g_RObject_Type);
+    if (obj == NULL) return 0;
+    if (g_RObject_Type != NULL && PyObject_TypeCheck(obj, (PyTypeObject *)g_RObject_Type)) {
+        return 1;
+    }
+    if (g_CData_Type != NULL && PyObject_TypeCheck(obj, (PyTypeObject *)g_CData_Type) && g_CDataToPtr != NULL) {
+        PyObject *ptr_obj = PyObject_CallFunctionObjArgs(g_CDataToPtr, obj, NULL);
+        if (ptr_obj == NULL) {
+            PyErr_Clear();
+            return 0;
+        }
+        int ok = (ptr_obj != Py_None);
+        Py_DECREF(ptr_obj);
+        return ok;
+    }
+    return 0;
 }
 
 SEXP extract_sexp(PyObject *obj) {
@@ -50,20 +65,33 @@ SEXP extract_sexp(PyObject *obj) {
         PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
         return NULL;
     }
-    if (PyLong_CheckExact(obj)) {
-        return (SEXP)PyLong_AsVoidPtr(obj);
+    if (g_RObject_Type != NULL && PyObject_TypeCheck(obj, (PyTypeObject *)g_RObject_Type)) {
+        PyObject *ptr_obj = g_str_ptr != NULL
+            ? PyObject_GetAttr(obj, g_str_ptr)
+            : PyObject_GetAttrString(obj, "_ptr");
+        if (ptr_obj != NULL) {
+            SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
+            Py_DECREF(ptr_obj);
+            return s;
+        }
+        if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
+            PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
+        }
+        return NULL;
     }
-    PyObject *ptr_obj = g_str_ptr != NULL
-        ? PyObject_GetAttr(obj, g_str_ptr)
-        : PyObject_GetAttrString(obj, "_ptr");
-    if (ptr_obj != NULL) {
+    if (g_CData_Type != NULL && PyObject_TypeCheck(obj, (PyTypeObject *)g_CData_Type) && g_CDataToPtr != NULL) {
+        PyObject *ptr_obj = PyObject_CallFunctionObjArgs(g_CDataToPtr, obj, NULL);
+        if (ptr_obj == NULL) return NULL;
+        if (ptr_obj == Py_None) {
+            Py_DECREF(ptr_obj);
+            PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
+            return NULL;
+        }
         SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
         Py_DECREF(ptr_obj);
         return s;
     }
-    if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
-        PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
-    }
+    PyErr_SetString(PyExc_TypeError, "expect SEXP or RObject");
     return NULL;
 }
 
@@ -792,6 +820,14 @@ int _rchitect_init_conv(
     Py_XDECREF(g_WrapRFunction);
     g_WrapRFunction = (PyObject *)wrap_r_func_ptr;
     Py_XINCREF(g_WrapRFunction);
+
+    Py_XDECREF(g_CData_Type);
+    g_CData_Type = PyObject_GetAttrString(mod, "_cdata_type");
+    PyErr_Clear();
+
+    Py_XDECREF(g_CDataToPtr);
+    g_CDataToPtr = PyObject_GetAttrString(mod, "_sexp_cdata_to_ptr");
+    PyErr_Clear();
 
     if (g_str_ptr == NULL) {
         g_str_ptr = PyUnicode_InternFromString("_ptr");

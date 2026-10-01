@@ -40,6 +40,15 @@ def test_rprint(gctorture):
         assert read_stdout().strip() == "x:99"
     assert rcopy(reval("x", envir=env)) == 42
 
+    with pytest.raises(TypeError, match="expect SEXP or RObject"):
+        rprint(1)
+    with pytest.raises(TypeError, match="expect SEXP or RObject"):
+        reval(1)
+    with pytest.raises(TypeError, match="expect SEXP or RObject"):
+        rcopy(1)
+    with pytest.raises(TypeError, match="expect SEXP or RObject"):
+        rclass(1)
+
 
 def test_rparse_error(gctorture):
     with pytest.raises(Exception) as excinfo:

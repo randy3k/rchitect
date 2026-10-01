@@ -14,18 +14,24 @@ from .setup import ensure_initialized
 # =============================================================================
 
 
+_SEXP_CTYPE = ffi.typeof("SEXP")
+
+
+def _sexp_cdata_to_ptr(x):
+    if ffi.typeof(x) is _SEXP_CTYPE:
+        return int(ffi.cast("uintptr_t", x))
+    return None
+
+
 class RObject(object):
     __slots__ = ("_ptr", "_s")
 
     def __init__(self, s):
-        if isinstance(s, int):
-            self._ptr = s
-            self._s = None
-        elif isinstance(s, ffi.CData) and ffi.typeof(s) == ffi.typeof("SEXP"):
+        if isinstance(s, ffi.CData) and ffi.typeof(s) is _SEXP_CTYPE:
             self._s = s
             self._ptr = int(ffi.cast("uintptr_t", s))
         else:
-            raise TypeError("expect SEXP or int pointer")
+            raise TypeError("expect SEXP")
         _cffi._c_preserve_sexp(self._ptr)
 
     @property
@@ -64,13 +70,15 @@ class RObject(object):
 def box(x):
     if isinstance(x, RObject):
         return x
-    return RObject(x)
+    if isinstance(x, ffi.CData) and ffi.typeof(x) is _SEXP_CTYPE:
+        return RObject(x)
+    raise TypeError("expect SEXP or RObject")
 
 
 def unbox(x):
     if isinstance(x, RObject):
         return x.s
-    elif isinstance(x, ffi.CData) and ffi.typeof(x) == ffi.typeof("SEXP"):
+    elif isinstance(x, ffi.CData) and ffi.typeof(x) is _SEXP_CTYPE:
         return x
     raise TypeError("expect SEXP or RObject")
 
@@ -84,6 +92,9 @@ def _wrap_r_function(r, asis=False, convert=True):
     f.convert = convert
     return f
 
+
+_cffi._cdata_type = ffi.CData
+_cffi._sexp_cdata_to_ptr = _sexp_cdata_to_ptr
 
 lib._rchitect_init_conv(
     ffi.cast("void *", id(_cffi)),
