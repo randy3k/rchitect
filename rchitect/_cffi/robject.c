@@ -1,5 +1,6 @@
 #include <Python.h>
 #include <limits.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "robject.h"
