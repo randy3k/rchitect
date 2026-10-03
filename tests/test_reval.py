@@ -89,9 +89,9 @@ def test_rcall_tuple(gctorture):
     assert rcall(("base", ":::", "sum"), [1, 2, 3], _convert=True) == 6
 
 
-def test_get_rhome_r_binary(monkeypatch):
+def test_get_rhome_r_binary(monkeypatch, tmp_path):
     import os
-    from rchitect.utils import get_rhome
+    from rchitect.utils import ensure_path_for_dll, get_rhome, get_rhome_from_binary
 
     expected_rhome = get_rhome()
     rbinary = os.path.join(expected_rhome, "bin", "R")
@@ -103,6 +103,21 @@ def test_get_rhome_r_binary(monkeypatch):
     monkeypatch.setenv("R_HOME", "/nonexistent/rhome")
     assert get_rhome() == expected_rhome
     assert os.environ.get("R_HOME") == expected_rhome
+
+    # Tilde expansion in get_rhome_from_binary
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    assert get_rhome_from_binary("~/nonexistent_R_bin") is None
+
+    # ensure_path_for_dll compares normalized os.pathsep entries rather than substring match
+    target_dir = os.path.join(str(tmp_path), "R", "bin")
+    superstring_dir = target_dir + "_extra"
+    monkeypatch.setenv("PATH", superstring_dir)
+    ensure_path_for_dll(os.path.join(target_dir, "R.dll"))
+    assert os.environ["PATH"].split(os.pathsep) == [target_dir, superstring_dir]
+    # Second call is a no-op
+    ensure_path_for_dll(os.path.join(target_dir, "R.dll"))
+    assert os.environ["PATH"].split(os.pathsep) == [target_dir, superstring_dir]
 
 
 def test_parse_text_complete(gctorture):

@@ -27,10 +27,10 @@ def _setup_r_env_vars(rhome):
                     "--no-echo",
                     "--vanilla",
                     "-e",
-                    "cat(paste(R.home('doc'), R.home('include'), R.home('share'), sep=':'))",
+                    "cat(paste(R.home('doc'), R.home('include'), R.home('share'), sep='\\n'))",
                 ]
             )
-            doc_dir, include_dir, share_dir = paths.decode().split(":")
+            doc_dir, include_dir, share_dir = paths.decode("utf-8", "ignore").splitlines()
         except Exception:
             pass
 

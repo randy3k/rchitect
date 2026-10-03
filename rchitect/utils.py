@@ -67,6 +67,8 @@ def read_r_install_path_from_registry():
 
 
 def get_rhome_from_binary(rbinary):
+    if rbinary:
+        rbinary = os.path.expanduser(rbinary)
     if sys.platform.startswith("win"):
         if rbinary and not rbinary.lower().endswith((".exe", ".bat", ".cmd")):
             rbinary = rbinary + ".exe"
@@ -163,6 +165,7 @@ def rversion(rhome=None):
                 [
                     os.path.join(rhome, "bin", "R"),
                     "--no-echo",
+                    "--vanilla",
                     "-e",
                     "cat(as.character(getRversion()))",
                 ],
@@ -181,8 +184,16 @@ def rversion(rhome=None):
 def ensure_path_for_dll(libr_path):
     libr_dir = os.path.dirname(libr_path)
     env_path = os.environ.get("PATH", "")
-    if libr_dir not in env_path:
-        os.environ["PATH"] = libr_dir + ";" + env_path
+    norm_dir = os.path.normcase(os.path.normpath(libr_dir))
+    path_entries = [
+        os.path.normcase(os.path.normpath(p))
+        for p in env_path.split(os.pathsep)
+        if p
+    ]
+    if norm_dir not in path_entries:
+        os.environ["PATH"] = (
+            libr_dir + os.pathsep + env_path if env_path else libr_dir
+        )
 
 
 def get_libr_path(rhome, ensure_path=False):
