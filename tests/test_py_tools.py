@@ -87,3 +87,33 @@ def test_py_tools():
     assert rcopy(reval("py_unicode('hello')", envir=env)) == "hello"
 
     assert rcopy(reval("tuple('a', 3)", envir=env)) == ('a', 3)
+
+    # Multi-index subscripting on PyObject (both [ and [<- and direct py_get_item/py_set_item)
+    ret_multi = reval("""
+        m <- dict()
+        m[1L, 2L] <- 99L
+        c(py_copy(m[1L, 2L]), py_copy(py_get_item(m, 1L, 2L)))
+    """, envir=env)
+    assert rcopy(ret_multi) == [99, 99]
+
+    ret_multi_set = reval("""
+        py_set_item(m, 3L, 4L, 77L)
+        py_copy(m[3L, 4L])
+    """, envir=env)
+    assert rcopy(ret_multi_set) == 77
+
+    # py_eval and py_call evaluate strings against __main__.__dict__
+    import __main__
+    import pytest
+
+    __main__._test_py_tools_var = 123
+    __main__._test_py_tools_fn = lambda a, b: a + b
+    try:
+        assert rcopy(reval("py_copy(py_eval('_test_py_tools_var'))", envir=env)) == 123
+        assert rcopy(reval("py_copy(py_call('_test_py_tools_fn', 10L, 20L))", envir=env)) == 30
+    finally:
+        del __main__._test_py_tools_var
+        del __main__._test_py_tools_fn
+
+    with pytest.raises(RuntimeError, match="py_object expected 1 or 2 positional arguments"):
+        reval("py_object()", envir=env)
