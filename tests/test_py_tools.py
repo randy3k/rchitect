@@ -66,13 +66,15 @@ def test_py_tools():
     assert rcopy(ret) == 2
 
     ret = reval("""
-        Foo <- py_eval("type(str('Foo'), (object,), {})")
+        Foo <- py_eval("type(str('Foo'), (object,), {'bar': lambda self: 42})")
         foo <- Foo()
         foo$x <- 1L
         foo
     """, envir=env)
     assert rcopy(ret).x == 1
     assert not rcall("attributes", ret, _convert=True)['convert']
+    assert "bar" in rcopy(reval("utils:::.DollarNames(foo, 'ba')", envir=env))
+    assert "append" in rcopy(reval("utils:::.DollarNames(py_eval('[1, 2]'), 'app')", envir=env))
 
     ret = reval("""
         rchitect <- import("rchitect")

@@ -81,7 +81,7 @@ def _bracket_pyobject(robj, rkey):
 
 def py_names(obj, pattern=None):
     try:
-        names = [k for k in obj.__dict__.keys() if not k.startswith("_")]
+        names = [k for k in dir(obj) if not k.startswith("_")]
     except Exception:
         return None
     if pattern:
