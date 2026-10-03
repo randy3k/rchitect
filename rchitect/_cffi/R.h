@@ -248,27 +248,13 @@ RAPI_EXTERN int R_interrupts_pending;
 // Rinterface.h callbacks
 RAPI_EXTERN void *R_Outputfile;
 RAPI_EXTERN void *R_Consolefile;
-RAPI_EXTERN void (*ptr_R_Suicide)(const char *);
 RAPI_EXTERN void (*ptr_R_ShowMessage)(const char *);
 RAPI_EXTERN int (*ptr_R_ReadConsole)(const char *, unsigned char *, int, int);
 RAPI_EXTERN void (*ptr_R_WriteConsole)(const char *, int);
 RAPI_EXTERN void (*ptr_R_WriteConsoleEx)(const char *, int, int);
 RAPI_EXTERN void (*ptr_R_ResetConsole)(void);
-RAPI_EXTERN void (*ptr_R_FlushConsole)(void);
-RAPI_EXTERN void (*ptr_R_ClearerrConsole)(void);
 RAPI_EXTERN void (*ptr_R_Busy)(int);
 RAPI_EXTERN void (*ptr_R_CleanUp)(int, int, int);
-RAPI_EXTERN int (*ptr_R_ShowFiles)(int, const char **, const char **, const char *, Rboolean, const char *);
-RAPI_EXTERN int (*ptr_R_ChooseFile)(int, char *, int);
-RAPI_EXTERN int (*ptr_R_EditFile)(const char *);
-RAPI_EXTERN void (*ptr_R_loadhistory)(SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN void (*ptr_R_savehistory)(SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN void (*ptr_R_addhistory)(SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN int (*ptr_R_EditFiles)(int, const char **, const char **, const char *);
-RAPI_EXTERN SEXP (*ptr_do_selectlist)(SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP (*ptr_do_dataentry)(SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN SEXP (*ptr_do_dataviewer)(SEXP, SEXP, SEXP, SEXP);
-RAPI_EXTERN void (*ptr_R_ProcessEvents)(void);
 // end unix cdef
 #endif
 
