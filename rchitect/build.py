@@ -55,7 +55,7 @@ elif sys.platform == "darwin":
     extra_compile_args = ["-fvisibility=hidden"]
     extra_link_args = ["-Wl,-undefined,dynamic_lookup"]
 else:
-    libraries = ["R"]
+    libraries = []
     extra_compile_args = ["-fvisibility=hidden"]
     extra_link_args = []
 

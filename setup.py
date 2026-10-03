@@ -50,8 +50,6 @@ class build_ext(_build_ext):
         self._extra_outputs = []
         if sys.platform.startswith("win"):
             self.build_win_import_libs()
-        elif sys.platform != "darwin":
-            self.build_unix_stub_lib()
         super().run()
         if sys.platform.startswith("win"):
             self.build_host()
@@ -114,27 +112,6 @@ class build_ext(_build_ext):
         lib_exe = getattr(compiler, "lib", "lib.exe")
         compiler.spawn([lib_exe, "/nologo", machine, "/def:" + r_def, "/out:" + r_lib])
         compiler.spawn([lib_exe, "/nologo", machine, "/def:" + rga_def, "/out:" + rga_lib])
-        self._add_temp_library_dir(self.build_temp)
-
-    def build_unix_stub_lib(self):
-        os.makedirs(self.build_temp, exist_ok=True)
-        r_funcs, r_data, _ = parse_r_h_symbols()
-        compiler = self._get_initialized_compiler()
-
-        stub_c = os.path.join(self.build_temp, "libR_stub.c")
-        with open(stub_c, "w") as f:
-            for sym in r_funcs:
-                f.write("void {}(void) {{}}\n".format(sym))
-            for sym in r_data:
-                f.write("void *{} = 0;\n".format(sym))
-
-        objs = compiler.compile([stub_c], output_dir=self.build_temp, extra_postargs=["-fPIC"])
-        stub_so = os.path.join(self.build_temp, "libR.so")
-        compiler.link_shared_object(
-            objs,
-            stub_so,
-            extra_postargs=["-Wl,-soname,libR.so"],
-        )
         self._add_temp_library_dir(self.build_temp)
 
     def build_host(self):
