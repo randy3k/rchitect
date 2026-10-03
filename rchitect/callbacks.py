@@ -146,6 +146,11 @@ def write_console_ex(buf, otype):
 
 
 @def_callback()
+def reset_console():
+    pass
+
+
+@def_callback()
 def busy(which):
     pass
 
@@ -265,6 +270,7 @@ def cb_show_message(buf):
 
 
 def on_callback_error(exception, exc_value, traceback):
+    _code[0] = b""
     if exception == KeyboardInterrupt:
         lib.cb_interrupted = 1
     elif exception == EOFError:
@@ -311,6 +317,12 @@ def cb_read_console(p, buf, buflen, add_history):
 def cb_write_console_ex(buf, bufline, otype):
     text = rconsole2str(ffi.string(buf))
     console.write_console(text, otype)
+
+
+@ffi.def_extern(error=None, onerror=on_callback_error)
+def cb_reset_console():
+    _code[0] = b""
+    callback.reset_console()
 
 
 @ffi.def_extern()

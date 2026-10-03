@@ -46,6 +46,19 @@ def test_read_console_interrupt(mocker, gctorture):
     assert str(excinfo.value).startswith("Error")
 
 
+def test_reset_console_clears_buffer(mocker, gctorture):
+    import rchitect.callbacks as callbacks
+
+    mocker.patch("rchitect.callbacks.utf8tosystem", side_effect=lambda x: x.encode("utf-8"))
+    mocker.patch("rchitect.callbacks.ask_input", return_value="a" * 5000)
+    buf = ffi.new("char[4096]")
+    lib.cb_read_console(ffi.new("char[]", b"> "), buf, 4096, 1)
+    assert callbacks._code[0] != b""
+
+    lib.cb_reset_console()
+    assert callbacks._code[0] == b""
+
+
 def test_write_console(mocker, gctorture):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('helloworld')")
