@@ -54,8 +54,12 @@ class RObject(object):
 
     def __repr__(self):
         with capture_console(flushable=False):  # need to capture stdout
-            rprint(self)
-            output = read_stdout() or ""
+            try:
+                rprint(self)
+            except Exception:
+                output = ""
+            else:
+                output = read_stdout() or ""
 
         name = "RObject{{{}}}".format(_cffi._c_sexptype_name(self))
         if output:

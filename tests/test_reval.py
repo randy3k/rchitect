@@ -40,6 +40,15 @@ def test_rprint(gctorture):
         assert read_stdout().strip() == "x:99"
     assert rcopy(reval("x", envir=env)) == 42
 
+    # RObject.__repr__ must not raise on R_MissingArg or failing S3 print methods
+    missing_arg = reval("formals(function(x) x)$x")
+    assert repr(missing_arg) == "RObject{SYMSXP}"
+
+    reval('print.rprint_fail_cls <- function(x, ...) { cat("partial\\n"); stop("boom") }')
+    fail_obj = reval('structure(1L, class = "rprint_fail_cls")')
+    assert repr(fail_obj) == "RObject{INTSXP}"
+    reval("rm(print.rprint_fail_cls, envir = .GlobalEnv)")
+
     with pytest.raises(TypeError, match="expect SEXP or RObject"):
         rprint(1)
     with pytest.raises(TypeError, match="expect SEXP or RObject"):
