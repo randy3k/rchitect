@@ -26,12 +26,37 @@ def test_numbers(gctorture):
     with pytest.raises(TypeError):
         robject("complex", ["invalid"])
 
+    # 64-bit integer overflow raises OverflowError, while NA_integer_ (-2147483648) round-trips
+    with pytest.raises(OverflowError):
+        robject(2**40)
+    with pytest.raises(OverflowError):
+        robject(-(2**40))
+    with pytest.raises(OverflowError):
+        robject("integer", [2**40])
+    na_int = rcopy(reval("NA_integer_"))
+    assert rcall("is.na", robject(na_int), _convert=True) is True
+    assert rcall("is.na", robject("integer", [na_int]), _convert=True) is True
+
+    class BadBool:
+        def __bool__(self):
+            raise RuntimeError("bad bool")
+
+    with pytest.raises(RuntimeError, match="bad bool"):
+        robject("logical", [BadBool()])
+
 
 def test_strings(gctorture):
+    import pytest
+
     assert rcall("identical", robject("abc"), rstring("abc"), _convert=True)
     assert rcall("identical", robject("β"), rstring("β"), _convert=True)
     assert rcall("identical", robject("你"), rstring("你"), _convert=True)
     assert rcall("identical", robject(['a', 'b']), reval("c('a', 'b')"), _convert=True)
+
+    with pytest.raises(ValueError, match="embedded nul"):
+        robject("a\x00b")
+    with pytest.raises(ValueError, match="embedded nul"):
+        rstring("\x00")
 
 
 def test_raw(gctorture):
@@ -77,4 +102,11 @@ def test_functions(gctorture):
 
     err_fun = robject(fail)
     captured = rcopy(rcall("tryCatch", rcall("as.call", [err_fun]), error=reval("function(e) conditionMessage(e)")))
-    assert msg in captured
+    assert "ValueError" in captured and msg in captured
+
+    def fail_empty():
+        raise AssertionError()
+
+    err_empty_fun = robject(fail_empty)
+    captured_empty = rcopy(rcall("tryCatch", rcall("as.call", [err_empty_fun]), error=reval("function(e) conditionMessage(e)")))
+    assert captured_empty == "AssertionError"

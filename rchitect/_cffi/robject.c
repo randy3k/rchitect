@@ -1,4 +1,5 @@
 #include <Python.h>
+#include <limits.h>
 #include <string.h>
 
 #include "robject.h"
@@ -175,6 +176,10 @@ SEXP c_mk_rchar_from_py(PyObject *str_obj) {
     Py_ssize_t len = 0;
     const char *buf = PyUnicode_AsUTF8AndSize(str_obj, &len);
     if (buf == NULL) return NULL;
+    if ((size_t)len != strlen(buf)) {
+        PyErr_SetString(PyExc_ValueError, "embedded nul in string");
+        return NULL;
+    }
     return Rf_mkCharLenCE(buf, (int)len, c_is_ascii_str(str_obj, buf, len) ? CE_NATIVE : CE_UTF8);
 }
 
@@ -182,20 +187,31 @@ SEXP c_install_py_str(PyObject *str_obj) {
     Py_ssize_t len = 0;
     const char *buf = PyUnicode_AsUTF8AndSize(str_obj, &len);
     if (buf == NULL) return NULL;
+    if (len == 0) {
+        PyErr_SetString(PyExc_ValueError, "attempt to use zero-length variable name");
+        return NULL;
+    }
+    if ((size_t)len != strlen(buf)) {
+        PyErr_SetString(PyExc_ValueError, "embedded nul in string");
+        return NULL;
+    }
     if (c_is_ascii_str(str_obj, buf, len)) {
         return Rf_install(buf);
     }
     SEXP ch = Rf_protect(Rf_mkCharLenCE(buf, (int)len, CE_UTF8));
+    const void *vmax = vmaxget();
     SEXP sym = Rf_install(Rf_translateChar(ch));
+    vmaxset(vmax);
     Rf_unprotect(1);
     return sym;
 }
 
-static int c_sexp_has_class(SEXP s, const char *target_cls) {
+int c_sexp_has_class(SEXP s, const char *target_cls) {
     if (!Rf_isObject(s)) return 0;
     SEXP classes = Rf_protect(R_data_class(s, FALSE));
     R_xlen_t n = Rf_xlength(classes);
     int found = 0;
+    const void *vmax = vmaxget();
     for (R_xlen_t i = 0; i < n; i++) {
         const char *c = Rf_translateCharUTF8(STRING_ELT(classes, i));
         if (strcmp(c, target_cls) == 0) {
@@ -203,6 +219,7 @@ static int c_sexp_has_class(SEXP s, const char *target_cls) {
             break;
         }
     }
+    vmaxset(vmax);
     Rf_unprotect(1);
     return found;
 }
@@ -307,7 +324,12 @@ static SEXP c_sexp_list_with_rclass(
         SEXP x = Rf_protect(Rf_allocVector(LGLSXP, n));
         int *p = LOGICAL(x);
         for (Py_ssize_t i = 0; i < n; i++) {
-            p[i] = PyObject_IsTrue(PyList_GetItem(seq, i));
+            int truth = PyObject_IsTrue(PyList_GetItem(seq, i));
+            if (truth < 0) {
+                Rf_unprotect(1);
+                return NULL;
+            }
+            p[i] = truth;
         }
         Rf_unprotect(1);
         return x;
@@ -320,6 +342,11 @@ static SEXP c_sexp_list_with_rclass(
             long v = PyLong_AsLong(PyList_GetItem(seq, i));
             if (v == -1 && PyErr_Occurred()) {
                 Rf_unprotect(1);
+                return NULL;
+            }
+            if (v < INT_MIN || v > INT_MAX) {
+                Rf_unprotect(1);
+                PyErr_SetString(PyExc_OverflowError, "Python int too large to convert to C int");
                 return NULL;
             }
             p[i] = (int)v;
@@ -531,6 +558,10 @@ SEXP c_sexp_impl(
         if (PyLong_Check(obj)) {
             long v = PyLong_AsLong(obj);
             if (v == -1 && PyErr_Occurred()) return NULL;
+            if (v < INT_MIN || v > INT_MAX) {
+                PyErr_SetString(PyExc_OverflowError, "Python int too large to convert to C int");
+                return NULL;
+            }
             return Rf_ScalarInteger((int)v);
         }
         if (PyList_Check(obj)) return c_sexp_list_with_rclass("integer", obj, asis, has_convert, convert, invisible);
@@ -556,11 +587,9 @@ SEXP c_sexp_impl(
     }
     if (strcmp(rclass, "character") == 0) {
         if (PyUnicode_Check(obj)) {
-            SEXP ch = Rf_protect(c_mk_rchar_from_py(obj));
-            if (ch == NULL) {
-                Rf_unprotect(1);
-                return NULL;
-            }
+            SEXP ch = c_mk_rchar_from_py(obj);
+            if (ch == NULL) return NULL;
+            Rf_protect(ch);
             SEXP res = Rf_ScalarString(ch);
             Rf_unprotect(1);
             return res;
@@ -648,7 +677,6 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
         }
         for (R_xlen_t i = 0; i < n; i++) {
             SEXP elt = VECTOR_ELT(arglist, i);
-            const char *k = Rf_translateCharUTF8(STRING_ELT(names, i));
             PyObject *py_val = asis ? c_box_sexp(elt) : c_rcopy_impl(elt, Py_None, 0, 1);
             if (py_val == NULL) {
                 vmaxset(vmax);
@@ -657,6 +685,7 @@ static SEXP _rchitect_xptr_callback(SEXP exptr, SEXP arglist, SEXP asis_s, SEXP 
                 Py_DECREF(kwargs);
                 goto handle_error;
             }
+            const char *k = Rf_translateCharUTF8(STRING_ELT(names, i));
             int rc = (k != NULL && k[0] != '\0')
                 ? PyDict_SetItemString(kwargs, k, py_val)
                 : PyList_Append(pos_list, py_val);
@@ -709,6 +738,10 @@ handle_error:
     {
         PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
         PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+        PyErr_NormalizeException(&ptype, &pvalue, &ptraceback);
+        const char *type_name = (ptype != NULL && PyExceptionClass_Check(ptype))
+            ? PyExceptionClass_Name(ptype)
+            : "PythonError";
         char err_buf[4096];
         err_buf[0] = '\0';
         if (pvalue != NULL) {
@@ -716,14 +749,19 @@ handle_error:
             if (pstr != NULL) {
                 Py_ssize_t len = 0;
                 const char *utf8 = PyUnicode_AsUTF8AndSize(pstr, &len);
-                if (utf8 != NULL) {
-                    size_t copy_len = (size_t)len < sizeof(err_buf) - 1 ? (size_t)len : sizeof(err_buf) - 1;
-                    memcpy(err_buf, utf8, copy_len);
-                    err_buf[copy_len] = '\0';
+                if (utf8 != NULL && len > 0) {
+                    snprintf(err_buf, sizeof(err_buf), "%s: %s", type_name, utf8);
+                } else {
+                    snprintf(err_buf, sizeof(err_buf), "%s", type_name);
                 }
                 Py_DECREF(pstr);
+            } else {
+                snprintf(err_buf, sizeof(err_buf), "%s", type_name);
             }
+        } else {
+            snprintf(err_buf, sizeof(err_buf), "%s", type_name);
         }
+        PyErr_Clear();
         Py_XDECREF(ptype);
         Py_XDECREF(pvalue);
         Py_XDECREF(ptraceback);

@@ -107,4 +107,24 @@ def test_parse_text_complete(gctorture):
     assert not parse_text_incomplete("1 + *")
 
 
+def test_symbol_and_env_validation(gctorture):
+    from rchitect.interface import getattrib, setattrib
 
+    for bad_sym in ["", "\x00", "a\x00b"]:
+        with pytest.raises(ValueError):
+            rsym(bad_sym)
+        with pytest.raises(ValueError):
+            rsym("base", bad_sym)
+        with pytest.raises(ValueError):
+            getattrib(robject(1), bad_sym)
+        with pytest.raises(ValueError):
+            setattrib(robject(1), bad_sym, 1)
+
+    with pytest.raises(TypeError, match="expect environment"):
+        new_env(robject(1))
+    with pytest.raises(TypeError, match="expect environment"):
+        rcall("ls", _envir=robject(1))
+
+    # emptyenv() is a valid ENVSXP parent
+    env = new_env(reval("emptyenv()"))
+    assert "environment" in rclass(env)

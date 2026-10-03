@@ -32,6 +32,7 @@ PyObject *c_box_sexp(SEXP s);
 PyObject *c_from_xptr(SEXP s);
 SEXP c_mk_rchar_from_py(PyObject *str_obj);
 SEXP c_install_py_str(PyObject *str_obj);
+int c_sexp_has_class(SEXP s, const char *target_cls);
 PyObject *c_rcopy_str_list(SEXP s);
 PyObject *c_rcopy_impl(SEXP s, PyObject *target_type, int asis, int convert);
 PyObject *py_c_rcopy(PyObject *self, PyObject *args);
