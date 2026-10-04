@@ -302,6 +302,27 @@ def setup_r_dll_dir(rhome=None):
         pass
 
 
+class _LinkMap(ctypes.Structure):
+    _fields_ = [
+        ("l_addr", ctypes.c_void_p),
+        ("l_name", ctypes.c_void_p),
+    ]
+
+
+_soname_bufs = []
+
+
+def _register_linux_soname(handle, soname):
+    if not sys.platform.startswith("linux") or not getattr(handle, "_handle", None):
+        return
+    try:
+        buf = ctypes.create_string_buffer(soname.encode("utf-8"))
+        _soname_bufs.append(buf)
+        _LinkMap.from_address(handle._handle).l_name = ctypes.addressof(buf)
+    except Exception:
+        pass
+
+
 def load_libr(rhome=None):
     if not rhome:
         rhome = get_rhome()
@@ -311,18 +332,21 @@ def load_libr(rhome=None):
         rblas_path = os.path.join(libr_dir, "libRblas.so")
         if os.path.exists(rblas_path):
             try:
-                ctypes.CDLL(rblas_path, mode=ctypes.RTLD_GLOBAL)
+                h_blas = ctypes.CDLL(rblas_path, mode=ctypes.RTLD_GLOBAL)
+                _register_linux_soname(h_blas, "libRblas.so")
             except OSError:
                 pass
     try:
-        ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)
+        h_r = ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)
+        _register_linux_soname(h_r, "libR.so")
     except OSError as e:
         raise Exception("Cannot load shared library: {}".format(e))
     if sys.platform != "darwin":
         rlapack_path = os.path.join(libr_dir, "libRlapack.so")
         if os.path.exists(rlapack_path):
             try:
-                ctypes.CDLL(rlapack_path, mode=ctypes.RTLD_GLOBAL)
+                h_lapack = ctypes.CDLL(rlapack_path, mode=ctypes.RTLD_GLOBAL)
+                _register_linux_soname(h_lapack, "libRlapack.so")
             except OSError:
                 pass
 

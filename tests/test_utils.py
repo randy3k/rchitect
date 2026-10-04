@@ -353,3 +353,55 @@ def test_macos_homebrew_r_without_librblas(tmp_path):
         .strip()
     )
     assert out.endswith("HOMEBREW_BLAS_OK")
+
+
+def test_linux_load_libr_without_ld_library_path(tmp_path):
+    if not sys.platform.startswith("linux"):
+        return
+
+    rhome = u.get_rhome()
+    fake_rhome = tmp_path / "opt_r"
+    fake_lib = fake_rhome / "lib"
+    fake_lib.mkdir(parents=True)
+    for entry in os.listdir(rhome):
+        if entry != "lib":
+            os.symlink(os.path.join(rhome, entry), str(fake_rhome / entry))
+
+    real_lib_dir = os.path.join(rhome, "lib")
+    for entry in os.listdir(real_lib_dir):
+        src = os.path.join(real_lib_dir, entry)
+        if entry in ("libR.so", "libRblas.so", "libRlapack.so") and os.path.isfile(src):
+            shutil.copy2(os.path.realpath(src), str(fake_lib / entry))
+        else:
+            os.symlink(src, str(fake_lib / entry))
+
+    expected_libr = os.path.realpath(str(fake_lib / "libR.so"))
+    script = (
+        "import os\n"
+        "from rchitect import init, reval, rcopy\n"
+        "init()\n"
+        "assert rcopy(reval('1 + 1')) == 2\n"
+        "assert rcopy(reval('det(matrix(c(1, 2, 3, 4), 2, 2))')) == -2.0\n"
+        "mapped = {os.path.realpath(l.split()[-1]) for l in open('/proc/self/maps') if l.strip().endswith('/libR.so')}\n"
+        f"assert mapped == {{{expected_libr!r}}}\n"
+        "print('LINUX_SONAME_OK')\n"
+    )
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k
+        not in (
+            "LD_LIBRARY_PATH",
+            "LD_PRELOAD",
+            "R_BINARY",
+            "_RCHITECT_R_BINARY",
+            "_RCHITECT_R_HOME",
+            "_RCHITECT_HOST_ACTIVE",
+            "_RCHITECT_LIBR_LOADED",
+            "_RCHITECT_PRELOAD_LIBS",
+        )
+    }
+    env["R_HOME"] = str(fake_rhome)
+    out = subprocess.check_output([sys.executable, "-c", script], env=env).decode("utf-8").strip()
+    assert out.endswith("LINUX_SONAME_OK")
+
