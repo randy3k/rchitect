@@ -303,16 +303,40 @@ def setup_r_dll_dir(rhome=None):
 
 
 class _LinkMap(ctypes.Structure):
+    # Matches the prefix of `struct link_map` from `<link.h>` on Linux/glibc.
+    # On Linux, the `void *` handle returned by `dlopen()` (`CDLL._handle`) is
+    # a `struct link_map *`.
     _fields_ = [
         ("l_addr", ctypes.c_void_p),
         ("l_name", ctypes.c_void_p),
     ]
 
 
+# Keep string buffers alive for the lifetime of the process since `l_name`
+# stores a raw `char *` pointer read by the dynamic linker.
 _soname_bufs = []
 
 
 def _register_linux_soname(handle, soname):
+    """Register a short SONAME on an already-loaded `ctypes.CDLL` handle on Linux.
+
+    R on Linux builds `libR.so`, `libRblas.so`, and `libRlapack.so` without a
+    `DT_SONAME` ELF header entry, while R's base package shared libraries
+    (e.g., `utils.so`, `methods.so`, `stats.so`, `grDevices.so`, `lapack.so`)
+    declare `DT_NEEDED` for the bare filename `"libR.so"` (or `"libRlapack.so"`
+    / `"libRblas.so"`) without an `RPATH`.
+
+    When `ctypes.CDLL(full_path, mode=ctypes.RTLD_GLOBAL)` loads `libR.so` by
+    absolute path in a process started without `LD_LIBRARY_PATH` containing
+    `$R_HOME/lib`, glibc only records the full path in `link_map->l_name`.
+    Subsequent `dlopen()` calls from R for `utils.so` then fail to find
+    `"libR.so"` because glibc's `_dl_name_match_p(name, map)` only sees the
+    full path in `map->l_name` and has no `DT_SONAME` in `map->l_libname`.
+
+    Pointing `link_map->l_name` to a pinned buffer containing the bare SONAME
+    (e.g., `"libR.so"`) makes `_dl_name_match_p` match the in-memory library
+    immediately without requiring `LD_LIBRARY_PATH` or process re-exec.
+    """
     if not sys.platform.startswith("linux") or not getattr(handle, "_handle", None):
         return
     try:
@@ -392,6 +416,24 @@ def should_use_host():
 
 
 def _get_macos_blas_path(libr_path):
+    """Resolve the actual BLAS dylib path used by `libR.dylib` on macOS.
+
+    When preloading `libR.dylib` via `DYLD_INSERT_LIBRARIES`, its BLAS library
+    must also be preloaded ahead of `libR.dylib` so BLAS symbols (e.g. `dgemm_`)
+    are available in the flat namespace and when `$R_HOME/lib` is not in the
+    default dyld search path.
+
+    Different macOS R distributions link BLAS in different ways:
+    - CRAN R links `@rpath/libRblas.dylib` in `$R_HOME/lib` (which may symlink
+      to `libRblas.0.dylib` or Apple's Accelerate `libRblas.vecLib.dylib`).
+    - Homebrew R links external OpenBLAS (`libopenblas.dylib`) directly and does
+      not ship `$R_HOME/lib/libRblas.dylib` at all.
+
+    Rather than manually parsing Mach-O load commands, we open `libR.dylib`
+    with `dlopen(..., RTLD_LAZY | RTLD_LOCAL)`, look up `dgemm_` via `dlsym`,
+    and query `dladdr` (`Dl_info.dli_fname`) so `dyld` itself reports the exact
+    file path of the library providing BLAS symbols.
+    """
     class _Dl_info(ctypes.Structure):
         _fields_ = [
             ("dli_fname", ctypes.c_char_p),
