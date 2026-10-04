@@ -50,8 +50,6 @@ class build_ext(_build_ext):
         self._extra_outputs = []
         if sys.platform.startswith("win"):
             self.build_win_import_libs()
-        else:
-            self.build_unix_stub_libs()
         super().run()
         if sys.platform.startswith("win"):
             self.build_host()
@@ -114,49 +112,6 @@ class build_ext(_build_ext):
         lib_exe = getattr(compiler, "lib", "lib.exe")
         compiler.spawn([lib_exe, "/nologo", machine, "/def:" + r_def, "/out:" + r_lib])
         compiler.spawn([lib_exe, "/nologo", machine, "/def:" + rga_def, "/out:" + rga_lib])
-        self._add_temp_library_dir(self.build_temp)
-
-    def build_unix_stub_libs(self):
-        os.makedirs(self.build_temp, exist_ok=True)
-        r_funcs, r_data, _ = parse_r_h_symbols()
-        compiler = self._get_initialized_compiler()
-
-        stub_r_c = os.path.join(self.build_temp, "stub_r.c")
-        with open(stub_r_c, "w") as f:
-            for sym in r_funcs:
-                f.write("void {}(void) {{}}\n".format(sym))
-            for sym in r_data:
-                f.write("void *{} = 0;\n".format(sym))
-
-        stub_rblas_c = os.path.join(self.build_temp, "stub_rblas.c")
-        with open(stub_rblas_c, "w") as f:
-            f.write("void dgemm_(void) {}\n")
-
-        stub_rlapack_c = os.path.join(self.build_temp, "stub_rlapack.c")
-        with open(stub_rlapack_c, "w") as f:
-            f.write("void dgesv_(void) {}\n")
-
-        objs = compiler.compile(
-            [stub_r_c, stub_rblas_c, stub_rlapack_c],
-            output_dir=self.build_temp,
-        )
-
-        if sys.platform == "darwin":
-            linker = [arg for arg in compiler.linker_so if arg != "-bundle"] + ["-dynamiclib"]
-            for obj, libname in zip(objs, ("libR.dylib", "libRblas.dylib", "libRlapack.dylib")):
-                out_lib = os.path.join(self.build_temp, libname)
-                compiler.spawn(
-                    linker + [obj, "-Wl,-install_name,@rpath/" + libname, "-o", out_lib]
-                )
-        else:
-            for obj, libname in zip(objs, ("libR.so", "libRblas.so", "libRlapack.so")):
-                out_lib = os.path.join(self.build_temp, libname)
-                compiler.link_shared_object(
-                    [obj],
-                    out_lib,
-                    extra_postargs=["-Wl,-soname," + libname],
-                )
-
         self._add_temp_library_dir(self.build_temp)
 
     def build_host(self):

@@ -31,8 +31,8 @@ jobs:
       - name: Install libpng-dev
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y libpng-dev          
-      - name: Install reticulate and askpass
-        run: Rscript -e "install.packages(c('reticulate', 'askpass'))"
+      - name: Install reticulate, askpass, and renv
+        run: Rscript -e "install.packages(c('reticulate', 'askpass', 'renv'))"
       - name: Install radian and run tests
         shell: bash
         run: |

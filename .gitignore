@@ -9,5 +9,3 @@ build/
 .venv/
 .vscode/
 rchitect/host.exe
-rchitect/_r_lib
-rchitect/_r_lib_fallback

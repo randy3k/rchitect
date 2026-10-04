@@ -254,7 +254,7 @@ def _is_libr_in_process():
 
 
 def reset_preload_env():
-    global _external_libr, _host_active
+    global _libr_loaded, _external_libr, _host_active
     if not _host_active and not _libr_loaded:
         if (
             "_RCHITECT_HOST_ACTIVE" not in os.environ
@@ -262,10 +262,15 @@ def reset_preload_env():
             and _is_libr_in_process()
         ):
             _external_libr = True
+            _libr_loaded = True
 
     if os.environ.pop("_RCHITECT_HOST_ACTIVE", None) == "1":
         _host_active = True
-    os.environ.pop("_RCHITECT_LIBR_LOADED", None)
+    if os.environ.pop("_RCHITECT_LIBR_LOADED", None) == "1":
+        if sys.platform.startswith("win"):
+            _libr_loaded = True
+        else:
+            _libr_loaded = _is_libr_in_process()
 
     preload_libs = os.environ.pop("_RCHITECT_PRELOAD_LIBS", None)
     if not preload_libs:
@@ -297,40 +302,22 @@ def setup_r_dll_dir(rhome=None):
         pass
 
 
-def _atomic_symlink(target, link_path):
-    try:
-        if os.path.islink(link_path) and os.readlink(link_path) == target:
-            return
-    except OSError:
-        pass
-    tmp_link = "{}.{}.tmp".format(link_path, os.getpid())
-    try:
-        if os.path.lexists(tmp_link):
-            os.unlink(tmp_link)
-        os.symlink(target, tmp_link)
-        os.replace(tmp_link, link_path)
-    finally:
-        if os.path.lexists(tmp_link):
-            try:
-                os.unlink(tmp_link)
-            except OSError:
-                pass
-
-
-def setup_unix_r_lib(rhome=None):
+def load_libr(rhome=None):
     if not rhome:
         rhome = get_rhome()
     libr_path = get_libr_path(rhome)
     libr_dir = os.path.dirname(libr_path)
-    pkg_dir = os.path.dirname(os.path.abspath(__file__))
-
-    if sys.platform.startswith("linux"):
-        fallback_dir = os.path.join(pkg_dir, "_r_lib_fallback")
-        os.makedirs(fallback_dir, exist_ok=True)
-        for libname in ("libRblas.so", "libRlapack.so"):
-            _atomic_symlink("../_r_lib/libR.so", os.path.join(fallback_dir, libname))
-
-    _atomic_symlink(libr_dir, os.path.join(pkg_dir, "_r_lib"))
+    if sys.platform != "darwin":
+        rblas_path = os.path.join(libr_dir, "libRblas.so")
+        if os.path.exists(rblas_path):
+            try:
+                ctypes.CDLL(rblas_path, mode=ctypes.RTLD_GLOBAL)
+            except OSError:
+                pass
+    try:
+        ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)
+    except OSError as e:
+        raise Exception("Cannot load shared library: {}".format(e))
 
 
 def ensure_libr():
@@ -344,7 +331,7 @@ def ensure_libr():
     if sys.platform.startswith("win"):
         setup_r_dll_dir(rhome)
     else:
-        setup_unix_r_lib(rhome)
+        load_libr(rhome)
     _libr_loaded = True
 
 
@@ -374,11 +361,6 @@ def should_use_host():
 
 
 def _get_macos_blas_path(libr_path):
-    lib_dir = os.path.dirname(libr_path)
-    rblas_dylib = os.path.join(lib_dir, "libRblas.dylib")
-    if os.path.isfile(rblas_dylib):
-        return rblas_dylib
-
     class _Dl_info(ctypes.Structure):
         _fields_ = [
             ("dli_fname", ctypes.c_char_p),
@@ -387,6 +369,7 @@ def _get_macos_blas_path(libr_path):
             ("dli_saddr", ctypes.c_void_p),
         ]
 
+    lib_dir = os.path.dirname(libr_path)
     open_path = os.path.realpath(libr_path)
     try:
         libc = ctypes.CDLL(None)
@@ -413,6 +396,9 @@ def _get_macos_blas_path(libr_path):
                 libc.dlclose(handle)
     except Exception:
         pass
+    fallback = os.path.join(lib_dir, "libRblas.dylib")
+    if os.path.isfile(fallback):
+        return fallback
     return None
 
 

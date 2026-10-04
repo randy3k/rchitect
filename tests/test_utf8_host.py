@@ -14,6 +14,7 @@ def test_host():
         "import os, sys, ctypes\n"
         "import rchitect.utils as u\n"
         "assert u.should_use_host() is False\n"
+        "assert u._libr_loaded is True\n"
         "assert 'R_HOME' in os.environ and os.path.isdir(os.environ['R_HOME'])\n"
         "if sys.platform.startswith('win'):\n"
         "    assert ctypes.windll.kernel32.GetACP() == 65001\n"
@@ -27,8 +28,12 @@ def test_host():
         "assert sys._base_executable == EXPECTED_BASE_EXE\n"
         "assert sys.prefix == EXPECTED_PREFIX\n"
         "from rchitect import init, reval, rcopy, rcall, robject\n"
-        "assert u._libr_loaded is True\n"
         "init()\n"
+        "if sys.platform == 'darwin':\n"
+        "    blas = rcopy(reval('extSoftVersion()[\"BLAS\"]'))\n"
+        "    rblas = os.path.join(os.environ['R_HOME'], 'lib', 'libRblas.dylib')\n"
+        "    if os.path.isfile(rblas):\n"
+        "        assert os.path.realpath(blas) == os.path.realpath(rblas)\n"
         "s = '中文測試 αβγ'\n"
         "assert rcopy(reval(repr(s))) == s\n"
         "msg = '錯誤訊息 ' * 30\n"
@@ -88,6 +93,8 @@ def test_host_r_binary_arg(tmp_path):
             "_RCHITECT_R_BINARY",
             "_RCHITECT_R_HOME",
             "_RCHITECT_HOST_ACTIVE",
+            "_RCHITECT_LIBR_LOADED",
+            "_RCHITECT_PRELOAD_LIBS",
         )
     }
     out = (
@@ -121,36 +128,128 @@ def test_external_libr_skips_host():
     env = {
         k: v
         for k, v in os.environ.items()
-        if k != "_RCHITECT_HOST_ACTIVE"
+        if k
+        not in (
+            "_RCHITECT_HOST_ACTIVE",
+            "_RCHITECT_LIBR_LOADED",
+            "_RCHITECT_PRELOAD_LIBS",
+        )
     }
     out = subprocess.check_output([sys.executable, "-c", script], env=env).decode("utf-8").strip()
     assert out.endswith("EXTERNAL_OK")
 
 
-def test_unix_r_lib_symlink():
+def test_stripped_preload_falls_back_to_load_libr():
     if sys.platform.startswith("win"):
         return
 
     script = (
-        "import os\n"
         "import rchitect.utils as u\n"
+        "assert u._host_active is True\n"
         "assert u._libr_loaded is False\n"
         "from rchitect import init, reval, rcopy\n"
         "assert u._libr_loaded is True\n"
-        "r_lib_link = os.path.join(os.path.dirname(os.path.abspath(u.__file__)), '_r_lib')\n"
-        "assert os.path.islink(r_lib_link)\n"
-        "assert os.readlink(r_lib_link) == os.path.dirname(u.get_libr_path(u.get_rhome()))\n"
         "init()\n"
         "assert rcopy(reval('1 + 1')) == 2\n"
-        "print('SYMLINK_OK')\n"
+        "print('FALLBACK_OK')\n"
+    )
+    env = os.environ.copy()
+    env["_RCHITECT_HOST_ACTIVE"] = "1"
+    env["_RCHITECT_LIBR_LOADED"] = "1"
+    env.pop("DYLD_INSERT_LIBRARIES", None)
+    env.pop("LD_PRELOAD", None)
+    out = subprocess.check_output([sys.executable, "-c", script], env=env).decode("utf-8").strip()
+    assert out.endswith("FALLBACK_OK")
+
+
+def test_macos_homebrew_r_without_librblas(tmp_path):
+    if sys.platform != "darwin":
+        return
+
+    import rchitect.utils as u
+
+    rhome = u.get_rhome()
+    libr_path = u.get_libr_path(rhome)
+    orig_rblas = os.path.join(rhome, "lib", "libRblas.dylib")
+    if not os.path.isfile(orig_rblas):
+        return
+
+    otool_out = subprocess.check_output(["otool", "-L", libr_path]).decode("utf-8")
+    old_blas_load = None
+    for line in otool_out.splitlines()[1:]:
+        dep = line.strip().split(" (", 1)[0]
+        if dep.endswith("libRblas.dylib"):
+            old_blas_load = dep
+            break
+    if not old_blas_load:
+        return
+
+    fake_rhome = tmp_path / "homebrew_r"
+    fake_lib = fake_rhome / "lib"
+    fake_lib.mkdir(parents=True)
+    for entry in os.listdir(rhome):
+        if entry != "lib":
+            os.symlink(os.path.join(rhome, entry), str(fake_rhome / entry))
+
+    real_lib_dir = os.path.join(rhome, "lib")
+    for entry in os.listdir(real_lib_dir):
+        if entry == "libR.dylib" or entry.startswith("libRblas"):
+            continue
+        os.symlink(os.path.join(real_lib_dir, entry), str(fake_lib / entry))
+
+    ext_blas_dir = tmp_path / "openblas" / "lib"
+    ext_blas_dir.mkdir(parents=True)
+    fake_openblas = ext_blas_dir / "libopenblas_fake.dylib"
+    shutil.copy2(os.path.realpath(orig_rblas), str(fake_openblas))
+    subprocess.check_call(["install_name_tool", "-id", str(fake_openblas), str(fake_openblas)])
+    subprocess.check_call(["codesign", "-f", "-s", "-", str(fake_openblas)])
+
+    fake_libr = fake_lib / "libR.dylib"
+    shutil.copy2(os.path.realpath(libr_path), str(fake_libr))
+    subprocess.check_call(
+        ["install_name_tool", "-change", old_blas_load, str(fake_openblas), str(fake_libr)]
+    )
+    subprocess.check_call(["codesign", "-f", "-s", "-", str(fake_libr)])
+
+    assert not (fake_lib / "libRblas.dylib").exists()
+    detected = u._get_macos_blas_path(str(fake_libr))
+    assert detected is not None
+    assert os.path.realpath(detected) == os.path.realpath(str(fake_openblas))
+
+    inner_script = (
+        "import os\n"
+        "from rchitect import init, reval, rcopy\n"
+        "init()\n"
+        "blas = rcopy(reval('extSoftVersion()[\"BLAS\"]'))\n"
+        f"assert os.path.realpath(blas) == os.path.realpath({str(fake_openblas)!r})\n"
+        "print('HOMEBREW_BLAS_OK')\n"
+    )
+    code = (
+        "import rchitect.utils as u\n"
+        f"u.exec_host(['-c', {inner_script!r}])\n"
     )
     env = {
         k: v
         for k, v in os.environ.items()
-        if k not in ("LD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "DYLD_INSERT_LIBRARIES", "LD_PRELOAD")
+        if k
+        not in (
+            "R_BINARY",
+            "_RCHITECT_R_BINARY",
+            "_RCHITECT_R_HOME",
+            "_RCHITECT_HOST_ACTIVE",
+            "_RCHITECT_LIBR_LOADED",
+            "_RCHITECT_PRELOAD_LIBS",
+            "DYLD_INSERT_LIBRARIES",
+            "LD_PRELOAD",
+        )
     }
-    out = subprocess.check_output([sys.executable, "-c", script], env=env).decode("utf-8").strip()
-    assert out.endswith("SYMLINK_OK")
+    env["R_HOME"] = str(fake_rhome)
+    out = (
+        subprocess.check_output([sys.executable, "-c", code], env=env)
+        .decode("utf-8")
+        .strip()
+    )
+    assert out.endswith("HOMEBREW_BLAS_OK")
 
 
 def test_r_version_check(monkeypatch):
