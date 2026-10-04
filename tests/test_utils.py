@@ -1,8 +1,115 @@
 import os
 import shutil
-import sys
 import subprocess
-from rchitect.utils import get_host, should_use_host
+import sys
+import pytest
+from packaging.version import parse as parse_version
+import rchitect.utils as u
+from rchitect.utils import (
+    ensure_path_for_dll,
+    get_host,
+    get_libr_path,
+    get_rhome,
+    get_rhome_from_binary,
+    should_use_host,
+)
+
+
+def test_get_rhome_and_r_binary(monkeypatch, tmp_path):
+    expected_rhome = get_rhome()
+    rbinary = os.path.join(expected_rhome, "bin", "R")
+    monkeypatch.setenv("R_BINARY", rbinary)
+    monkeypatch.delenv("R_HOME", raising=False)
+    assert get_rhome() == expected_rhome
+    assert os.environ.get("R_HOME") == expected_rhome
+
+    monkeypatch.setenv("R_HOME", "/nonexistent/rhome")
+    assert get_rhome() == expected_rhome
+    assert os.environ.get("R_HOME") == expected_rhome
+
+    # Tilde expansion in get_rhome_from_binary
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    assert get_rhome_from_binary("~/nonexistent_R_bin") is None
+
+    # ensure_path_for_dll compares normalized os.pathsep entries rather than substring match
+    target_dir = os.path.join(str(tmp_path), "R", "bin")
+    superstring_dir = target_dir + "_extra"
+    monkeypatch.setenv("PATH", superstring_dir)
+    ensure_path_for_dll(os.path.join(target_dir, "R.dll"))
+    assert os.environ["PATH"].split(os.pathsep) == [target_dir, superstring_dir]
+    # Second call is a no-op
+    ensure_path_for_dll(os.path.join(target_dir, "R.dll"))
+    assert os.environ["PATH"].split(os.pathsep) == [target_dir, superstring_dir]
+
+
+def test_r_version_check(monkeypatch):
+    monkeypatch.setattr(u, "rversion", lambda rhome=None: parse_version("4.1.3"))
+    with pytest.raises(RuntimeError, match="R >= 4.2.0 is required"):
+        u.ensure_libr()
+
+
+def test_windows_arm64_detection_and_libr_path(monkeypatch, tmp_path):
+    monkeypatch.setattr(u.sys, "platform", "win32")
+    monkeypatch.setattr(u.platform, "machine", lambda: "ARM64")
+
+    # x64 Python running under emulation on Windows 11 ARM64 (#40)
+    monkeypatch.setattr(
+        u.sys,
+        "version",
+        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:38:07) [MSC v.1941 64 bit (AMD64)]",
+    )
+    assert u.is_arm() is False
+
+    rhome_x64 = tmp_path / "R-x64"
+    (rhome_x64 / "bin" / "x64").mkdir(parents=True)
+    dll_x64 = rhome_x64 / "bin" / "x64" / "R.dll"
+    dll_x64.write_bytes(b"")
+    assert u.get_libr_path(str(rhome_x64)) == str(dll_x64)
+
+    # Native ARM64 Python on Windows 11 ARM64
+    monkeypatch.setattr(
+        u.sys,
+        "version",
+        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:53:29) [MSC v.1941 64 bit (ARM64)]",
+    )
+    assert u.is_arm() is True
+
+    rhome_arm = tmp_path / "R-arm64"
+    (rhome_arm / "bin").mkdir(parents=True)
+    dll_arm = rhome_arm / "bin" / "R.dll"
+    dll_arm.write_bytes(b"")
+    assert u.get_libr_path(str(rhome_arm)) == str(dll_arm)
+
+    # Architecture mismatch: ARM64 Python with x64 R
+    with pytest.raises(RuntimeError, match=r"R \(x64\) and Python \(ARM64\) architectures do not match"):
+        u.get_libr_path(str(rhome_x64))
+
+    # Architecture mismatch: x64 Python with ARM64 R
+    monkeypatch.setattr(
+        u.sys,
+        "version",
+        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:38:07) [MSC v.1941 64 bit (AMD64)]",
+    )
+    with pytest.raises(RuntimeError, match=r"R \(ARM64\) and Python \(x64\) architectures do not match"):
+        u.get_libr_path(str(rhome_arm))
+
+    # Registry lookup prefers R installation matching Python architecture
+    reg_entries = {
+        "Software\\R-Core\\R": (str(rhome_arm), 1),
+        "Software\\WOW6432Node\\R-Core\\R": (str(rhome_x64), 1),
+    }
+    monkeypatch.setattr(u, "read_registry_from_current_user", lambda k, v: (_ for _ in ()).throw(OSError()))
+    monkeypatch.setattr(u, "read_registry_from_local_machine", lambda k, v: reg_entries[k])
+
+    assert u.read_r_install_path_from_registry() == str(rhome_x64)
+
+    monkeypatch.setattr(
+        u.sys,
+        "version",
+        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:53:29) [MSC v.1941 64 bit (ARM64)]",
+    )
+    assert u.read_r_install_path_from_registry() == str(rhome_arm)
 
 
 def test_host():
@@ -109,8 +216,6 @@ def test_host_r_binary_arg(tmp_path):
 
 
 def test_external_libr_skips_host():
-    from rchitect.utils import get_rhome, get_libr_path
-
     libr_path = get_libr_path(get_rhome())
     script = (
         "import ctypes, os, sys\n"
@@ -165,8 +270,6 @@ def test_stripped_preload_falls_back_to_load_libr():
 def test_macos_homebrew_r_without_librblas(tmp_path):
     if sys.platform != "darwin":
         return
-
-    import rchitect.utils as u
 
     rhome = u.get_rhome()
     libr_path = u.get_libr_path(rhome)
@@ -250,81 +353,3 @@ def test_macos_homebrew_r_without_librblas(tmp_path):
         .strip()
     )
     assert out.endswith("HOMEBREW_BLAS_OK")
-
-
-def test_r_version_check(monkeypatch):
-    import pytest
-    import rchitect.utils as u
-    from packaging.version import parse as parse_version
-
-    monkeypatch.setattr(u, "rversion", lambda rhome=None: parse_version("4.1.3"))
-    with pytest.raises(RuntimeError, match="R >= 4.2.0 is required"):
-        u.ensure_libr()
-
-
-def test_windows_arm64_detection_and_libr_path(monkeypatch, tmp_path):
-    import pytest
-    import rchitect.utils as u
-
-    monkeypatch.setattr(u.sys, "platform", "win32")
-    monkeypatch.setattr(u.platform, "machine", lambda: "ARM64")
-
-    # x64 Python running under emulation on Windows 11 ARM64 (#40)
-    monkeypatch.setattr(
-        u.sys,
-        "version",
-        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:38:07) [MSC v.1941 64 bit (AMD64)]",
-    )
-    assert u.is_arm() is False
-
-    rhome_x64 = tmp_path / "R-x64"
-    (rhome_x64 / "bin" / "x64").mkdir(parents=True)
-    dll_x64 = rhome_x64 / "bin" / "x64" / "R.dll"
-    dll_x64.write_bytes(b"")
-    assert u.get_libr_path(str(rhome_x64)) == str(dll_x64)
-
-    # Native ARM64 Python on Windows 11 ARM64
-    monkeypatch.setattr(
-        u.sys,
-        "version",
-        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:53:29) [MSC v.1941 64 bit (ARM64)]",
-    )
-    assert u.is_arm() is True
-
-    rhome_arm = tmp_path / "R-arm64"
-    (rhome_arm / "bin").mkdir(parents=True)
-    dll_arm = rhome_arm / "bin" / "R.dll"
-    dll_arm.write_bytes(b"")
-    assert u.get_libr_path(str(rhome_arm)) == str(dll_arm)
-
-    # Architecture mismatch: ARM64 Python with x64 R
-    with pytest.raises(RuntimeError, match=r"R \(x64\) and Python \(ARM64\) architectures do not match"):
-        u.get_libr_path(str(rhome_x64))
-
-    # Architecture mismatch: x64 Python with ARM64 R
-    monkeypatch.setattr(
-        u.sys,
-        "version",
-        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:38:07) [MSC v.1941 64 bit (AMD64)]",
-    )
-    with pytest.raises(RuntimeError, match=r"R \(ARM64\) and Python \(x64\) architectures do not match"):
-        u.get_libr_path(str(rhome_arm))
-
-    # Registry lookup prefers R installation matching Python architecture
-    reg_entries = {
-        "Software\\R-Core\\R": (str(rhome_arm), 1),
-        "Software\\WOW6432Node\\R-Core\\R": (str(rhome_x64), 1),
-    }
-    monkeypatch.setattr(u, "read_registry_from_current_user", lambda k, v: (_ for _ in ()).throw(OSError()))
-    monkeypatch.setattr(u, "read_registry_from_local_machine", lambda k, v: reg_entries[k])
-
-    assert u.read_r_install_path_from_registry() == str(rhome_x64)
-
-    monkeypatch.setattr(
-        u.sys,
-        "version",
-        "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:53:29) [MSC v.1941 64 bit (ARM64)]",
-    )
-    assert u.read_r_install_path_from_registry() == str(rhome_arm)
-
-

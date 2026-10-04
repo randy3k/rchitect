@@ -1,17 +1,57 @@
+import pytest
 from rchitect import rparse, reval, rcall, rlang, rprint, robject, rcopy
 from rchitect.console import capture_console, read_stdout
-from rchitect.interface import new_env, rclass, rsym
+from rchitect.interface import (
+    getattrib,
+    new_env,
+    parse_text_complete,
+    parse_text_incomplete,
+    rclass,
+    rsym,
+    setattrib,
+)
 
-import pytest
 
-
-def test_reval(gctorture):
+def test_rparse_and_reval(gctorture):
     exp = rparse("x = 1L")
     assert "expression" in rclass(exp)
     assert "integer" in rclass(reval(exp))
-    assert str(exp) == 'RObject{EXPRSXP}\nexpression(x = 1L)'
+    assert str(exp) == "RObject{EXPRSXP}\nexpression(x = 1L)"
     call = rlang("seq", 1, 10, by=2)
     assert rcopy(reval(call)) == [1, 3, 5, 7, 9]
+
+
+def test_rparse_and_reval_errors(gctorture):
+    with pytest.raises(RuntimeError) as excinfo:
+        rparse("x =")
+    assert str(excinfo.value).startswith("Error")
+
+    with pytest.raises(RuntimeError) as excinfo:
+        rparse(r"'\g'")
+    assert "an unrecognized escape in character string" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        reval("1 + 'A'")
+    assert "non-numeric argument to binary operator" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        rcall("sum", ["a", "b"])
+    assert "invalid 'type' (character) of argument" in str(excinfo.value)
+
+
+def test_parse_text_complete(gctorture):
+    assert parse_text_complete("1 + 1")
+    assert not parse_text_incomplete("1 + 1")
+    assert not parse_text_complete("1 + ")
+    assert parse_text_incomplete("1 + ")
+    assert parse_text_complete("1 + *")
+    assert not parse_text_incomplete("1 + *")
+
+
+def test_rcall(gctorture):
+    assert rcall(("base", "sum"), [1, 2, 3], _convert=True) == 6
+    assert rcall(("base", "::", "sum"), [1, 2, 3], _convert=True) == 6
+    assert rcall(("base", ":::", "sum"), [1, 2, 3], _convert=True) == 6
 
 
 def test_rprint(gctorture):
@@ -59,81 +99,7 @@ def test_rprint(gctorture):
         rclass(1)
 
 
-def test_rparse_error(gctorture):
-    with pytest.raises(Exception) as excinfo:
-        rparse("x =")
-        assert str(excinfo.value).startswith("Error")
-
-
-def test_rparse_error2(gctorture):
-    with pytest.raises(Exception) as excinfo:
-        rparse("'\\g'")
-        assert "an unrecognized escape in character string" in str(excinfo.value)
-
-
-def test_reval_error(gctorture):
-    with pytest.raises(Exception) as excinfo:
-        reval("1 + 'A'")
-        assert "non-numeric argument to binary operator" in str(excinfo.value)
-
-
-def test_rcall_error(gctorture):
-    with pytest.raises(Exception) as excinfo:
-        rcall("sum", ["a", "b"])
-        assert "invalid 'type' (character) of argument" in str(excinfo.value)
-
-
-def test_rcall_tuple(gctorture):
-    assert rcall(("base", "sum"), [1, 2, 3], _convert=True) == 6
-    assert rcall(("base", "::", "sum"), [1, 2, 3], _convert=True) == 6
-    assert rcall(("base", ":::", "sum"), [1, 2, 3], _convert=True) == 6
-
-
-def test_get_rhome_r_binary(monkeypatch, tmp_path):
-    import os
-    from rchitect.utils import ensure_path_for_dll, get_rhome, get_rhome_from_binary
-
-    expected_rhome = get_rhome()
-    rbinary = os.path.join(expected_rhome, "bin", "R")
-    monkeypatch.setenv("R_BINARY", rbinary)
-    monkeypatch.delenv("R_HOME", raising=False)
-    assert get_rhome() == expected_rhome
-    assert os.environ.get("R_HOME") == expected_rhome
-
-    monkeypatch.setenv("R_HOME", "/nonexistent/rhome")
-    assert get_rhome() == expected_rhome
-    assert os.environ.get("R_HOME") == expected_rhome
-
-    # Tilde expansion in get_rhome_from_binary
-    monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("USERPROFILE", str(tmp_path))
-    assert get_rhome_from_binary("~/nonexistent_R_bin") is None
-
-    # ensure_path_for_dll compares normalized os.pathsep entries rather than substring match
-    target_dir = os.path.join(str(tmp_path), "R", "bin")
-    superstring_dir = target_dir + "_extra"
-    monkeypatch.setenv("PATH", superstring_dir)
-    ensure_path_for_dll(os.path.join(target_dir, "R.dll"))
-    assert os.environ["PATH"].split(os.pathsep) == [target_dir, superstring_dir]
-    # Second call is a no-op
-    ensure_path_for_dll(os.path.join(target_dir, "R.dll"))
-    assert os.environ["PATH"].split(os.pathsep) == [target_dir, superstring_dir]
-
-
-def test_parse_text_complete(gctorture):
-    from rchitect.interface import parse_text_complete, parse_text_incomplete
-
-    assert parse_text_complete("1 + 1")
-    assert not parse_text_incomplete("1 + 1")
-    assert not parse_text_complete("1 + ")
-    assert parse_text_incomplete("1 + ")
-    assert parse_text_complete("1 + *")
-    assert not parse_text_incomplete("1 + *")
-
-
 def test_symbol_and_env_validation(gctorture):
-    from rchitect.interface import getattrib, setattrib
-
     for bad_sym in ["", "\x00", "a\x00b"]:
         with pytest.raises(ValueError):
             rsym(bad_sym)

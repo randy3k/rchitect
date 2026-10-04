@@ -318,6 +318,13 @@ def load_libr(rhome=None):
         ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)
     except OSError as e:
         raise Exception("Cannot load shared library: {}".format(e))
+    if sys.platform != "darwin":
+        rlapack_path = os.path.join(libr_dir, "libRlapack.so")
+        if os.path.exists(rlapack_path):
+            try:
+                ctypes.CDLL(rlapack_path, mode=ctypes.RTLD_GLOBAL)
+            except OSError:
+                pass
 
 
 def ensure_libr():

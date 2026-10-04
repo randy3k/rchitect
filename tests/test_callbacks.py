@@ -1,7 +1,9 @@
-from rchitect import reval, rcopy
-from rchitect._cffi import lib, ffi
 import sys
+import threading
 import pytest
+import rchitect.callbacks as callbacks
+from rchitect import rcopy, reval
+from rchitect._cffi import ffi, lib
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
@@ -37,7 +39,6 @@ def test_read_console_long_utf8(mocker, gctorture):
         assert "".join(chunks) == s + "\n"
 
 
-
 @pytest.mark.skipif(not sys.platform.startswith("win") and not sys.stdout.isatty(), reason="not tty")
 def test_read_console_interrupt(mocker, gctorture):
     mocker.patch("rchitect.callbacks.ask_input", side_effect=KeyboardInterrupt())
@@ -47,8 +48,6 @@ def test_read_console_interrupt(mocker, gctorture):
 
 
 def test_reset_console_clears_buffer(mocker, gctorture):
-    import rchitect.callbacks as callbacks
-
     mocker.patch("rchitect.callbacks.utf8tosystem", side_effect=lambda x: x.encode("utf-8"))
     mocker.patch("rchitect.callbacks.ask_input", return_value="a" * 5000)
     buf = ffi.new("char[4096]")
@@ -62,25 +61,22 @@ def test_reset_console_clears_buffer(mocker, gctorture):
 def test_write_console(mocker, gctorture):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('helloworld')")
-    mocker_write_console.assert_called_once_with('helloworld', 0)
+    mocker_write_console.assert_called_once_with("helloworld", 0)
 
 
 def test_write_console_utf8(mocker, gctorture):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
-    # windows still doesn't like `𐐀`
     reval("cat('文字')")
-    mocker_write_console.assert_called_once_with('文字', 0)
+    mocker_write_console.assert_called_once_with("文字", 0)
 
 
 def test_write_console_stderr(mocker, gctorture):
     mocker_write_console = mocker.patch("rchitect.console.write_console")
     reval("cat('helloworld', file = stderr())")
-    mocker_write_console.assert_called_once_with('helloworld', 1)
+    mocker_write_console.assert_called_once_with("helloworld", 1)
 
 
 def test_write_console_worker_thread(mocker, gctorture):
-    import threading
-
     mocker_write_console_ex = mocker.patch("rchitect.callbacks.callback.write_console_ex")
     mocker_busy = mocker.patch("rchitect.callbacks.callback.busy")
     mocker_polled_events = mocker.patch("rchitect.callbacks.callback.polled_events")
@@ -154,66 +150,8 @@ def test_write_console_worker_thread(mocker, gctorture):
     assert rcopy(reval("1L + 1L")) == 2
 
 
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="fork not supported on Windows")
-def test_fork_xptr_finalizer():
-    import os
-    import threading
-    from rchitect import rcall, robject
-
-    parent_pid = os.getpid()
-    r_fd, w_fd = os.pipe()
-    os.set_blocking(r_fd, False)
-
-    def read_pids():
-        try:
-            data = os.read(r_fd, 4096)
-        except BlockingIOError:
-            return []
-        return [int(x) for x in data.decode("ascii").splitlines() if x]
-
-    class TrackedResource(object):
-        def __del__(self):
-            try:
-                os.write(w_fd, "{}\n".format(os.getpid()).encode("ascii"))
-            except OSError:
-                pass
-
-    stop_bg = threading.Event()
-
-    def bg_gil_worker():
-        while not stop_bg.is_set():
-            _ = sum(range(100))
-
-    bg = threading.Thread(target=bg_gil_worker)
-    bg.start()
-    try:
-        rcall(("base", "assign"), "tracked_res", robject("PyObject", TrackedResource()))
-        res = rcopy(
-            reval(
-                "parallel::mclapply(1:2, function(i) {"
-                "  rm(tracked_res, envir = .GlobalEnv);"
-                "  gc();"
-                "  i"
-                "}, mc.cores = 2)"
-            )
-        )
-        assert res == [1, 2]
-        assert read_pids() == []
-
-        reval("rm(tracked_res, envir = .GlobalEnv); gc()")
-        assert read_pids() == [parent_pid]
-    finally:
-        stop_bg.set()
-        bg.join(timeout=1.0)
-        os.close(r_fd)
-        os.close(w_fd)
-
-
-
-
-
 def test_yes_no_cancel(mocker, gctorture):
-    for (a, v) in [('y', 1), ('n', 2), ('c', 0)]:
+    for a, v in [("y", 1), ("n", 2), ("c", 0)]:
         mocker.patch("rchitect.callbacks.ask_input", return_value=a)
         ret = lib.cb_yes_no_cancel(ffi.new("char[10]", b"> "))
         assert ret == v

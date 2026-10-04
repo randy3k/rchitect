@@ -1,21 +1,17 @@
-from rchitect import reticulate, reval, rcopy, rcall, robject
 import string
-import pytest
-import sys
+from rchitect import rcall, rcopy, reticulate, reval, robject
 
 
-@pytest.mark.skipif(sys.version_info.major <= 2, reason="new version reticulate doesn't work in py2")
+class Foo:
+    pass
+
+
 def test_rcopy_reticulate_object():
     reval("library(reticulate)")
     py_object = reval("r_to_py(LETTERS)")
     assert rcopy(py_object) == list(string.ascii_uppercase)
 
 
-class Foo():
-    pass
-
-
-@pytest.mark.skipif(sys.version_info.major <= 2, reason="new version reticulate doesn't work in py2")
 def test_r_to_py_rchitect_object():
     reval("library(reticulate)")
     foo = Foo()

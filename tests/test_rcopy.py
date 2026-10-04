@@ -1,7 +1,8 @@
-from rchitect import rcopy, reval
-from rchitect.interface import rstring
-import string
 from collections import OrderedDict
+import string
+import pytest
+from rchitect import rcopy, reval, robject
+from rchitect.interface import RObject, rstring, unbox
 
 
 def test_booleans(gctorture):
@@ -56,12 +57,11 @@ def test_functions(gctorture):
     sumfun = rcopy(reval("sum"))
     assert sumfun([1, 2, 3]) == 6
 
+    rf = reval("function() {}")
+    assert unbox(robject(rcopy(rf))) == unbox(rf)
+
 
 def test_scalar_and_object_safety(gctorture):
-    import pytest
-    from rchitect import robject
-    from rchitect.interface import RObject
-
     # Empty or multi-element vectors rejected by explicit scalar rcopy
     for typ, expr in [
         (int, "integer(0)"),

@@ -45,9 +45,6 @@ jobs:
         run: sudo apt-get install -y libpng-dev
       - name: Install reticulate
         run: Rscript -e "install.packages('reticulate')"
-      - name: Insert LD_LIBRARY_PATH
-        if: matrix.os == 'ubuntu-latest' || startsWith(matrix.os, 'macos')
-        run: echo LD_LIBRARY_PATH="$LD_LIBRARY_PATH:`R RHOME`/lib" >> $GITHUB_ENV
       - name: Run tests
         run: pytest -s --cov=rchitect
       - name: codecov
@@ -80,7 +77,6 @@ jobs:
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-15-intel, macos-14]
     runs-on: ${{ matrix.os }}
     env:
-      CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair --exclude libR.so -w {dest_dir} {wheel}"
       CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: ""
     steps:
       - uses: actions/checkout@v4
