@@ -21,6 +21,8 @@ def test_host():
         "    assert 'R_LD_LIBRARY_PATH' in os.environ\n"
         "    ld_var = 'DYLD_FALLBACK_LIBRARY_PATH' if sys.platform == 'darwin' else 'LD_LIBRARY_PATH'\n"
         "    assert ld_var in os.environ\n"
+        "    preload_var = 'DYLD_INSERT_LIBRARIES' if sys.platform == 'darwin' else 'LD_PRELOAD'\n"
+        "    assert preload_var not in os.environ\n"
         "assert sys.executable == EXPECTED_EXE\n"
         "assert sys._base_executable == EXPECTED_BASE_EXE\n"
         "assert sys.prefix == EXPECTED_PREFIX\n"
@@ -46,7 +48,14 @@ def test_host():
     env = {
         k: v
         for k, v in os.environ.items()
-        if k != "_RCHITECT_HOST_ACTIVE"
+        if k
+        not in (
+            "_RCHITECT_HOST_ACTIVE",
+            "_RCHITECT_LIBR_LOADED",
+            "_RCHITECT_PRELOAD_LIBS",
+            "DYLD_INSERT_LIBRARIES",
+            "LD_PRELOAD",
+        )
     }
     out = subprocess.check_output([sys.executable, "-c", code], env=env).decode("utf-8").strip()
     assert out.endswith("HOST_OK")

@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           git clone -b "${{ github.head_ref || github.ref_name }}" https://github.com/randy3k/radian ../radian || git clone https://github.com/randy3k/radian ../radian
-          python -m pip install -e ../radian[dev]
           python -m pip install -e .[dev]
+          python -m pip install -e ../radian[dev]
           python -m pip install jedi
           pytest -s ../radian/tests

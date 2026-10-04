@@ -256,11 +256,31 @@ def _is_libr_in_process():
 def reset_preload_env():
     global _external_libr, _host_active
     if not _host_active and not _libr_loaded:
-        if "_RCHITECT_HOST_ACTIVE" not in os.environ and _is_libr_in_process():
+        if (
+            "_RCHITECT_HOST_ACTIVE" not in os.environ
+            and "_RCHITECT_LIBR_LOADED" not in os.environ
+            and _is_libr_in_process()
+        ):
             _external_libr = True
 
     if os.environ.pop("_RCHITECT_HOST_ACTIVE", None) == "1":
         _host_active = True
+    os.environ.pop("_RCHITECT_LIBR_LOADED", None)
+
+    preload_libs = os.environ.pop("_RCHITECT_PRELOAD_LIBS", None)
+    if not preload_libs:
+        return
+
+    var = "DYLD_INSERT_LIBRARIES" if sys.platform == "darwin" else "LD_PRELOAD"
+    if var not in os.environ:
+        return
+
+    injected = set(preload_libs.split(":"))
+    libs = [lib for lib in os.environ[var].split(":") if lib and lib not in injected]
+    if libs:
+        os.environ[var] = ":".join(libs)
+    else:
+        del os.environ[var]
 
 
 reset_preload_env()
@@ -353,6 +373,49 @@ def should_use_host():
     return True
 
 
+def _get_macos_blas_path(libr_path):
+    lib_dir = os.path.dirname(libr_path)
+    rblas_dylib = os.path.join(lib_dir, "libRblas.dylib")
+    if os.path.isfile(rblas_dylib):
+        return rblas_dylib
+
+    class _Dl_info(ctypes.Structure):
+        _fields_ = [
+            ("dli_fname", ctypes.c_char_p),
+            ("dli_fbase", ctypes.c_void_p),
+            ("dli_sname", ctypes.c_char_p),
+            ("dli_saddr", ctypes.c_void_p),
+        ]
+
+    open_path = os.path.realpath(libr_path)
+    try:
+        libc = ctypes.CDLL(None)
+        libc.dlopen.argtypes = [ctypes.c_char_p, ctypes.c_int]
+        libc.dlopen.restype = ctypes.c_void_p
+        libc.dlsym.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        libc.dlsym.restype = ctypes.c_void_p
+        libc.dladdr.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Dl_info)]
+        libc.dladdr.restype = ctypes.c_int
+        libc.dlclose.argtypes = [ctypes.c_void_p]
+        libc.dlclose.restype = ctypes.c_int
+
+        # RTLD_LAZY (0x1) | RTLD_LOCAL (0x4)
+        handle = libc.dlopen(open_path.encode("utf-8"), 0x1 | 0x4)
+        if handle:
+            try:
+                addr = libc.dlsym(handle, b"dgemm_")
+                info = _Dl_info()
+                if addr and libc.dladdr(addr, ctypes.byref(info)) and info.dli_fname:
+                    blas_path = info.dli_fname.decode("utf-8", "ignore")
+                    if blas_path:
+                        return blas_path
+            finally:
+                libc.dlclose(handle)
+    except Exception:
+        pass
+    return None
+
+
 def _setup_unix_preload_env(rhome, env):
     lib_path = os.path.join(rhome, "lib")
     ldpaths = os.path.join(rhome, "etc", "ldpaths")
@@ -392,6 +455,36 @@ def _setup_unix_preload_env(rhome, env):
     env[ld_var] = (
         "{}:{}".format(r_ld_library_path, existing_ld) if existing_ld else r_ld_library_path
     )
+
+    if sys.platform == "darwin":
+        libr_path = os.path.join(lib_path, "libR.dylib")
+        if os.path.isfile(libr_path):
+            open_path = os.path.realpath(libr_path)
+            blas_path = _get_macos_blas_path(libr_path)
+            if blas_path and blas_path != libr_path and blas_path != open_path:
+                preload_libs = "{}:{}".format(blas_path, libr_path)
+            else:
+                preload_libs = libr_path
+            existing_insert = env.get("DYLD_INSERT_LIBRARIES", "")
+            env["DYLD_INSERT_LIBRARIES"] = (
+                "{}:{}".format(existing_insert, preload_libs) if existing_insert else preload_libs
+            )
+            env["_RCHITECT_PRELOAD_LIBS"] = preload_libs
+            env["_RCHITECT_LIBR_LOADED"] = "1"
+    else:
+        libr_path = os.path.join(lib_path, "libR.so")
+        rblas_path = os.path.join(lib_path, "libRblas.so")
+        if os.path.isfile(libr_path):
+            if os.path.isfile(rblas_path):
+                preload_libs = "{}:{}".format(rblas_path, libr_path)
+            else:
+                preload_libs = libr_path
+            existing_preload = env.get("LD_PRELOAD", "")
+            env["LD_PRELOAD"] = (
+                "{}:{}".format(existing_preload, preload_libs) if existing_preload else preload_libs
+            )
+            env["_RCHITECT_PRELOAD_LIBS"] = preload_libs
+            env["_RCHITECT_LIBR_LOADED"] = "1"
 
 
 def _assign_job_kill_on_close(proc_handle):
