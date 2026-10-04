@@ -53,11 +53,23 @@ if sys.platform.startswith("win"):
 elif sys.platform == "darwin":
     libraries = []
     extra_compile_args = ["-fvisibility=hidden"]
-    extra_link_args = ["-Wl,-undefined,dynamic_lookup"]
+    extra_link_args = [
+        "-Wl,-weak-lRblas",
+        "-lR",
+        "-Wl,-weak-lRlapack",
+        "-Wl,-rpath,@loader_path/_r_lib",
+    ]
 else:
     libraries = []
     extra_compile_args = ["-fvisibility=hidden"]
-    extra_link_args = []
+    extra_link_args = [
+        "-Wl,--no-as-needed",
+        "-lR",
+        "-lRblas",
+        "-lRlapack",
+        "-Wl,-rpath,$ORIGIN/_r_lib:$ORIGIN/_r_lib_fallback",
+        "-Wl,--disable-new-dtags",
+    ]
 
 ffibuilder.set_source(
     "rchitect._cffi_lib",

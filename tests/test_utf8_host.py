@@ -14,7 +14,6 @@ def test_host():
         "import os, sys, ctypes\n"
         "import rchitect.utils as u\n"
         "assert u.should_use_host() is False\n"
-        "assert u._libr_loaded is True\n"
         "assert 'R_HOME' in os.environ and os.path.isdir(os.environ['R_HOME'])\n"
         "if sys.platform.startswith('win'):\n"
         "    assert ctypes.windll.kernel32.GetACP() == 65001\n"
@@ -22,12 +21,11 @@ def test_host():
         "    assert 'R_LD_LIBRARY_PATH' in os.environ\n"
         "    ld_var = 'DYLD_FALLBACK_LIBRARY_PATH' if sys.platform == 'darwin' else 'LD_LIBRARY_PATH'\n"
         "    assert ld_var in os.environ\n"
-        "    preload_var = 'DYLD_INSERT_LIBRARIES' if sys.platform == 'darwin' else 'LD_PRELOAD'\n"
-        "    assert preload_var not in os.environ\n"
         "assert sys.executable == EXPECTED_EXE\n"
         "assert sys._base_executable == EXPECTED_BASE_EXE\n"
         "assert sys.prefix == EXPECTED_PREFIX\n"
         "from rchitect import init, reval, rcopy, rcall, robject\n"
+        "assert u._libr_loaded is True\n"
         "init()\n"
         "s = '中文測試 αβγ'\n"
         "assert rcopy(reval(repr(s))) == s\n"
@@ -48,14 +46,7 @@ def test_host():
     env = {
         k: v
         for k, v in os.environ.items()
-        if k
-        not in (
-            "_RCHITECT_HOST_ACTIVE",
-            "_RCHITECT_LIBR_LOADED",
-            "_RCHITECT_PRELOAD_LIBS",
-            "DYLD_INSERT_LIBRARIES",
-            "LD_PRELOAD",
-        )
+        if k != "_RCHITECT_HOST_ACTIVE"
     }
     out = subprocess.check_output([sys.executable, "-c", code], env=env).decode("utf-8").strip()
     assert out.endswith("HOST_OK")
@@ -88,8 +79,6 @@ def test_host_r_binary_arg(tmp_path):
             "_RCHITECT_R_BINARY",
             "_RCHITECT_R_HOME",
             "_RCHITECT_HOST_ACTIVE",
-            "_RCHITECT_LIBR_LOADED",
-            "_RCHITECT_PRELOAD_LIBS",
         )
     }
     out = (
@@ -123,38 +112,36 @@ def test_external_libr_skips_host():
     env = {
         k: v
         for k, v in os.environ.items()
-        if k
-        not in (
-            "_RCHITECT_HOST_ACTIVE",
-            "_RCHITECT_LIBR_LOADED",
-            "_RCHITECT_PRELOAD_LIBS",
-        )
+        if k != "_RCHITECT_HOST_ACTIVE"
     }
     out = subprocess.check_output([sys.executable, "-c", script], env=env).decode("utf-8").strip()
     assert out.endswith("EXTERNAL_OK")
 
 
-def test_stripped_preload_falls_back_to_load_libr():
+def test_unix_r_lib_symlink():
     if sys.platform.startswith("win"):
         return
 
     script = (
+        "import os\n"
         "import rchitect.utils as u\n"
-        "assert u._host_active is True\n"
         "assert u._libr_loaded is False\n"
         "from rchitect import init, reval, rcopy\n"
         "assert u._libr_loaded is True\n"
+        "r_lib_link = os.path.join(os.path.dirname(os.path.abspath(u.__file__)), '_r_lib')\n"
+        "assert os.path.islink(r_lib_link)\n"
+        "assert os.readlink(r_lib_link) == os.path.dirname(u.get_libr_path(u.get_rhome()))\n"
         "init()\n"
         "assert rcopy(reval('1 + 1')) == 2\n"
-        "print('FALLBACK_OK')\n"
+        "print('SYMLINK_OK')\n"
     )
-    env = os.environ.copy()
-    env["_RCHITECT_HOST_ACTIVE"] = "1"
-    env["_RCHITECT_LIBR_LOADED"] = "1"
-    env.pop("DYLD_INSERT_LIBRARIES", None)
-    env.pop("LD_PRELOAD", None)
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in ("LD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "DYLD_INSERT_LIBRARIES", "LD_PRELOAD")
+    }
     out = subprocess.check_output([sys.executable, "-c", script], env=env).decode("utf-8").strip()
-    assert out.endswith("FALLBACK_OK")
+    assert out.endswith("SYMLINK_OK")
 
 
 def test_r_version_check(monkeypatch):
