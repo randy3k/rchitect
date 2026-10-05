@@ -226,8 +226,8 @@ def test_external_libr_skips_host():
         "else:\n"
         "    ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)\n"
         "import rchitect.utils as u\n"
-        "assert u._external_libr is True\n"
         "assert u.should_use_host() is False\n"
+        "assert u._external_libr is True\n"
         "print('EXTERNAL_OK')\n"
     )
     env = {
@@ -250,6 +250,7 @@ def test_stripped_preload_falls_back_to_load_libr():
 
     script = (
         "import rchitect.utils as u\n"
+        "assert u.should_use_host() is False\n"
         "assert u._host_active is True\n"
         "assert u._libr_loaded is False\n"
         "from rchitect import init, reval, rcopy\n"

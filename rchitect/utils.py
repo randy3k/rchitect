@@ -288,9 +288,6 @@ def reset_preload_env():
         del os.environ[var]
 
 
-reset_preload_env()
-
-
 def setup_r_dll_dir(rhome=None):
     if not rhome:
         rhome = get_rhome()
