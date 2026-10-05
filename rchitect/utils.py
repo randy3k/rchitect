@@ -67,6 +67,8 @@ def read_r_install_path_from_registry():
 
 
 def get_rhome_from_binary(rbinary):
+    if rbinary:
+        rbinary = os.path.expanduser(rbinary)
     if sys.platform.startswith("win"):
         if rbinary and not rbinary.lower().endswith((".exe", ".bat", ".cmd")):
             rbinary = rbinary + ".exe"
@@ -124,11 +126,14 @@ def get_rhome():
 _R_VERSION_MAJOR_RE = re.compile(r'^#define\s+R_MAJOR\s+"([^"]+)"', re.M)
 _R_VERSION_MINOR_RE = re.compile(r'^#define\s+R_MINOR\s+"([^"]+)"', re.M)
 _R_DESC_VERSION_RE = re.compile(r"^Version:\s*(\S+)", re.M)
+_rversion_cache = {}
 
 
 def rversion(rhome=None):
     if not rhome:
         rhome = get_rhome()
+    if rhome in _rversion_cache:
+        return _rversion_cache[rhome]
     rversion_h = os.path.join(rhome, "include", "Rversion.h")
     if os.path.isfile(rversion_h):
         try:
@@ -137,7 +142,9 @@ def rversion(rhome=None):
             m_major = _R_VERSION_MAJOR_RE.search(content)
             m_minor = _R_VERSION_MINOR_RE.search(content)
             if m_major and m_minor:
-                return parse_version("{}.{}".format(m_major.group(1), m_minor.group(1)))
+                version = parse_version("{}.{}".format(m_major.group(1), m_minor.group(1)))
+                _rversion_cache[rhome] = version
+                return version
         except Exception:
             pass
     base_desc = os.path.join(rhome, "library", "base", "DESCRIPTION")
@@ -147,7 +154,9 @@ def rversion(rhome=None):
                 content = f.read()
             m_ver = _R_DESC_VERSION_RE.search(content)
             if m_ver:
-                return parse_version(m_ver.group(1))
+                version = parse_version(m_ver.group(1))
+                _rversion_cache[rhome] = version
+                return version
         except Exception:
             pass
     try:
@@ -156,6 +165,7 @@ def rversion(rhome=None):
                 [
                     os.path.join(rhome, "bin", "R"),
                     "--no-echo",
+                    "--vanilla",
                     "-e",
                     "cat(as.character(getRversion()))",
                 ],
@@ -167,14 +177,23 @@ def rversion(rhome=None):
         version = parse_version(output)
     except Exception:
         version = parse_version("1000.0.0")
+    _rversion_cache[rhome] = version
     return version
 
 
 def ensure_path_for_dll(libr_path):
     libr_dir = os.path.dirname(libr_path)
     env_path = os.environ.get("PATH", "")
-    if libr_dir not in env_path:
-        os.environ["PATH"] = libr_dir + ";" + env_path
+    norm_dir = os.path.normcase(os.path.normpath(libr_dir))
+    path_entries = [
+        os.path.normcase(os.path.normpath(p))
+        for p in env_path.split(os.pathsep)
+        if p
+    ]
+    if norm_dir not in path_entries:
+        os.environ["PATH"] = (
+            libr_dir + os.pathsep + env_path if env_path else libr_dir
+        )
 
 
 def get_libr_path(rhome, ensure_path=False):
@@ -269,9 +288,6 @@ def reset_preload_env():
         del os.environ[var]
 
 
-reset_preload_env()
-
-
 def setup_r_dll_dir(rhome=None):
     if not rhome:
         rhome = get_rhome()
@@ -279,6 +295,51 @@ def setup_r_dll_dir(rhome=None):
     libr_dir = os.path.dirname(libr_path)
     try:
         _dll_dir_cookies.append(os.add_dll_directory(libr_dir))
+    except Exception:
+        pass
+
+
+class _LinkMap(ctypes.Structure):
+    # Matches the prefix of `struct link_map` from `<link.h>` on Linux/glibc.
+    # On Linux, the `void *` handle returned by `dlopen()` (`CDLL._handle`) is
+    # a `struct link_map *`.
+    _fields_ = [
+        ("l_addr", ctypes.c_void_p),
+        ("l_name", ctypes.c_void_p),
+    ]
+
+
+# Keep string buffers alive for the lifetime of the process since `l_name`
+# stores a raw `char *` pointer read by the dynamic linker.
+_soname_bufs = []
+
+
+def _register_linux_soname(handle, soname):
+    """Register a short SONAME on an already-loaded `ctypes.CDLL` handle on Linux.
+
+    R on Linux builds `libR.so`, `libRblas.so`, and `libRlapack.so` without a
+    `DT_SONAME` ELF header entry, while R's base package shared libraries
+    (e.g., `utils.so`, `methods.so`, `stats.so`, `grDevices.so`, `lapack.so`)
+    declare `DT_NEEDED` for the bare filename `"libR.so"` (or `"libRlapack.so"`
+    / `"libRblas.so"`) without an `RPATH`.
+
+    When `ctypes.CDLL(full_path, mode=ctypes.RTLD_GLOBAL)` loads `libR.so` by
+    absolute path in a process started without `LD_LIBRARY_PATH` containing
+    `$R_HOME/lib`, glibc only records the full path in `link_map->l_name`.
+    Subsequent `dlopen()` calls from R for `utils.so` then fail to find
+    `"libR.so"` because glibc's `_dl_name_match_p(name, map)` only sees the
+    full path in `map->l_name` and has no `DT_SONAME` in `map->l_libname`.
+
+    Pointing `link_map->l_name` to a pinned buffer containing the bare SONAME
+    (e.g., `"libR.so"`) makes `_dl_name_match_p` match the in-memory library
+    immediately without requiring `LD_LIBRARY_PATH` or process re-exec.
+    """
+    if not sys.platform.startswith("linux") or not getattr(handle, "_handle", None):
+        return
+    try:
+        buf = ctypes.create_string_buffer(soname.encode("utf-8"))
+        _soname_bufs.append(buf)
+        _LinkMap.from_address(handle._handle).l_name = ctypes.addressof(buf)
     except Exception:
         pass
 
@@ -292,13 +353,23 @@ def load_libr(rhome=None):
         rblas_path = os.path.join(libr_dir, "libRblas.so")
         if os.path.exists(rblas_path):
             try:
-                ctypes.CDLL(rblas_path, mode=ctypes.RTLD_GLOBAL)
+                h_blas = ctypes.CDLL(rblas_path, mode=ctypes.RTLD_GLOBAL)
+                _register_linux_soname(h_blas, "libRblas.so")
             except OSError:
                 pass
     try:
-        ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)
+        h_r = ctypes.CDLL(libr_path, mode=ctypes.RTLD_GLOBAL)
+        _register_linux_soname(h_r, "libR.so")
     except OSError as e:
         raise Exception("Cannot load shared library: {}".format(e))
+    if sys.platform != "darwin":
+        rlapack_path = os.path.join(libr_dir, "libRlapack.so")
+        if os.path.exists(rlapack_path):
+            try:
+                h_lapack = ctypes.CDLL(rlapack_path, mode=ctypes.RTLD_GLOBAL)
+                _register_linux_soname(h_lapack, "libRlapack.so")
+            except OSError:
+                pass
 
 
 def ensure_libr():
@@ -342,6 +413,28 @@ def should_use_host():
 
 
 def _get_macos_blas_path(libr_path):
+    """Resolve the actual BLAS dylib path used by `libR.dylib` on macOS.
+
+    On macOS, the Python executable links against `CoreFoundation.framework`,
+    which transitively pulls Apple's `Accelerate.framework` (`libBLAS.dylib`)
+    into the process at `execve` time. Because `dlsym(RTLD_DEFAULT, ...)`
+    searches images in load order, loading R's BLAS later via `ctypes.CDLL`
+    places it behind `Accelerate.framework`, causing `extSoftVersion()["BLAS"]`
+    and flat-namespace lookups to resolve `dgemm_` to `Accelerate` instead of
+    R's configured BLAS. Preloading R's BLAS via `DYLD_INSERT_LIBRARIES` places
+    it ahead of `Accelerate.framework` in `RTLD_DEFAULT` load order.
+
+    Different macOS R distributions link BLAS in different ways:
+    - CRAN R links `@rpath/libRblas.dylib` in `$R_HOME/lib` (which may symlink
+      to `libRblas.0.dylib` or `libRblas.vecLib.dylib`).
+    - Homebrew R links external OpenBLAS (`libopenblas.dylib`) directly and does
+      not ship `$R_HOME/lib/libRblas.dylib` at all.
+
+    Rather than manually parsing Mach-O load commands, we open `libR.dylib`
+    with `dlopen(..., RTLD_LAZY | RTLD_LOCAL)`, look up `dgemm_` via `dlsym`,
+    and query `dladdr` (`Dl_info.dli_fname`) so `dyld` itself reports the exact
+    file path of the library providing `libR.dylib`'s BLAS symbols.
+    """
     class _Dl_info(ctypes.Structure):
         _fields_ = [
             ("dli_fname", ctypes.c_char_p),
@@ -384,6 +477,27 @@ def _get_macos_blas_path(libr_path):
 
 
 def _setup_unix_preload_env(rhome, env):
+    """Configure dynamic linker search paths and preloaded R libraries before `os.execve`.
+
+    This function prepares `env` for the re-execed Unix process in two steps:
+
+    1. Dynamic linker library search paths (`R_LD_LIBRARY_PATH` and
+       `LD_LIBRARY_PATH` on Linux / `DYLD_FALLBACK_LIBRARY_PATH` on macOS):
+       Sources `$R_HOME/etc/ldpaths` (mirroring R's `/usr/bin/R` startup script)
+       so `$R_HOME/lib`, `$R_JAVA_LD_LIBRARY_PATH` (e.g., `libjvm.so` for
+       `rJava`), and any build-time library directories are registered with
+       `ld.so` / `dyld` at process startup (`execve`), which is the only time
+       the OS dynamic linker reads these environment variables.
+
+    2. Early BLAS + `libR` preloading (`DYLD_INSERT_LIBRARIES` on macOS /
+       `LD_PRELOAD` on Linux):
+       Places R's BLAS library and `libR` at the front of the `RTLD_DEFAULT`
+       symbol search order before the host `python` executable's own transitive
+       dependencies (such as macOS `CoreFoundation` -> `Accelerate.framework`
+       `libBLAS.dylib`). In the re-execed child, `reset_preload_env()` strips
+       the injected paths from `DYLD_INSERT_LIBRARIES` / `LD_PRELOAD` so child
+       subprocesses do not inherit them.
+    """
     lib_path = os.path.join(rhome, "lib")
     ldpaths = os.path.join(rhome, "etc", "ldpaths")
     ldpaths_out = ""

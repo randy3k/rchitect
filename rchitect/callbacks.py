@@ -11,52 +11,24 @@ from .console import rconsole2str, utf8tosystem
 
 _CALLBACK_NAMES = frozenset(
     {
-        "suicide",
         "show_message",
         "read_console",
         "write_console_ex",
         "reset_console",
-        "flush_console",
-        "clearerr_console",
         "busy",
         "clean_up",
-        "show_files",
-        "choose_file",
-        "edit_file",
-        "loadhistory",
-        "savehistory",
-        "addhistory",
-        "edit_files",
-        "do_selectlist",
-        "do_dataentry",
-        "do_dataviewer",
-        "process_events",
         "polled_events",
         "yes_no_cancel",
     }
 )
 
 _UNIX_CALLBACKS = {
-    "suicide": ("ptr_R_Suicide", None),
     "show_message": ("ptr_R_ShowMessage", None),
     "read_console": ("ptr_R_ReadConsole", "cb_read_console_safe"),
     "write_console_ex": ("ptr_R_WriteConsoleEx", "cb_write_console_ex_safe"),
     "reset_console": ("ptr_R_ResetConsole", None),
-    "flush_console": ("ptr_R_FlushConsole", None),
-    "clearerr_console": ("ptr_R_ClearerrConsole", None),
     "busy": ("ptr_R_Busy", "cb_busy_safe"),
     "clean_up": ("ptr_R_CleanUp", None),
-    "show_files": ("ptr_R_ShowFiles", None),
-    "choose_file": ("ptr_R_ChooseFile", None),
-    "edit_file": ("ptr_R_EditFile", None),
-    "loadhistory": ("ptr_R_loadhistory", None),
-    "savehistory": ("ptr_R_savehistory", None),
-    "addhistory": ("ptr_R_addhistory", None),
-    "edit_files": ("ptr_R_EditFiles", None),
-    "do_selectlist": ("ptr_do_selectlist", None),
-    "do_dataentry": ("ptr_do_dataentry", None),
-    "do_dataviewer": ("ptr_do_dataviewer", None),
-    "process_events": ("ptr_R_ProcessEvents", None),
     "polled_events": ("R_PolledEvents", "cb_polled_events_safe"),
 }
 
@@ -65,26 +37,12 @@ _default_unix_callbacks = {}
 
 
 class Callback:
-    suicide = None
     show_message = None
     read_console = None
     write_console_ex = None
     reset_console = None
-    flush_console = None
-    clearerr_console = None
     busy = None
     clean_up = None
-    show_files = None
-    choose_file = None
-    edit_file = None
-    loadhistory = None
-    savehistory = None
-    addhistory = None
-    edit_files = None
-    do_selectlist = None
-    do_dataentry = None
-    do_dataviewer = None
-    process_events = None
     polled_events = None
     yes_no_cancel = None
 
@@ -143,6 +101,11 @@ def write_console_ex(buf, otype):
         if sys.stderr:
             sys.stderr.write(buf)
             sys.stderr.flush()
+
+
+@def_callback()
+def reset_console():
+    pass
 
 
 @def_callback()
@@ -221,6 +184,7 @@ def setup_rstart(rhome, args):
     rstart.ShowMessage = ffi.addressof(lib, "cb_show_message")
     rstart.YesNoCancel = ffi.addressof(lib, "cb_yes_no_cancel")
     rstart.Busy = ffi.addressof(lib, "cb_busy_safe")
+    rstart.ResetConsole = ffi.addressof(lib, "cb_reset_console")
     # we cannot get it to RGui, otherwise `do_system` will clear the standard handlers
     rstart.CharacterMode = 1  # RTerm
     rstart.WriteConsoleEx = ffi.addressof(lib, "cb_write_console_ex_safe")
@@ -265,6 +229,7 @@ def cb_show_message(buf):
 
 
 def on_callback_error(exception, exc_value, traceback):
+    _code[0] = b""
     if exception == KeyboardInterrupt:
         lib.cb_interrupted = 1
     elif exception == EOFError:
@@ -311,6 +276,12 @@ def cb_read_console(p, buf, buflen, add_history):
 def cb_write_console_ex(buf, bufline, otype):
     text = rconsole2str(ffi.string(buf))
     console.write_console(text, otype)
+
+
+@ffi.def_extern(error=None, onerror=on_callback_error)
+def cb_reset_console():
+    _code[0] = b""
+    callback.reset_console()
 
 
 @ffi.def_extern()

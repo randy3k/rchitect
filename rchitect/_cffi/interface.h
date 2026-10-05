@@ -6,11 +6,10 @@
 // begin cdef
 
 int _libR_is_initialized(void);
-SEXP rchitect_ParseVector(SEXP, int, ParseStatus *, SEXP);
-SEXP rchitect_tryEval(SEXP, SEXP, int *);
 
 // end cdef
 
+void c_preserve_sexp(SEXP s);
 int _rchitect_register_interface_methods(void *mod_ptr);
 
 #endif /* end of include guard: INTERFACE_H__ */

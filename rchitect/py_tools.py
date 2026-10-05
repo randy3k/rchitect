@@ -1,3 +1,4 @@
+import __main__
 import importlib
 import operator
 import re
@@ -34,7 +35,7 @@ def py_import_builtins(convert=True):
 
 def py_call(fun, *args, **kwargs):
     if isinstance(fun, str):
-        fun = eval(fun)
+        fun = eval(fun, __main__.__dict__, __main__.__dict__)
     return fun(*args, **kwargs)
 
 
@@ -43,7 +44,7 @@ def py_copy(*args, **kwargs):
 
 
 def py_eval(code):
-    return eval(code)
+    return eval(code, __main__.__dict__, __main__.__dict__)
 
 
 def py_get_attr(obj, key):
@@ -65,15 +66,16 @@ def _dollar_pyobject(robj, rkey):
     return _cffi._c_sexp_as_py_object(val, False, True, False, 0)
 
 
-def py_get_item(obj, key):
-    return obj[key]
+def py_get_item(obj, *keys):
+    if not keys:
+        raise TypeError("py_get_item expected at least 1 key")
+    return obj[keys[0] if len(keys) == 1 else keys]
 
 
-def _bracket_pyobject(robj, rkey):
+def _bracket_pyobject(robj, *rkeys):
     obj = rcopy(robj)
-    key = rcopy(rkey)
     convert = bool(rcopy(getattrib(robj, "convert")))
-    val = py_get_item(obj, key)
+    val = py_get_item(obj, *(rcopy(k) for k in rkeys))
     if convert:
         return robject(val, convert=True)
     return _cffi._c_sexp_as_py_object(val, False, True, False, 0)
@@ -81,7 +83,7 @@ def _bracket_pyobject(robj, rkey):
 
 def py_names(obj, pattern=None):
     try:
-        names = [k for k in obj.__dict__.keys() if not k.startswith("_")]
+        names = [k for k in dir(obj) if not k.startswith("_")]
     except Exception:
         return None
     if pattern:
@@ -95,6 +97,8 @@ def py_object(*args, **kwargs):
         return robject("PyObject", rcopy(args[0]), **kw)
     elif len(args) == 2:
         return robject("PyObject", rcopy(rcopy(object, args[0]), args[1]), **kw)
+    else:
+        raise TypeError("py_object expected 1 or 2 positional arguments")
 
 
 def py_print(r, **kwargs):
@@ -107,9 +111,20 @@ def py_set_attr(obj, key, value):
     return obj
 
 
-def py_set_item(obj, key, value):
+def py_set_item(obj, *args, **kwargs):
+    if "value" in kwargs:
+        if len(kwargs) > 1 or not args:
+            raise TypeError("invalid arguments for py_set_item")
+        rkeys = args
+        rval = kwargs["value"]
+    else:
+        if kwargs or len(args) < 2:
+            raise TypeError("invalid arguments for py_set_item")
+        rkeys = args[:-1]
+        rval = args[-1]
     pyo = rcopy(object, obj)
-    pyo[rcopy(key)] = rcopy(value)
+    key = rcopy(rkeys[0]) if len(rkeys) == 1 else tuple(rcopy(k) for k in rkeys)
+    pyo[key] = rcopy(rval)
     return obj
 
 
@@ -148,9 +163,9 @@ def inject_py_tools():
         "[": _rfunction(_bracket_pyobject, asis=True, convert=True),
         "$<-": _rfunction(py_set_attr, invisible=True, asis=True, convert=False),
         "[<-": _rfunction(py_set_item, invisible=True, asis=True, convert=False),
-        "&": _rfunction(operator.and_, invisible=True, convert=False),
-        "|": _rfunction(operator.or_, invisible=True, convert=False),
-        "!": _rfunction(operator.not_, invisible=True, convert=False),
+        "&": _rfunction(operator.and_, convert=False),
+        "|": _rfunction(operator.or_, convert=False),
+        "!": _rfunction(operator.not_, convert=False),
     }
     base_ns = rcall(("base", "baseenv"))
     for gen, fn in s3_methods.items():

@@ -1,4 +1,5 @@
 #include <Python.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "robject.h"
@@ -40,7 +41,7 @@ static void protectedParse(void *d) {
     data->val = R_ParseVector(data->text, data->num, data->status, data->source);
 }
 
-SEXP rchitect_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) {
+static SEXP rchitect_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) {
     Rboolean ok;
     ProtectedParseData d;
     d.text = Rf_protect(text);
@@ -55,10 +56,6 @@ SEXP rchitect_ParseVector(SEXP text, int num, ParseStatus *status, SEXP source) 
     }
     Rf_unprotect(2);
     return d.val;
-}
-
-SEXP rchitect_tryEval(SEXP x, SEXP e, int *s) {
-    return R_tryEval(x, e, s);
 }
 
 // =============================================================================
@@ -98,14 +95,18 @@ static const char *sexptype_to_str(unsigned int t) {
     }
 }
 
-static PyObject *py_c_preserve_sexp(PyObject *self, PyObject *args) {
-    PyObject *ptr_obj;
-    if (!PyArg_ParseTuple(args, "O", &ptr_obj)) return NULL;
-    SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
+void c_preserve_sexp(SEXP s) {
     if (s != NULL) {
         flush_deferred_release();
         R_PreserveObject(s);
     }
+}
+
+static PyObject *py_c_preserve_sexp(PyObject *self, PyObject *args) {
+    PyObject *ptr_obj;
+    if (!PyArg_ParseTuple(args, "O", &ptr_obj)) return NULL;
+    SEXP s = (SEXP)PyLong_AsVoidPtr(ptr_obj);
+    c_preserve_sexp(s);
     Py_RETURN_NONE;
 }
 
@@ -196,11 +197,9 @@ static SEXP c_build_rlang(PyObject *f, PyObject *pos_args, PyObject *kw_args, in
     Py_ssize_t n_kw = PyDict_Size(kw_args);
     if (n_kw < 0) return NULL;
 
-    SEXP head_call = Rf_protect(c_as_call(f));
-    if (head_call == NULL) {
-        Rf_unprotect(1);
-        return NULL;
-    }
+    SEXP head_call = c_as_call(f);
+    if (head_call == NULL) return NULL;
+    Rf_protect(head_call);
 
     SEXP t = Rf_protect(Rf_allocVector(LANGSXP, n_pos + n_kw + 1));
     SEXP s = t;
@@ -269,6 +268,10 @@ static PyObject *py_c_rcall(PyObject *self, PyObject *args) {
     if (envir != Py_None) {
         env_s = extract_sexp(envir);
         if (env_s == NULL) return NULL;
+        if (TYPEOF(env_s) != ENVSXP) {
+            PyErr_SetString(PyExc_TypeError, "expect environment");
+            return NULL;
+        }
     }
 
     SEXP t = c_build_rlang(f, pos_args, kw_args, asis);
@@ -392,11 +395,9 @@ static PyObject *py_c_setclass(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "OO", &obj, &classes)) return NULL;
     SEXP s = extract_sexp(obj);
     if (s == NULL) return NULL;
-    SEXP cls_sexp = Rf_protect(c_sexp_impl("character", classes, 0, 0, 1, 0));
-    if (cls_sexp == NULL) {
-        Rf_unprotect(1);
-        return NULL;
-    }
+    SEXP cls_sexp = c_sexp_impl("character", classes, 0, 0, 1, 0);
+    if (cls_sexp == NULL) return NULL;
+    Rf_protect(cls_sexp);
     Rf_setAttrib(s, R_ClassSymbol, cls_sexp);
     Rf_unprotect(1);
     Py_RETURN_NONE;
@@ -425,11 +426,9 @@ static PyObject *py_c_setattrib(PyObject *self, PyObject *args) {
     if (s == NULL) return NULL;
     SEXP k_sexp = PyUnicode_Check(key) ? c_install_py_str(key) : extract_sexp(key);
     if (k_sexp == NULL) return NULL;
-    SEXP v_sexp = Rf_protect(c_sexp_impl(NULL, val, 0, 0, 1, 0));
-    if (v_sexp == NULL) {
-        Rf_unprotect(1);
-        return NULL;
-    }
+    SEXP v_sexp = c_sexp_impl(NULL, val, 0, 0, 1, 0);
+    if (v_sexp == NULL) return NULL;
+    Rf_protect(v_sexp);
     Rf_setAttrib(s, k_sexp, v_sexp);
     Rf_unprotect(1);
     Py_RETURN_NONE;
@@ -454,9 +453,13 @@ static PyObject *py_c_new_env(PyObject *self, PyObject *args) {
     PyObject *parent_obj = Py_None;
     if (!PyArg_ParseTuple(args, "|O", &parent_obj)) return NULL;
     SEXP parent = R_GlobalEnv;
-    if (parent_obj != Py_None && PyObject_IsTrue(parent_obj)) {
+    if (parent_obj != Py_None) {
         parent = extract_sexp(parent_obj);
         if (parent == NULL) return NULL;
+        if (TYPEOF(parent) != ENVSXP) {
+            PyErr_SetString(PyExc_TypeError, "expect environment");
+            return NULL;
+        }
     }
     SEXP env = Rf_protect(Rf_NewEnvironment(R_NilValue, R_NilValue, parent));
     PyObject *res = c_box_sexp(env);
@@ -469,7 +472,7 @@ static PyObject *py_c_rsym(PyObject *self, PyObject *args) {
     PyObject *t_obj = Py_None;
     if (!PyArg_ParseTuple(args, "O|O", &s_obj, &t_obj)) return NULL;
     SEXP res_sexp;
-    if (t_obj != Py_None && PyObject_IsTrue(t_obj)) {
+    if (t_obj != Py_None) {
         SEXP pkg = c_install_py_str(s_obj);
         if (pkg == NULL) return NULL;
         SEXP sym = c_install_py_str(t_obj);
@@ -481,6 +484,28 @@ static PyObject *py_c_rsym(PyObject *self, PyObject *args) {
         Rf_protect(res_sexp);
     }
     PyObject *res = c_box_sexp(res_sexp);
+    Rf_unprotect(1);
+    return res;
+}
+
+static PyObject *py_c_getoption(PyObject *self, PyObject *args) {
+    PyObject *key_obj;
+    if (!PyArg_ParseTuple(args, "O", &key_obj)) return NULL;
+    SEXP sym = c_install_py_str(key_obj);
+    if (sym == NULL) return NULL;
+    SEXP val = Rf_protect(Rf_GetOption1(sym));
+    PyObject *res = c_box_sexp(val);
+    Rf_unprotect(1);
+    return res;
+}
+
+static PyObject *py_c_roption(PyObject *self, PyObject *args) {
+    PyObject *key_obj;
+    if (!PyArg_ParseTuple(args, "O", &key_obj)) return NULL;
+    SEXP sym = c_install_py_str(key_obj);
+    if (sym == NULL) return NULL;
+    SEXP val = Rf_protect(Rf_GetOption1(sym));
+    PyObject *res = c_rcopy_impl(val, Py_None, 0, 1);
     Rf_unprotect(1);
     return res;
 }
@@ -505,6 +530,8 @@ static PyMethodDef rchitect_interface_methods[] = {
     {"_c_rnames", py_c_rnames, METH_VARARGS, NULL},
     {"_c_new_env", py_c_new_env, METH_VARARGS, NULL},
     {"_c_rsym", py_c_rsym, METH_VARARGS, NULL},
+    {"_c_getoption", py_c_getoption, METH_VARARGS, NULL},
+    {"_c_roption", py_c_roption, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

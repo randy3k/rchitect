@@ -13,6 +13,30 @@ from rchitect.interface import (
 
 
 _pending_py_object = None
+_py_repl_active_fn = None
+_pop_pending_fn = None
+
+
+def is_installed():
+    return len(rcall(("base", "find.package"), "reticulate", quiet=True, _convert=True)) > 0
+
+
+def is_loaded():
+    return "reticulate" in rcall(("base", "loadedNamespaces"), _convert=True)
+
+
+def on_load(callback):
+    if is_loaded():
+        callback()
+    else:
+        set_hook(package_event("reticulate", "onLoad"), lambda *args: callback())
+
+
+def py_repl_active():
+    global _py_repl_active_fn
+    if _py_repl_active_fn is None:
+        _py_repl_active_fn = reval("reticulate:::py_repl_active")
+    return bool(rcall(_py_repl_active_fn, _convert=True))
 
 
 def pop_pending_py_object():
@@ -27,11 +51,15 @@ def _py_to_r_robject(x, *args, **kwargs):
 
 
 def _r_to_py_pyobject(x, convert=None, *args, **kwargs):
-    global _pending_py_object
+    global _pending_py_object, _pop_pending_fn
     _pending_py_object = rcopy(object, x)
-    mod = rcall(("reticulate", "import"), "rchitect.reticulate", convert=False)
-    fn = rcall(("reticulate", "py_get_attr"), mod, "pop_pending_py_object")
-    res = rcall(("reticulate", "py_call"), fn)
+    try:
+        if _pop_pending_fn is None:
+            mod = rcall(("reticulate", "import"), "rchitect.reticulate", convert=False)
+            _pop_pending_fn = rcall(("reticulate", "py_get_attr"), mod, "pop_pending_py_object")
+        res = rcall(("reticulate", "py_call"), _pop_pending_fn)
+    finally:
+        _pending_py_object = None
     if convert is not None and rcopy(bool, convert):
         setattrib(res, "convert", True)
     return res
@@ -91,7 +119,4 @@ def configure():
         )
         atexit.register(_finalize_reticulate)
 
-    if "reticulate" in rcopy(rcall(("base", "loadedNamespaces"))):
-        _configure()
-    else:
-        set_hook(package_event("reticulate", "onLoad"), _configure)
+    on_load(_configure)

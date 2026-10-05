@@ -15,16 +15,21 @@
 // =============================================================================
 
 static PyObject *c_extract_pyobj_from_env_or_clos(SEXP s) {
-    if (TYPEOF(s) == EXTPTRSXP) {
+    if (TYPEOF(s) == EXTPTRSXP && c_sexp_has_class(s, "PyObject")) {
         return c_from_xptr(s);
     }
     if (TYPEOF(s) == CLOSXP) {
-        SEXP py_obj_attr = Rf_getAttrib(s, Rf_install("py_object"));
-        if (py_obj_attr != R_NilValue && TYPEOF(py_obj_attr) == EXTPTRSXP) {
+        SEXP py_obj_sym = r_sym_py_object ? r_sym_py_object : Rf_install("py_object");
+        SEXP py_obj_attr = Rf_getAttrib(s, py_obj_sym);
+        if (py_obj_attr != R_NilValue && TYPEOF(py_obj_attr) == EXTPTRSXP && c_sexp_has_class(py_obj_attr, "PyObject")) {
             return c_from_xptr(py_obj_attr);
         }
     }
-    SEXP get_sym = Rf_install("get");
+    if (!c_sexp_has_class(s, "python.builtin.object") && !c_sexp_has_class(s, "python.builtin.function")) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to extract pyobj from R object");
+        return NULL;
+    }
+    SEXP get_sym = r_sym_get ? r_sym_get : Rf_install("get");
     SEXP pyobj_str = Rf_protect(Rf_mkString("pyobj"));
     SEXP call = Rf_protect(Rf_lang3(get_sym, pyobj_str, s));
     int status = 0;
@@ -291,8 +296,23 @@ PyObject *c_rcopy_impl(SEXP s, PyObject *target_type, int asis, int convert) {
         return c_box_sexp(s);
     }
     if (target_type == (PyObject *)&PyBaseObject_Type) {
-        if (st == EXTPTRSXP) return c_from_xptr(s);
-        if (st == ENVSXP || st == CLOSXP) return c_extract_pyobj_from_env_or_clos(s);
+        if (st == EXTPTRSXP && c_sexp_has_class(s, "PyObject")) {
+            return c_from_xptr(s);
+        }
+        if (st == CLOSXP) {
+            SEXP py_obj_sym = r_sym_py_object ? r_sym_py_object : Rf_install("py_object");
+            SEXP py_obj_attr = Rf_getAttrib(s, py_obj_sym);
+            if (py_obj_attr != R_NilValue && TYPEOF(py_obj_attr) == EXTPTRSXP && c_sexp_has_class(py_obj_attr, "PyObject")) {
+                return c_from_xptr(py_obj_attr);
+            }
+            if (c_sexp_has_class(s, "PyCallable") || c_sexp_has_class(s, "python.builtin.function") || c_sexp_has_class(s, "python.builtin.object")) {
+                return c_extract_pyobj_from_env_or_clos(s);
+            }
+        }
+        if (st == ENVSXP && c_sexp_has_class(s, "python.builtin.object")) {
+            return c_extract_pyobj_from_env_or_clos(s);
+        }
+        return c_box_sexp(s);
     }
     if (target_type == (PyObject *)Py_TYPE(Py_None) && st == NILSXP) {
         Py_RETURN_NONE;
@@ -324,23 +344,23 @@ PyObject *c_rcopy_impl(SEXP s, PyObject *target_type, int asis, int convert) {
         Rf_unprotect(1);
         return res;
     }
-    if (target_type == (PyObject *)&PyLong_Type && st == INTSXP) {
+    if (target_type == (PyObject *)&PyLong_Type && st == INTSXP && Rf_xlength(s) == 1) {
         return PyLong_FromLong(INTEGER(s)[0]);
     }
-    if (target_type == (PyObject *)&PyBool_Type && st == LGLSXP) {
+    if (target_type == (PyObject *)&PyBool_Type && st == LGLSXP && Rf_xlength(s) == 1) {
         return PyBool_FromLong(LOGICAL(s)[0]);
     }
-    if (target_type == (PyObject *)&PyFloat_Type && st == REALSXP) {
+    if (target_type == (PyObject *)&PyFloat_Type && st == REALSXP && Rf_xlength(s) == 1) {
         return PyFloat_FromDouble(REAL(s)[0]);
     }
-    if (target_type == (PyObject *)&PyComplex_Type && st == CPLXSXP) {
+    if (target_type == (PyObject *)&PyComplex_Type && st == CPLXSXP && Rf_xlength(s) == 1) {
         Rcomplex z = COMPLEX(s)[0];
         return PyComplex_FromDoubles(z.r, z.i);
     }
     if (target_type == (PyObject *)&PyBytes_Type && st == RAWSXP) {
         return PyBytes_FromStringAndSize((const char *)RAW(s), (Py_ssize_t)Rf_xlength(s));
     }
-    if (target_type == (PyObject *)&PyUnicode_Type && st == STRSXP) {
+    if (target_type == (PyObject *)&PyUnicode_Type && st == STRSXP && Rf_xlength(s) == 1) {
         const void *vmax = vmaxget();
         PyObject *res = PyUnicode_FromString(Rf_translateCharUTF8(STRING_ELT(s, 0)));
         vmaxset(vmax);
@@ -348,11 +368,6 @@ PyObject *c_rcopy_impl(SEXP s, PyObject *target_type, int asis, int convert) {
     }
     if (target_type == g_Function_Type && (st == CLOSXP || st == BUILTINSXP)) {
         return c_wrap_r_function(s, asis, convert);
-    }
-    if (PyType_Check(target_type) && PyType_IsSubtype((PyTypeObject *)target_type, &PyBaseObject_Type)) {
-        if (target_type == (PyObject *)&PyBaseObject_Type) {
-            return c_box_sexp(s);
-        }
     }
 
     PyErr_SetString(PyExc_NotImplementedError, "Dispatch not found for rcopy signature");

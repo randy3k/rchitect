@@ -1,7 +1,8 @@
-from rchitect import rcopy, reval
-from rchitect.interface import rstring
-import string
 from collections import OrderedDict
+import string
+import pytest
+from rchitect import rcopy, reval, robject
+from rchitect.interface import RObject, rstring, unbox
 
 
 def test_booleans(gctorture):
@@ -55,3 +56,40 @@ def test_functions(gctorture):
     assert rcopy(f2(3)) == 9
     sumfun = rcopy(reval("sum"))
     assert sumfun([1, 2, 3]) == 6
+
+    rf = reval("function() {}")
+    assert unbox(robject(rcopy(rf))) == unbox(rf)
+
+
+def test_scalar_and_object_safety(gctorture):
+    # Empty or multi-element vectors rejected by explicit scalar rcopy
+    for typ, expr in [
+        (int, "integer(0)"),
+        (int, "c(1L, 2L)"),
+        (bool, "logical(0)"),
+        (bool, "c(TRUE, FALSE)"),
+        (float, "numeric(0)"),
+        (float, "c(1.0, 2.0)"),
+        (complex, "complex(0)"),
+        (complex, "c(1+1i, 2+2i)"),
+        (str, "character(0)"),
+        (str, "c('a', 'b')"),
+    ]:
+        with pytest.raises(NotImplementedError):
+            rcopy(typ, reval(expr))
+
+    # Foreign externalptr (without PyObject class) is boxed as RObject, not cast to PyObject*
+    foreign_xptr = reval("new('externalptr')")
+    boxed_xptr = rcopy(object, foreign_xptr)
+    assert isinstance(boxed_xptr, RObject)
+
+    # Regular R environment and closure are boxed as RObject by rcopy(object, ...)
+    assert isinstance(rcopy(object, reval("new.env()")), RObject)
+    assert isinstance(rcopy(object, reval("function(x) x")), RObject)
+
+    # Python function wrapped as "function" (without PyCallable class) still unwraps via py_object attr
+    def my_fn(x):
+        return x + 1
+
+    r_fn = robject("function", my_fn)
+    assert rcopy(object, r_fn) is my_fn

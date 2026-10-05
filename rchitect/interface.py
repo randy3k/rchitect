@@ -14,16 +14,24 @@ from .setup import ensure_initialized
 # =============================================================================
 
 
+_SEXP_CTYPE = ffi.typeof("SEXP")
+
+
+def _sexp_cdata_to_ptr(x):
+    if ffi.typeof(x) is _SEXP_CTYPE:
+        return int(ffi.cast("uintptr_t", x))
+    return None
+
+
 class RObject(object):
+    __slots__ = ("_ptr", "_s")
+
     def __init__(self, s):
-        if isinstance(s, int):
-            self._ptr = s
-            self._s = None
-        elif isinstance(s, ffi.CData) and ffi.typeof(s) == ffi.typeof("SEXP"):
+        if isinstance(s, ffi.CData) and ffi.typeof(s) is _SEXP_CTYPE:
             self._s = s
             self._ptr = int(ffi.cast("uintptr_t", s))
         else:
-            raise TypeError("expect SEXP or int pointer")
+            raise TypeError("expect SEXP")
         _cffi._c_preserve_sexp(self._ptr)
 
     @property
@@ -46,8 +54,12 @@ class RObject(object):
 
     def __repr__(self):
         with capture_console(flushable=False):  # need to capture stdout
-            rprint(self)
-            output = read_stdout() or ""
+            try:
+                rprint(self)
+            except Exception:
+                output = ""
+            else:
+                output = read_stdout() or ""
 
         name = "RObject{{{}}}".format(_cffi._c_sexptype_name(self))
         if output:
@@ -62,13 +74,15 @@ class RObject(object):
 def box(x):
     if isinstance(x, RObject):
         return x
-    return RObject(x)
+    if isinstance(x, ffi.CData) and ffi.typeof(x) is _SEXP_CTYPE:
+        return RObject(x)
+    raise TypeError("expect SEXP or RObject")
 
 
 def unbox(x):
     if isinstance(x, RObject):
         return x.s
-    elif isinstance(x, ffi.CData) and ffi.typeof(x) == ffi.typeof("SEXP"):
+    elif isinstance(x, ffi.CData) and ffi.typeof(x) is _SEXP_CTYPE:
         return x
     raise TypeError("expect SEXP or RObject")
 
@@ -82,6 +96,9 @@ def _wrap_r_function(r, asis=False, convert=True):
     f.convert = convert
     return f
 
+
+_cffi._cdata_type = ffi.CData
+_cffi._sexp_cdata_to_ptr = _sexp_cdata_to_ptr
 
 lib._rchitect_init_conv(
     ffi.cast("void *", id(_cffi)),
@@ -161,7 +178,7 @@ def parse_text(s):
 
 def parse_text_incomplete(s):
     ensure_initialized()
-    with capture_console():  # need to capture stderr
+    with capture_console(flushable=False):  # need to capture stderr
         return not _cffi._c_parse_text_complete(utf8tosystem(s))
 
 
@@ -216,16 +233,21 @@ def rcall(f, *args, **kwargs):
 
 
 def rprint(s, envir=None):
+    # Bind value to a variable in a local mask environment, mirroring R's
+    # internal PrintObjectS3() (`local({ x <- <value>; base::print(x) })`).
+    # This avoids evaluating `s` when it is a symbol or language/call object,
+    # avoids inlining `s` into the call AST (which would alter `substitute(x)`
+    # inside print methods and bloat `sys.calls()`/error messages), and avoids
+    # clobbering `x` in `envir`.
     ensure_initialized()
     s_obj = box(s)
     symx = rsym("x")
-    if not envir:
-        envir = new_env()
-    lib.Rf_defineVar(symx.s, s_obj.s, envir.s)
+    mask = new_env(parent=envir)
+    lib.Rf_defineVar(symx.s, s_obj.s, mask.s)
     try:
-        rcall(("base", "print"), symx, _envir=envir)
+        rcall(("base", "print"), symx, _envir=mask)
     finally:
-        lib.Rf_defineVar(symx.s, lib.R_NilValue, envir.s)
+        lib.Rf_defineVar(symx.s, lib.R_NilValue, mask.s)
 
 
 # =============================================================================
@@ -260,12 +282,12 @@ def setclass(s, classes):
 
 def getoption(key):
     ensure_initialized()
-    sym = rsym(key)
-    return RObject(lib.Rf_GetOption1(sym.s))
+    return _cffi._c_getoption(key)
 
 
 def roption(key, default=None):
-    ret = rcopy(getoption(key))
+    ensure_initialized()
+    ret = _cffi._c_roption(key)
     return ret if ret is not None else default
 
 

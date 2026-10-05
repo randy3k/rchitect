@@ -23,12 +23,16 @@ extern PyObject *g_OrderedDict_Type;
 extern PyObject *g_Function_Type;
 extern PyObject *g_WrapRFunction;
 
+extern SEXP r_sym_py_object;
+extern SEXP r_sym_get;
+
 int is_robject(PyObject *obj);
 SEXP extract_sexp(PyObject *obj);
 PyObject *c_box_sexp(SEXP s);
 PyObject *c_from_xptr(SEXP s);
 SEXP c_mk_rchar_from_py(PyObject *str_obj);
 SEXP c_install_py_str(PyObject *str_obj);
+int c_sexp_has_class(SEXP s, const char *target_cls);
 PyObject *c_rcopy_str_list(SEXP s);
 PyObject *c_rcopy_impl(SEXP s, PyObject *target_type, int asis, int convert);
 PyObject *py_c_rcopy(PyObject *self, PyObject *args);
