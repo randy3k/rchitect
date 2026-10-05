@@ -415,21 +415,25 @@ def should_use_host():
 def _get_macos_blas_path(libr_path):
     """Resolve the actual BLAS dylib path used by `libR.dylib` on macOS.
 
-    When preloading `libR.dylib` via `DYLD_INSERT_LIBRARIES`, its BLAS library
-    must also be preloaded ahead of `libR.dylib` so BLAS symbols (e.g. `dgemm_`)
-    are available in the flat namespace and when `$R_HOME/lib` is not in the
-    default dyld search path.
+    On macOS, the Python executable links against `CoreFoundation.framework`,
+    which transitively pulls Apple's `Accelerate.framework` (`libBLAS.dylib`)
+    into the process at `execve` time. Because `dlsym(RTLD_DEFAULT, ...)`
+    searches images in load order, loading R's BLAS later via `ctypes.CDLL`
+    places it behind `Accelerate.framework`, causing `extSoftVersion()["BLAS"]`
+    and flat-namespace lookups to resolve `dgemm_` to `Accelerate` instead of
+    R's configured BLAS. Preloading R's BLAS via `DYLD_INSERT_LIBRARIES` places
+    it ahead of `Accelerate.framework` in `RTLD_DEFAULT` load order.
 
     Different macOS R distributions link BLAS in different ways:
     - CRAN R links `@rpath/libRblas.dylib` in `$R_HOME/lib` (which may symlink
-      to `libRblas.0.dylib` or Apple's Accelerate `libRblas.vecLib.dylib`).
+      to `libRblas.0.dylib` or `libRblas.vecLib.dylib`).
     - Homebrew R links external OpenBLAS (`libopenblas.dylib`) directly and does
       not ship `$R_HOME/lib/libRblas.dylib` at all.
 
     Rather than manually parsing Mach-O load commands, we open `libR.dylib`
     with `dlopen(..., RTLD_LAZY | RTLD_LOCAL)`, look up `dgemm_` via `dlsym`,
     and query `dladdr` (`Dl_info.dli_fname`) so `dyld` itself reports the exact
-    file path of the library providing BLAS symbols.
+    file path of the library providing `libR.dylib`'s BLAS symbols.
     """
     class _Dl_info(ctypes.Structure):
         _fields_ = [
@@ -473,6 +477,27 @@ def _get_macos_blas_path(libr_path):
 
 
 def _setup_unix_preload_env(rhome, env):
+    """Configure dynamic linker search paths and preloaded R libraries before `os.execve`.
+
+    This function prepares `env` for the re-execed Unix process in two steps:
+
+    1. Dynamic linker library search paths (`R_LD_LIBRARY_PATH` and
+       `LD_LIBRARY_PATH` on Linux / `DYLD_FALLBACK_LIBRARY_PATH` on macOS):
+       Sources `$R_HOME/etc/ldpaths` (mirroring R's `/usr/bin/R` startup script)
+       so `$R_HOME/lib`, `$R_JAVA_LD_LIBRARY_PATH` (e.g., `libjvm.so` for
+       `rJava`), and any build-time library directories are registered with
+       `ld.so` / `dyld` at process startup (`execve`), which is the only time
+       the OS dynamic linker reads these environment variables.
+
+    2. Early BLAS + `libR` preloading (`DYLD_INSERT_LIBRARIES` on macOS /
+       `LD_PRELOAD` on Linux):
+       Places R's BLAS library and `libR` at the front of the `RTLD_DEFAULT`
+       symbol search order before the host `python` executable's own transitive
+       dependencies (such as macOS `CoreFoundation` -> `Accelerate.framework`
+       `libBLAS.dylib`). In the re-execed child, `reset_preload_env()` strips
+       the injected paths from `DYLD_INSERT_LIBRARIES` / `LD_PRELOAD` so child
+       subprocesses do not inherit them.
+    """
     lib_path = os.path.join(rhome, "lib")
     ldpaths = os.path.join(rhome, "etc", "ldpaths")
     ldpaths_out = ""
