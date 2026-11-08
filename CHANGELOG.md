@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.6.0 - 2026-11-08
+
+### Features
+
+* Support multi-index `PyObject` subscripting (`[` / `[<-`) and evaluate `py_eval` / `py_call` string targets in `__main__` ([#54](https://github.com/randy3k/rchitect/pull/54))
+* Configure `R_DOC_DIR`, `R_INCLUDE_DIR`, `R_SHARE_DIR`, and Windows non-UTF-8 ACP fallback in `rchitect.init()`, and add `reticulate` state/hook helpers (`is_installed`, `is_loaded`, `on_load`, `py_repl_active`) ([#54](https://github.com/randy3k/rchitect/pull/54))
+
+### Bug Fixes
+
+* Avoid linking `DT_NEEDED` `libR.so` on Linux and register `libR.so`, `libRblas.so`, and `libRlapack.so` SONAMEs in glibc's `link_map` when loading via `ctypes` so R packages load without `LD_LIBRARY_PATH` ([#54](https://github.com/randy3k/rchitect/pull/54))
+* Wire `cb_reset_console` (`ResetConsole`) and clear buffered console input on reset or callback error ([#54](https://github.com/randy3k/rchitect/pull/54))
+* Use a child mask environment in `rprint()` to avoid clobbering `envir`, suppress console flush in `parse_text_incomplete()`, and make `RObject.__repr__` resilient to `R_MissingArg` and print errors ([#54](https://github.com/randy3k/rchitect/pull/54))
+* Use `dir()` in `py_names()` for `.DollarNames.PyObject` completion and return visible results for `PyObject` logical operators (`&`, `|`, `!`) ([#54](https://github.com/randy3k/rchitect/pull/54))
+* Harden C conversion, Python exception formatting in `xptr` callbacks, symbol/environment validation, and `SEXP` pointer type checks ([#54](https://github.com/randy3k/rchitect/pull/54))
+* Harden R environment variable parsing, `R_BINARY` tilde expansion, and Windows DLL `PATH` normalization, and include `<stdio.h>` / `<stdlib.h>` for Python 3.15t `abi3t` wheel builds ([#54](https://github.com/randy3k/rchitect/pull/54))
+
+### Performance & Refactoring
+
+* Remove `rchitect.completion` (moved to `radian`) and unused C callback stubs ([#54](https://github.com/randy3k/rchitect/pull/54))
+* Prune unused R C-API declarations, make `SEXP` opaque, add `RObject.__slots__` with direct C-side allocation, fast-path positional `xptr` callbacks and ASCII string/symbol conversions, and implement `getoption` / `roption` in C ([#54](https://github.com/randy3k/rchitect/pull/54))
+* Cache `rversion(rhome)` results and `reticulate` `pop_pending_py_object` lookup ([#54](https://github.com/randy3k/rchitect/pull/54))
+
+**Full Changelog**: https://github.com/randy3k/rchitect/compare/v0.5.2...v0.6.0
+
 ## 0.5.2 - 2026-09-30
 
 ### Bug Fixes
