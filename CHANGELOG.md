@@ -10,6 +10,7 @@
 ### Bug Fixes
 
 * Avoid linking `DT_NEEDED` `libR.so` on Linux and register `libR.so`, `libRblas.so`, and `libRlapack.so` SONAMEs in glibc's `link_map` when loading via `ctypes` so R packages load without `LD_LIBRARY_PATH` ([#54](https://github.com/randy3k/rchitect/pull/54))
+* Preserve existing `LD_LIBRARY_PATH` / `DYLD_FALLBACK_LIBRARY_PATH` entries ahead of `R_LD_LIBRARY_PATH` on Unix re-exec so system library paths in `$R_HOME/etc/ldpaths` do not shadow the host Python's `libpython` ([#55](https://github.com/randy3k/rchitect/pull/55))
 * Wire `cb_reset_console` (`ResetConsole`) and clear buffered console input on reset or callback error ([#54](https://github.com/randy3k/rchitect/pull/54))
 * Use a child mask environment in `rprint()` to avoid clobbering `envir`, suppress console flush in `parse_text_incomplete()`, and make `RObject.__repr__` resilient to `R_MissingArg` and print errors ([#54](https://github.com/randy3k/rchitect/pull/54))
 * Use `dir()` in `py_names()` for `.DollarNames.PyObject` completion and return visible results for `PyObject` logical operators (`&`, `|`, `!`) ([#54](https://github.com/randy3k/rchitect/pull/54))

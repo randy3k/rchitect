@@ -505,6 +505,7 @@ def _setup_unix_preload_env(rhome, env):
     if os.path.isfile(ldpaths):
         try:
             sub_env = env.copy()
+            sub_env["R_HOME"] = rhome
             sub_env["_RCHITECT_TMP_LDPATHS"] = ldpaths
             ldpaths_out = (
                 subprocess.check_output(
@@ -533,8 +534,12 @@ def _setup_unix_preload_env(rhome, env):
 
     ld_var = "DYLD_FALLBACK_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH"
     existing_ld = env.get(ld_var, "")
+    # Keep any pre-existing entries (e.g. Python's own libpython directory from
+    # actions/setup-python, conda, or custom builds) ahead of R_LD_LIBRARY_PATH,
+    # which may contain system library dirs like /usr/lib/x86_64-linux-gnu that
+    # would otherwise shadow the host interpreter's libpython on os.execve.
     env[ld_var] = (
-        "{}:{}".format(r_ld_library_path, existing_ld) if existing_ld else r_ld_library_path
+        "{}:{}".format(existing_ld, r_ld_library_path) if existing_ld else r_ld_library_path
     )
 
     if sys.platform == "darwin":

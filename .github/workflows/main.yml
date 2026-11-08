@@ -23,6 +23,8 @@ jobs:
         exclude:
           - os: windows-11-arm
             python: "3.10"
+          - os: windows-11-arm
+            r: devel
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

@@ -172,6 +172,12 @@ def test_host():
     out = subprocess.check_output([sys.executable, "-c", code], env=env).decode("utf-8").strip()
     assert out.endswith("HOST_OK")
 
+    if not sys.platform.startswith("win"):
+        ld_var = "DYLD_FALLBACK_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH"
+        test_env = {"PATH": os.environ.get("PATH", ""), ld_var: "/opt/custom/python/lib"}
+        u._setup_unix_preload_env(get_rhome(), test_env)
+        assert test_env[ld_var].startswith("/opt/custom/python/lib:")
+
 
 def test_host_r_binary_arg(tmp_path):
     r_bin = shutil.which("R")
