@@ -10,7 +10,7 @@
 ## Features
 
 - **Low-overhead CFFI bridge**: Dynamically links `libR` at runtime and converts between Python objects and R `SEXP`s directly in C.
-- **Full R console & event loop callbacks**: Supports `read_console`, `write_console_ex`, `polled_events`, `process_events`, `busy`, `show_message`, `yes_no_cancel`, and interrupt-safe console execution.
+- **Full R console & event loop callbacks**: Supports `read_console`, `write_console_ex`, `reset_console`, `polled_events`, `busy`, `clean_up`, `show_message`, `yes_no_cancel`, and interrupt-safe console execution.
 - **Bidirectional Python ↔ R calls**: Call R functions directly from Python (`rcall`, `reval`), pass Python callables into R as native R closures, or import and call Python modules from R via `rchitect.py_tools`.
 - **Seamless [`reticulate`](https://rstudio.github.io/reticulate/) integration**: Automatically registers S3 methods so `RObject` and `PyObject` convert transparently across `rchitect` and `reticulate`.
 - **Cross-platform binary wheels**: Prebuilt wheels for Linux (`x86_64`, `aarch64`), macOS (`x86_64`, `arm64`), and Windows (`AMD64`, `ARM64`) across Python 3.10+, including a native Windows UTF-8 host (`rchitect/host.exe`) for R >= 4.2.
